@@ -59,6 +59,12 @@ flowchart LR
 │  └─ game/
 │     ├─ config.ts
 │     ├─ constants.ts
+│     ├─ core/
+│     │  ├─ math.ts
+│     │  ├─ model.ts
+│     │  ├─ random.ts
+│     │  ├─ rules.ts
+│     │  └─ simulation.ts
 │     └─ scenes/
 │        └─ BootScene.ts
 ├─ index.html
@@ -73,6 +79,8 @@ flowchart LR
 - Domain logic: 점수, 난이도, Context 수치 계산
 - Systems: 여러 Scene 객체를 함께 갱신하는 동작이 실제로 생긴 경우
 - Services: local storage와 leaderboard HTTP 통신
+
+현재 core는 Phaser를 import하지 않는다. `stepGame`은 전달받은 state를 통제된 순서로 변경하지만 외부 I/O를 하지 않으며, 같은 seed·입력·고정 tick 수에는 같은 결과를 만든다.
 
 ## 5. 게임 상태
 
@@ -173,6 +181,8 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - 충돌 판정은 처음에는 단순 거리 검사로 시작하고 필요할 때 공간 분할을 검토한다.
 - 에셋은 브라우저 캐시가 가능한 정적 파일로 제공한다.
 - 개발자 도구를 열지 않아도 오류 상태를 알 수 있게 한다.
+- simulation은 60 Hz 고정 timestep으로만 전진한다. render delta는 100ms로 제한하고 한 frame에서 최대 6 tick만 처리한다.
+- 탭 blur/hidden 동안 게임과 타이머를 멈추고 복귀 시 accumulator를 비운다.
 
 ## 9. 테스트 전략
 

@@ -2,6 +2,37 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — 결정론적 게임 코어 구현
+
+### 완료한 변경
+
+- Phaser와 분리된 model, math, seed RNG, rules, simulation 모듈 구현
+- 60 Hz 기준 이동, 화면 wrap, 토큰 수집, 꼬리 성장 구현
+- Context 단계별 배율, `COMPACT` 점수 확정과 충격파 구현
+- Context 24개와 2초 Overflow 피해 구현
+- `TAB SWARM`, `MEMORY LEAK`, `NOTIFICATION`의 생성·이동·분열·예고/돌진 규칙 구현
+- 피격, 무적, 목숨 소진, 90초 종료, 생존 보너스, 재시작 상태 구현
+- Graphify 지식 그래프 생성: 240 nodes, 478 edges, 12 communities
+
+### 검증
+
+- `pnpm check`: 통과
+- Vitest: 3 files, 25 tests 통과
+- 25개 seed × 최대 5,400 tick soak에서 NaN, 음수 상태, 개체 상한 초과 없음
+- 같은 seed와 입력 stream의 최종 state 일치
+- 정확한 90초 종료, COMPACT/충돌 우선순위, 무적, Overflow 단발 피해, 결과 상태 불변 검증
+
+### 남은 위험
+
+- core가 아직 Phaser Scene과 연결되지 않아 실제 조작감은 검증하지 않았다.
+- 현재 수치는 자동 검증용 1차 기준이며 브라우저 플레이 후 조정이 필요하다.
+
+### 다음 행동
+
+1. 입력 controller, renderer, HUD, local best service를 구현한다.
+2. GameScene에서 fixed timestep과 lifecycle을 연결한다.
+3. production 브라우저에서 시작부터 재시작까지 직접 검증한다.
+
 ## 2026-08-23 — 저장소 초기화와 개발 기반 구성
 
 ### 목표
