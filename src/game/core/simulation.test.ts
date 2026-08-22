@@ -132,11 +132,23 @@ describe("game simulation", () => {
     const state = playingState();
     state.pendingTokens = 12;
     state.score = 2_000;
-    state.enemies = [enemy(700, state.player.position)];
+    state.enemies = [
+      enemy(700, state.player.position),
+      enemy(702, {
+        x: state.player.position.x + GAMEPLAY.hitClearRadius - 40,
+        y: state.player.position.y,
+      }),
+      enemy(703, {
+        x: state.player.position.x + GAMEPLAY.hitClearRadius + 240,
+        y: state.player.position.y,
+      }),
+    ];
 
     const firstHit = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     const livesAfterHit = state.lives;
-    state.enemies = [enemy(701, state.player.position)];
+    expect(state.enemies.some((candidate) => candidate.id === 702)).toBe(false);
+    expect(state.enemies.some((candidate) => candidate.id === 703)).toBe(true);
+    state.enemies.push(enemy(701, state.player.position));
     const ignoredHit = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
     expect(livesAfterHit).toBe(STARTING_LIVES - 1);

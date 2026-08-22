@@ -5,6 +5,7 @@ import {
   STARTING_LIVES,
 } from "../constants";
 import {
+  clamp,
   circlesOverlap,
   directionBetween,
   distanceSquared,
@@ -367,12 +368,12 @@ function moveChaser(
 ): void {
   const targetDirection = directionBetween(enemy.position, target);
   enemy.velocity = rotateToward(enemy.velocity, targetDirection, 3 * stepSeconds);
-  enemy.position.x = wrap(
+  enemy.position.x = clamp(
     enemy.position.x + enemy.velocity.x * speed * stepSeconds,
     ARENA.left,
     ARENA.right,
   );
-  enemy.position.y = wrap(
+  enemy.position.y = clamp(
     enemy.position.y + enemy.velocity.y * speed * stepSeconds,
     ARENA.top,
     ARENA.bottom,
@@ -458,10 +459,15 @@ function applyPlayerHit(
   source: EnemyKind | "overflow",
   events: GameEvent[],
 ): void {
+  const clearRadiusSquared = GAMEPLAY.hitClearRadius * GAMEPLAY.hitClearRadius;
   state.lives = Math.max(0, state.lives - 1);
   state.pendingTokens = 0;
   state.overflowRemainingMs = null;
   state.player.invulnerableMs = GAMEPLAY.invulnerabilityMs;
+  state.enemies = state.enemies.filter(
+    (enemy) =>
+      distanceSquared(enemy.position, state.player.position) > clearRadiusSquared,
+  );
   trimTrail(state);
   events.push({ type: "player-hit", source, lives: state.lives });
 }

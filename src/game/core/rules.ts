@@ -73,10 +73,10 @@ export function difficultyAt(elapsedMs: number): Difficulty {
 
   return {
     progress,
-    tabIntervalMs: lerp(2_000, 750, progress) * intervalScale,
+    tabIntervalMs: lerp(2_800, 950, progress) * intervalScale,
     leakIntervalMs: lerp(14_000, 10_000, progress) * intervalScale,
     notificationIntervalMs: lerp(11_000, 7_000, progress) * intervalScale,
-    tabSpeed: lerp(95, 155, progress),
+    tabSpeed: lerp(75, 140, progress),
     leakSpeed: lerp(70, 100, progress),
     notificationSpeed: lerp(500, 650, progress),
     deadline,
