@@ -16,7 +16,9 @@
 
 - 상승된 BGM gain이 effect peak보다 낮은지, stage 변경 cue가 한 번만 발생하는지, error·delivery event가 추가 oscillator layer를 생성하는지 unit test 추가
 - `pnpm check` 통과: typecheck, 12개 test file의 74개 test, production build, production verifier 완료
-- production 반영과 실제 청감 확인은 별도로 진행
+- Sites version 26 production deployment 성공
+- 공개 root, `index-C1r3ou--.js`, `index-BBmZ4hxh.css`가 모두 HTTP 200으로 응답하고 배포 직후 최근 worker 오류 로그 0건 확인
+- 실제 청감의 음량 균형과 motif 인지도는 사용자 플레이 확인 필요
 
 ## 2026-08-24 — command 공백과 Start ambient 진입 경로 수정
 
