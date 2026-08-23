@@ -41,7 +41,7 @@ function terminalTokens(label: string): AttackTextToken[] {
   const parts = label.match(TOKEN_PATTERN) ?? [label];
   let executableFound = false;
 
-  return parts.map((text) => {
+  const tokens = parts.map((text) => {
     const lower = text.toLowerCase();
     const normalized = lower.replace(/:$/, "");
 
@@ -69,6 +69,12 @@ function terminalTokens(label: string): AttackTextToken[] {
     }
     return token(text, "ink");
   });
+
+  if (tokens[0]?.text === "$" && /^\s+$/.test(tokens[1]?.text ?? "")) {
+    tokens[0] = token(`$${tokens[1]?.text}`, "muted");
+    tokens.splice(1, 1);
+  }
+  return tokens;
 }
 
 function browserTokens(label: string): AttackTextToken[] {

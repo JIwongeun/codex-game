@@ -319,7 +319,7 @@ body {
   align-items: center;
   gap: 0;
   white-space: nowrap;
-  opacity: 0.11;
+  opacity: 0.16;
   font-size: clamp(0.62rem, 0.85vw, 0.78rem);
   font-weight: 400;
   letter-spacing: 0;

@@ -2,6 +2,20 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — Start ambient 대비와 terminal prompt 간격 조정
+
+### 시각 조정
+
+- Start 화면의 edge-to-edge ambient command opacity를 `0.11`에서 `0.16`으로 올려 흰 배경에서도 문구와 이동 방향을 읽기 쉽게 조정
+- blur·속도·surface별 token 색은 유지해 본문보다 뒤에 있는 배경 계층의 위계를 보존
+- terminal syntax token에서 `$`와 바로 뒤 한 칸을 같은 token으로 묶어 prompt·`git`·`pnpm`·`rg` 사이의 과장된 여백을 없애고 이후 인자·option 간격은 유지
+
+### 검증
+
+- terminal prompt 결합과 나머지 syntax role을 presentation unit test로 고정
+- `pnpm check`: TypeScript typecheck, Vitest 12 files의 65 tests, Worker/client build와 production verifier 통과
+- production 배포 후 실제 응답과 bundle 반영은 별도로 확인 예정
+
 ## 2026-08-24 — 첫 HTML favicon 404 제거
 
 ### 배포 로그 진단

@@ -5,8 +5,7 @@ import { attackTextTokens } from "./attackText";
 describe("attackTextTokens", () => {
   it("matches Codex terminal syntax roles inside one command", () => {
     expect(attackTextTokens("terminal", '$ git commit -m "fix"')).toEqual([
-      { text: "$", role: "muted" },
-      { text: " ", role: "ink" },
+      { text: "$ ", role: "muted" },
       { text: "git", role: "terminalExecutable" },
       { text: " ", role: "ink" },
       { text: "commit", role: "ink" },
