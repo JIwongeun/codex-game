@@ -266,12 +266,14 @@ export class GameRenderer {
     const x = Math.round(state.player.position.x);
     const y = Math.round(state.player.position.y);
 
-    const blink = Math.floor(state.elapsedMs / 420) % 2 === 0;
     this.playerLayer.fillStyle(COLORS.surface, 1);
-    this.playerLayer.fillRect(x - 5, y - 8, 10, 16);
+    this.playerLayer.fillRect(x - 8, y - 8, 16, 16);
     this.playerLayer.fillStyle(COLORS.black, 1);
-    const cursorWidth = blink ? 6 : 2;
-    this.playerLayer.fillRect(x - cursorWidth / 2, y - 6, cursorWidth, 12);
+    this.playerLayer.fillRect(x - 6, y - 6, 12, 12);
+    this.playerLayer.fillStyle(COLORS.surface, 1);
+    this.playerLayer.fillRect(x - 2, y - 2, 4, 4);
+    this.playerLayer.fillStyle(ATTACK_TONES.codex.value, 1);
+    this.playerLayer.fillRect(x - 1, y - 1, 2, 2);
   }
 
   private syncProjectileLabels(state: GameState): void {

@@ -2,7 +2,7 @@
 
 ## 한 문장
 
-`Codex is working.` 화면에서 작은 terminal block caret을 움직여, 행동 자체가 개발 용어를 패러디하는 공격을 피하며 오래 버틴다.
+`Codex is working.` 화면에서 작은 정사각형 agent node를 움직여, 행동 자체가 개발 용어를 패러디하는 공격을 피하며 오래 버틴다.
 
 이 게임은 Codex UI 복제품이 아니다. 흰 task surface, 건조한 상태 문구, 넓은 여백과 개발 작업의 인과관계를 terminal arcade 문법으로 번역한다.
 
@@ -78,10 +78,10 @@
 
 ### Player
 
-- 시각 크기는 최대 6×12인 검은 terminal block caret이다.
-- 실제 피격 반경은 5px로 정밀 회피에 관용을 둔다.
-- caret은 입력 방향과 무관하게 같은 모양을 유지하며 방향 notch, 화살표, corner mark를 표시하지 않는다.
-- 420ms 간격으로 6px block과 2px caret 폭을 오가며 blink하고, 10×16 white clearance로 겹친 문구와 분리한다.
+- 아이콘은 12×12 black square, 4×4 white inset, 2×2 Codex violet core로 구성한 정사각형 agent node다.
+- 16×16 white clearance를 먼저 그려 흰 화면에서도 외곽이 공격 문구에 묻히지 않게 한다.
+- 실제 피격 반경은 5px로 시각 외곽보다 작아 정밀 회피에 관용을 둔다.
+- 아이콘은 시간과 입력 방향에 따라 변하지 않는다. blink, 폭 변화, 방향 notch, 화살표, corner mark를 표시하지 않는다.
 - OS cursor, OpenAI logo, Codex logo를 모사하지 않는다.
 
 ### 화면 상태

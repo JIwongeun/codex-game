@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 import type { GameState, HitSource } from "../core/model";
 import { difficultyAt, formatSurvivalTime } from "../core/rules";
-import { COLORS, FONTS, TEXT_COLORS } from "./theme";
+import { ATTACK_TONES, COLORS, FONTS, TEXT_COLORS } from "./theme";
 
 const SOURCE_LABEL: Record<HitSource, string> = {
   log: "ONE MORE CHANGE",
@@ -203,7 +203,11 @@ export class Hud {
 
   private drawAgentPrompt(x: number, y: number): void {
     this.overlay.fillStyle(COLORS.black, 1);
-    this.overlay.fillRect(x, y + 4, 6, 12);
+    this.overlay.fillRect(x, y + 4, 12, 12);
+    this.overlay.fillStyle(COLORS.surface, 1);
+    this.overlay.fillRect(x + 4, y + 8, 4, 4);
+    this.overlay.fillStyle(ATTACK_TONES.codex.value, 1);
+    this.overlay.fillRect(x + 5, y + 9, 2, 2);
   }
 
   private hideOverlay(): void {

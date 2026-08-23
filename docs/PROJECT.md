@@ -2,7 +2,7 @@
 
 ## 1. 제품 정의
 
-`await CODEX: CONTEXT//OVERFLOW`는 AI 코딩 에이전트가 작업하는 동안 키보드로 작은 block caret을 움직여 terminal·browser·Codex 작업의 골칫거리를 피하고 최고 생존 기록에 도전하는 싱글플레이 웹 아케이드다.
+`await CODEX: CONTEXT//OVERFLOW`는 AI 코딩 에이전트가 작업하는 동안 키보드로 작은 정사각형 agent node를 움직여 terminal·browser·Codex 작업의 골칫거리를 피하고 최고 생존 기록에 도전하는 싱글플레이 웹 아케이드다.
 
 고전 플래시 게임 `죽림고수`의 핵심인 사방 공격, 작은 피격 판정, 생존 시간 경쟁, 즉시 재도전 감각을 근간으로 삼는다. 원작 캐릭터·배경·화살은 복제하지 않고 개발자와 브라우저라는 현재 콘셉트로 다시 설계한다.
 
@@ -51,7 +51,7 @@
 - `WASD`와 방향키를 동일한 8방향 입력으로 합치고, 440px/s 고정 속도로 이동한다.
 - 대각선 입력은 정규화해 직선보다 빠르지 않게 하며 가속과 관성은 사용하지 않는다.
 - 플레이어는 화면 경계를 넘지 않는다.
-- 화면에는 입력 방향 장식이 없는 작은 검은 terminal block caret을 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
+- 화면에는 black square·white inset·Codex violet core로 된 정적인 정사각형 agent node를 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
 - 탭 blur/hidden pause 중에는 simulation과 타이머를 동결하고 held movement key를 초기화한다. 복귀 후 클릭 또는 Space로 재개한다.
 - 직선 공격은 보이는 명령어 외곽과 같은 방향으로 회전하는 사각 hitbox를 사용하고 player는 작은 원형 hitbox를 사용한다.
 - 프레임률과 관계없이 60 Hz 고정 timestep으로 이동과 충돌을 판정한다.
@@ -102,7 +102,7 @@
 ## 7. MVP 포함 범위
 
 - Ready → Playing → Results → Retry 상태
-- 작은 검은 terminal block caret의 WASD·방향키 8방향 이동
+- 정적인 정사각형 agent node의 WASD·방향키 8방향 이동
 - 한 번 피격 시 종료와 생존 시간 기록
 - 의미가 다른 공격 패턴 7종과 수렴·분할 sequence
 - 12초 단위 Stage 1–10 난이도 상승과 공격 상한

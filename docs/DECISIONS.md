@@ -173,7 +173,15 @@
 ## D-022 — 흑백 base 위에서 terminal·browser·Codex surface를 각각 표현한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, 실제 플레이 가독성은 사용자 확인 후 미세 조정 가능
+- 상태: 일부 대체됨 — 공격 surface 결정은 유지하고 D-023이 player caret만 정적 정사각형 node로 교체
 - 배경: 흑백은 전체 게임의 base일 뿐 모든 Codex 작업이 terminal인 것은 아니다. browser 작업과 Codex tool·review·context까지 monospace와 ANSI식 색으로 통일하면 출처의 개연성이 사라진다. 기존 크기도 넓은 viewport에서 여전히 크게 느껴졌다.
 - 결정: projectile에 `surface: terminal | browser | codex`를 명시한다. terminal은 10–11px monospace와 `$`·ANSI 의미색, browser는 10px sans와 6×8 page-outline·page/error 색, Codex는 10–11px Pretendard와 3×3 tool-state marker·violet context 언어를 쓴다. 기본 `LOG STREAM`에는 점선 경로와 motion rail을 표시하지 않는다. player는 최대 6×12, HUD는 8–24px, projectile hitbox는 새 font scale에 맞춰 축소한다.
 - 결과: 하나의 탄막 안에서도 작업 출처가 font·copy·glyph·색으로 구분된다. 흑백 task surface는 통일감을 담당하고 accent는 각 surface의 정보 의미만 전달한다. 기본 공격은 경로선 없이 날아오는 문구 자체만 남고 전체 viewport는 상대적으로 넓게 느껴진다.
+
+## D-023 — player를 정적인 정사각형 agent node로 교체한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, 크기와 inset 대비만 실제 플레이로 미세 조정 가능
+- 배경: 6×12 caret은 흰 배경에서 너무 가늘어 player 위치가 잘 보이지 않았고, 6px↔2px blink 때문에 아이콘 실루엣도 계속 달라졌다. 사용자는 animation이 없는 정적인 정사각형 아이콘을 요청했다.
+- 결정: player는 12×12 black square, 4×4 white inset, 2×2 Codex violet core로 그린다. 16×16 white clearance로 주변 공격 문구와 분리한다. 시간과 입력 방향에 따른 blink·폭 변화·방향 장식은 모두 제거한다. 기존 이동, 피격 반경 5px과 판정은 변경하지 않는다.
+- 결과: 흰 화면에서 검은 정사각형 외곽이 항상 같은 크기로 보이고, 작은 violet core가 Codex 작업 주체임을 표시한다. Ready 화면의 player glyph도 동일한 구조로 맞춘다.

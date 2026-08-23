@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — 정적인 정사각형 agent node player
+
+### UI·연출
+
+- 흰 배경에서 가늘게 보이던 6×12 blinking caret을 12×12 black square agent node로 교체
+- 중심에 4×4 white inset과 2×2 Codex violet core를 두고 16×16 white clearance로 공격 문구와 분리
+- blink, 폭 변화와 입력 방향에 따른 모든 시각 변화를 제거해 이동 중에도 동일한 정적 아이콘 유지
+- Ready 화면의 player glyph도 같은 black square·white inset·violet core 구조로 통일
+- 이동 속도와 피격 반경 5px 등 gameplay 판정은 변경하지 않음
+
+### 검증
+
+- `pnpm check`: typecheck, Vitest 6 files의 46 tests, Worker/client production build 통과
+- 사용자 요청에 따라 자동 browser 시각 판정은 하지 않고 실제 아이콘 대비와 크기 확인을 사용자에게 넘김
+
 ## 2026-08-23 — 작업 surface별 공격 언어와 compact gameplay scale
 
 ### UI·연출
