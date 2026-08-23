@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — focus lifecycle·mute·production gate 보강
+
+### lifecycle과 오디오
+
+- `FocusPauseController`를 runtime에 분리해 blur·hidden 시 fixed-step accumulator와 held movement key를 함께 비우고, focus가 돌아와도 클릭 또는 Space 전까지 pause 상태를 유지
+- `GameScene`의 BLUR·HIDDEN·FOCUS·VISIBLE handler를 같은 controller에 연결하고 pause 중 simulation과 renderer delta를 0으로 유지
+- `SoundService`가 active gain을 추적해 mute 순간 이미 재생 중인 tone도 disconnect하고, mute 중에는 AudioContext를 새로 만들지 않도록 검증
+
+### production 검증
+
+- `scripts/verify-production.mjs`를 `pnpm check` 마지막 gate로 추가
+- Worker entry, client entry, Sites project metadata, Open Graph PNG·16:9 비율, page metadata를 검사하고 개발 전용 `qaElapsedSeconds`가 production HTML·JavaScript에서 제거됐는지 확인
+- `pnpm check`: TypeScript typecheck, Vitest 11 files의 60 tests, Worker/client build, 98 client files와 1672×941 OG production 검증 통과
+- 실제 브라우저 background 복귀의 체감과 audio 출력은 사용자가 production에서 확인할 수 있도록 manual checklist로 유지
+
 ## 2026-08-23 — Stage 10 안정성·공정성 및 제출 자산 점검
 
 ### 검증 보강

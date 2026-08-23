@@ -89,7 +89,8 @@ flowchart LR
 │     │  ├─ ReadyOverlay.ts
 │     │  └─ theme.ts
 │     ├─ runtime/
-│     │  └─ FixedStepRunner.ts
+│     │  ├─ FixedStepRunner.ts
+│     │  └─ FocusPauseController.ts
 │     ├─ services/
 │     │  ├─ localBest.ts
 │     │  └─ SoundService.ts
@@ -107,8 +108,8 @@ flowchart LR
 - Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
 - Input: Phaser keyboard event를 정규화된 WASD·방향키 방향 intent로 변환하고 click·Space action 및 음소거를 분리한다. blur/hidden에서는 held movement key를 비운다.
 - Presentation: domain의 명시적 `ProjectileState.surface`를 읽고 `attackText.ts`가 한 label을 syntax token으로 나눈다. terminal은 Codex terminal 계열 monospace와 executable·parameter·string·output 색, browser는 system sans와 page glyph·error code·path, Codex는 Pretendard와 tool token·본문 문법으로 그린다. token Text를 묶은 회전 Container, 회전 사각 hitbox와 glyph 없는 12×12 black square player를 Canvas에 표시하고 Game HUD를 갱신한다. projectile·hazard·sequence label Container는 entity id 기반 bounded map으로 관리한다. `ReadyOverlay`는 최초 진입과 game over가 공유하는 Start layout, last run·local best와 같은 token 문법으로 무작위 edge-to-edge를 흐르는 presentation-only ambient motion을 담당한다. `PauseOverlay`는 Game 위의 일시적인 blur 안내만 담당한다. 두 DOM 계층 모두 simulation state를 변경하지 않는다.
-- Runtime: render delta를 제한된 60 Hz simulation tick으로 변환
-- Services: local storage와 브라우저 효과음. leaderboard HTTP는 실제 구현 시에만 추가
+- Runtime: render delta를 제한된 60 Hz simulation tick으로 변환한다. blur·hidden pause는 fixed-step backlog와 held input을 함께 비우고 focus 뒤에도 클릭 또는 Space 전까지 simulation을 재개하지 않는다.
+- Services: local storage와 브라우저 효과음. mute는 새 tone 생성을 막고 이미 재생 중인 gain도 즉시 disconnect한다. leaderboard HTTP는 실제 구현 시에만 추가
 
 현재 core는 Phaser를 import하지 않는다. `stepGame`은 전달받은 state를 통제된 순서로 변경하지만 외부 I/O를 하지 않으며, 같은 seed·입력·고정 tick 수에는 같은 결과를 만든다.
 

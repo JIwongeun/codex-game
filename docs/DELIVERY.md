@@ -117,8 +117,9 @@
 - [x] 한 번 피격 시 생존 시간으로 종료
 - [x] 개발 검증에서 12·24·36·48·60·72초 패턴 해제와 108초 Stage 10 cap
 - [x] 재시작 시 상태 초기화
-- [ ] background 탭 복귀 시 타이머 정상
-- [ ] 소리 음소거 가능
+- [x] lifecycle 회귀 검증에서 blur·hidden 시 fixed-step·held key reset, focus 후 명시적 action 전까지 pause 유지
+- [ ] 실제 브라우저 background 탭 복귀 시 타이머 정상
+- [x] M 입력과 Web Audio 음소거·active tone 차단
 
 ### 랭킹 — 후순위 기능을 구현한 경우에만
 
@@ -138,9 +139,9 @@
 
 ### 제출 자료
 
-- [ ] 게임 제목
+- [x] 게임 제목 — `await CODEX: CONTEXT//OVERFLOW`
 - [ ] 200자 이내 소개
-- [ ] 플레이 URL
+- [x] 플레이 URL — [production](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
 - [x] 16:9 PNG/JPG 썸네일 — `public/og.png` 1672×941
 - [ ] 3분 이하 플레이 영상
-- [ ] Codex 활용 과정
+- [x] Codex 활용 과정 — `docs/WORKLOG.md`, `docs/DECISIONS.md`

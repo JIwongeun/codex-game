@@ -149,7 +149,8 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 - `presentation/ReadyOverlay.ts`: 최초 진입과 game over가 공유하는 Start DOM layout, original game mark, last run·local best와 ambient attack feed
 - `presentation/Hud.ts`: Game 화면의 stage·시간·best만 표시. 공격명 announcement와 별도 Results UI는 금지
 - `presentation/PauseOverlay.ts`: focus pause 표현
-- `services/SoundService.ts`: warning, convergence burst, hit의 최소 tone
+- `runtime/FocusPauseController.ts`: blur·hidden에서 fixed-step backlog와 held input을 비우고 명시적 action 전까지 pause 유지
+- `services/SoundService.ts`: warning, convergence burst, hit의 최소 tone과 즉시 mute 시 active gain 차단
 
 Presentation은 판정을 만들지 않고 simulation state만 그린다. 문구 폭과 방향에 필요한 hitbox는 simulation model에 명시한다.
 
@@ -159,5 +160,5 @@ Presentation은 판정을 만들지 않고 simulation state만 그린다. 문구
 - Stage 1–10 경계와 Stage 10 cap이 자동 테스트로 고정된다.
 - 상단 중앙 공격 설명이 없고 실제 공격 표현만으로 판독 가능하다.
 - 흰 task surface와 흑백 HUD, terminal·browser·Codex별 서체·glyph·의미색, 전체 viewport 규칙을 유지한다.
-- typecheck, deterministic simulation tests, seeded entity-cap soak와 production build가 통과한다.
+- typecheck, deterministic simulation tests, lifecycle·mute tests, seeded entity-cap soak와 production build 검증이 통과한다.
 - public production URL에서 사용자가 실제 가독성과 난이도를 확인한다. 검색 색인은 차단하지만 URL 접근 자체는 공개다.

@@ -15,6 +15,7 @@ import { Hud } from "../presentation/Hud";
 import { PauseOverlay } from "../presentation/PauseOverlay";
 import { ReadyOverlay } from "../presentation/ReadyOverlay";
 import { FixedStepRunner } from "../runtime/FixedStepRunner";
+import { FocusPauseController } from "../runtime/FocusPauseController";
 import { readLocalBest, saveLocalBest } from "../services/localBest";
 import { SoundService } from "../services/SoundService";
 
@@ -27,15 +28,14 @@ export class GameScene extends Phaser.Scene {
   private readyOverlay!: ReadyOverlay;
   private readonly fixedStep = new FixedStepRunner();
   private readonly soundService = new SoundService();
+  private focusPause!: FocusPauseController;
   private localBest = 0;
-  private focusPaused = false;
 
   constructor() {
     super("game");
   }
 
   create(): void {
-    this.focusPaused = false;
     this.fixedStep.reset();
     this.state = createGameState(
       this.createSeed(),
@@ -48,6 +48,10 @@ export class GameScene extends Phaser.Scene {
     this.pauseOverlay = new PauseOverlay(gameParent);
     this.readyOverlay = new ReadyOverlay(gameParent);
     this.inputController = new InputController(this);
+    this.focusPause = new FocusPauseController(
+      this.fixedStep,
+      this.inputController,
+    );
     this.localBest = readLocalBest();
 
     this.game.events.on(Phaser.Core.Events.BLUR, this.handleSuspend);
@@ -80,12 +84,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.focusPaused) {
+    if (this.focusPause.isPaused) {
       if (this.inputController.consumeAction()) {
         this.soundService.unlock();
-        this.focusPaused = false;
-        this.fixedStep.reset();
-        this.inputController.clearTransient();
+        this.focusPause.resume();
       }
       this.renderFrame(0);
       return;
@@ -126,14 +128,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private renderFrame(delta: number): void {
-    this.gameRenderer.render(this.state, this.focusPaused ? 0 : delta);
+    this.gameRenderer.render(this.state, this.focusPause.isPaused ? 0 : delta);
     this.hud.render(
       this.state,
       this.localBest,
       this.soundService.isMuted,
     );
     this.readyOverlay.render(this.state, this.localBest);
-    this.pauseOverlay.render(this.focusPaused, this.state.elapsedMs);
+    this.pauseOverlay.render(this.focusPause.isPaused, this.state.elapsedMs);
   }
 
   private handleEvents(events: readonly GameEvent[]): void {
@@ -163,18 +165,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private readonly handleSuspend = (): void => {
-    if (this.state.phase !== "playing") {
-      return;
-    }
-
-    this.focusPaused = true;
-    this.fixedStep.reset();
-    this.inputController.resetForSuspend();
+    this.focusPause.suspend(this.state.phase);
   };
 
   private readonly handleFocus = (): void => {
-    this.fixedStep.reset();
-    this.inputController.resetForSuspend();
+    this.focusPause.focus();
   };
 
   private readonly handleResize = (gameSize: Phaser.Structs.Size): void => {

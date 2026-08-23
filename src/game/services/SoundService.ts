@@ -10,6 +10,7 @@ interface Tone {
 
 export class SoundService {
   private context: AudioContext | null = null;
+  private readonly activeGains = new Set<GainNode>();
   private muted = false;
 
   get isMuted(): boolean {
@@ -34,6 +35,11 @@ export class SoundService {
 
   toggleMute(): boolean {
     this.muted = !this.muted;
+
+    if (this.muted) {
+      this.stopActiveTones();
+    }
+
     return this.muted;
   }
 
@@ -84,6 +90,8 @@ export class SoundService {
   }
 
   destroy(): void {
+    this.stopActiveTones();
+
     if (this.context) {
       const context = this.context;
       this.context = null;
@@ -116,7 +124,24 @@ export class SoundService {
     gain.gain.exponentialRampToValueAtTime(0.0001, now + tone.durationSeconds);
     oscillator.connect(gain);
     gain.connect(this.context.destination);
+    this.activeGains.add(gain);
+    oscillator.addEventListener(
+      "ended",
+      () => {
+        if (this.activeGains.delete(gain)) {
+          gain.disconnect();
+        }
+      },
+      { once: true },
+    );
     oscillator.start(now);
     oscillator.stop(now + tone.durationSeconds);
+  }
+
+  private stopActiveTones(): void {
+    for (const gain of this.activeGains) {
+      gain.disconnect();
+    }
+    this.activeGains.clear();
   }
 }

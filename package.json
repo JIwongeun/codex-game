@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm typecheck && pnpm test && pnpm build"
+    "verify:production": "node scripts/verify-production.mjs",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm verify:production"
   },
   "dependencies": {
     "phaser": "3.90.0",
