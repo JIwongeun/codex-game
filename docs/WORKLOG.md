@@ -28,17 +28,18 @@
 - 동일 seed·입력 stream 결정성, 무입력 정지, arena clamp, 예고 중 무해, 활성 후 피격, 직선·원형·band 충돌, 모든 공격 단계 spawn, 결과 상태 동결, entity 상한 검증
 - 실제 브라우저와 production 정적 preview에서 시작 화면, 마우스 이동, 초반 직선 공격 회피, 45초 단계의 원형·band 예고, 한 번 피격 결과 화면 확인
 - 브라우저 console error/warning 없음
+- source commit `cf889b2`를 Sites production version 2로 배포
+- 공개 URL에서 Ready → Playing → 피격 Results → Retry, 로컬 최고 생존 기록 갱신, 새 JavaScript bundle과 `og.png` 응답 확인
 
 ### 남은 위험
 
 - 난이도 수치는 자동 검증 가능한 1차 기준이다. 실제 사용자의 첫 사망 시간 분포를 보고 공격 간격과 예고 시간을 조정해야 한다.
-- Cloudflare plugin의 로컬 Worker preview에서는 asset 응답이 정상이지만 in-app browser Canvas가 mount되지 않는 현상을 확인했다. 동일 production asset의 정적 preview는 정상이며, 실제 Sites 배포 후 공개 URL에서 다시 검증해야 한다.
-- 새 디자인과 생존 코어는 아직 공개 URL에 배포하지 않았다.
+- Cloudflare plugin의 로컬 Worker preview에서만 Canvas가 mount되지 않는 현상이 있었지만 동일 production asset의 정적 preview와 실제 Sites production에서는 정상 동작했다. 배포 correctness는 공개 URL 결과를 기준으로 확인했다.
 
 ### 다음 행동
 
-1. 공개 URL에 새 version을 배포하고 root 진입·플레이·재시작을 확인한다.
-2. 실제 사용자의 초반 생존 시간과 사망 원인을 보고 수치를 한 차례 조정한다.
+1. 실제 사용자의 초반 생존 시간과 사망 원인을 보고 수치를 한 차례 조정한다.
+2. 12초·24초·42초 단계의 체감 난이도와 예고 시간을 조정한다.
 3. 제출용 썸네일과 플레이 영상을 준비한다.
 
 ## 2026-08-23 — 공개 HTTPS 배포와 외부 실행 검증
