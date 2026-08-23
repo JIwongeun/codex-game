@@ -165,7 +165,15 @@
 ## D-021 — 공격을 작은 terminal output으로 축소하고 색은 의미에만 연결한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, 실제 플레이 가독성은 사용자 확인 후 미세 조정 가능
+- 상태: 일부 대체됨 — D-022가 단일 terminal 문법을 작업 surface별 문법으로 확장하고 scale을 더 축소
 - 배경: 14–20px 굵은 Pretendard 문구, 긴 점선 경로와 motion rail, 30×24 `>_` node와 방향 notch가 합쳐져 실제 terminal보다 회전하는 포스터와 거대한 UI 장식처럼 보였다.
 - 결정: 공격은 `$ command`, `error:`, `warning:`, `[review]`, `[context]` 형식의 11–13px monospace output으로 바꾼다. 색은 command blue, success green, warning amber, error red, Codex·context violet의 의미에만 대응한다. 예고선은 최대 132px, motion rail은 18–34px로 제한하며 hitbox도 실제 문구 크기에 맞춰 줄인다. player는 방향 notch·화살표·corner mark가 없는 8×14 block caret만 그린다.
 - 결과: 기본 바탕과 HUD는 흑백을 유지하면서 공격 정보만 terminal처럼 읽힌다. 공격 방향은 회전 문구와 짧은 예고선으로 알 수 있고, player visual에는 이동 방향 정보가 남지 않는다.
+
+## D-022 — 흑백 base 위에서 terminal·browser·Codex surface를 각각 표현한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, 실제 플레이 가독성은 사용자 확인 후 미세 조정 가능
+- 배경: 흑백은 전체 게임의 base일 뿐 모든 Codex 작업이 terminal인 것은 아니다. browser 작업과 Codex tool·review·context까지 monospace와 ANSI식 색으로 통일하면 출처의 개연성이 사라진다. 기존 크기도 넓은 viewport에서 여전히 크게 느껴졌다.
+- 결정: projectile에 `surface: terminal | browser | codex`를 명시한다. terminal은 10–11px monospace와 `$`·ANSI 의미색, browser는 10px sans와 6×8 page-outline·page/error 색, Codex는 10–11px Pretendard와 3×3 tool-state marker·violet context 언어를 쓴다. 기본 `LOG STREAM`에는 점선 경로와 motion rail을 표시하지 않는다. player는 최대 6×12, HUD는 8–24px, projectile hitbox는 새 font scale에 맞춰 축소한다.
+- 결과: 하나의 탄막 안에서도 작업 출처가 font·copy·glyph·색으로 구분된다. 흑백 task surface는 통일감을 담당하고 accent는 각 surface의 정보 의미만 전달한다. 기본 공격은 경로선 없이 날아오는 문구 자체만 남고 전체 viewport는 상대적으로 넓게 느껴진다.

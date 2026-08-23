@@ -28,21 +28,25 @@ export type AttackPatternKind =
   | "race-condition"
   | "merge-bug";
 export type HitSource = ProjectileKind | HazardKind;
+export type AttackSurface = "terminal" | "browser" | "codex";
 
 export type LogLabel =
   | "+ one more change"
   | "$ pnpm test --watch"
-  | "$ codex retry --last"
-  | "warning: working tree dirty"
+  | "codex: retrying tool"
+  | "warning: tree is dirty"
   | "$ git commit --amend"
   | "error: CI failed"
   | "error TS2322"
   | "[context] 12% left"
   | "$ cat AGENTS.md"
-  | "$ codex inspect workspace"
+  | "codex: inspecting..."
   | "fixing one last test..."
-  | "error: PR #404"
-  | "git: rebase required";
+  | "git: rebase required"
+  | "404 Not Found"
+  | "ERR_CONNECTION_REFUSED"
+  | "PAGE_UNRESPONSIVE"
+  | "net::ERR_FAILED";
 
 export type ReviewLabel =
   | "[review] approval required"
@@ -66,6 +70,7 @@ export interface PlayerState {
 export interface ProjectileState {
   id: number;
   kind: ProjectileKind;
+  surface: AttackSurface;
   label: ProjectileLabel;
   position: Vec2;
   velocity: Vec2;

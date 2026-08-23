@@ -11,6 +11,7 @@ import {
 } from "./math";
 import type {
   AreaHazardState,
+  AttackSurface,
   AttackSequenceState,
   ArenaBounds,
   GameEvent,
@@ -29,20 +30,26 @@ import { nextRandom, normalizeSeed } from "./random";
 import { difficultyAt } from "./rules";
 
 const PLAYER_START_DIRECTION: Vec2 = { x: 1, y: 0 };
-const LOG_LABELS: readonly LogLabel[] = [
-  "+ one more change",
-  "$ pnpm test --watch",
-  "$ codex retry --last",
-  "warning: working tree dirty",
-  "$ git commit --amend",
-  "error: CI failed",
-  "error TS2322",
-  "[context] 12% left",
-  "$ cat AGENTS.md",
-  "$ codex inspect workspace",
-  "fixing one last test...",
-  "error: PR #404",
-  "git: rebase required",
+const LOG_ENTRIES: readonly {
+  label: LogLabel;
+  surface: AttackSurface;
+}[] = [
+  { label: "+ one more change", surface: "codex" },
+  { label: "$ pnpm test --watch", surface: "terminal" },
+  { label: "codex: retrying tool", surface: "codex" },
+  { label: "warning: tree is dirty", surface: "terminal" },
+  { label: "$ git commit --amend", surface: "terminal" },
+  { label: "error: CI failed", surface: "terminal" },
+  { label: "error TS2322", surface: "terminal" },
+  { label: "[context] 12% left", surface: "codex" },
+  { label: "$ cat AGENTS.md", surface: "terminal" },
+  { label: "codex: inspecting...", surface: "codex" },
+  { label: "fixing one last test...", surface: "codex" },
+  { label: "git: rebase required", surface: "terminal" },
+  { label: "404 Not Found", surface: "browser" },
+  { label: "ERR_CONNECTION_REFUSED", surface: "browser" },
+  { label: "PAGE_UNRESPONSIVE", surface: "browser" },
+  { label: "net::ERR_FAILED", surface: "browser" },
 ];
 const REVIEW_LABELS: readonly ReviewLabel[] = [
   "[review] approval required",
@@ -444,15 +451,16 @@ function spawnLogVolley(state: GameState, count: number, speed: number): void {
       randomBetween(state, targetAlongSize * 0.08, targetAlongSize * 0.92),
       20,
     );
-    const label = randomLogLabel(state);
+    const entry = randomLogEntry(state);
 
     addProjectile(
       state,
       "log",
-      label,
+      entry.surface,
+      entry.label,
       position,
       target,
-      logHitbox(label),
+      logHitbox(entry.label),
       speed,
       GAMEPLAY.logTelegraphMs + index * 35,
     );
@@ -478,6 +486,7 @@ function spawnReview(state: GameState, speed: number): boolean {
   addProjectile(
     state,
     "review",
+    "codex",
     label,
     position,
     target,
@@ -521,10 +530,11 @@ function spawnRetryLoop(state: GameState, count: number, speed: number): void {
     addProjectile(
       state,
       "retry",
+      "codex",
       label,
       position,
       target,
-      { width: 84, height: 18 },
+      { width: 70, height: 15 },
       speed,
       520 + index * 260,
     );
@@ -567,20 +577,22 @@ function spawnRaceCondition(
     addProjectile(
       state,
       "race",
+      "terminal",
       "read()",
       positions[0]!,
       pairTarget,
-      { width: 58, height: 18 },
+      { width: 48, height: 15 },
       speed,
       760 + index * 100,
     );
     addProjectile(
       state,
       "race",
+      "terminal",
       "write()",
       positions[1]!,
       pairTarget,
-      { width: 64, height: 18 },
+      { width: 54, height: 15 },
       speed,
       760 + index * 100,
     );
@@ -670,11 +682,12 @@ function spawnRadialProjectiles(
     addProjectile(
       state,
       kind,
+      "terminal",
       label,
       position,
       target,
       {
-        width: kind === "branch" ? GAMEPLAY.fragmentHitboxWidth : 46,
+        width: kind === "branch" ? GAMEPLAY.fragmentHitboxWidth : 40,
         height: GAMEPLAY.fragmentHitboxHeight,
       },
       speed,
@@ -686,6 +699,7 @@ function spawnRadialProjectiles(
 function addProjectile(
   state: GameState,
   kind: ProjectileKind,
+  surface: AttackSurface,
   label: ProjectileLabel,
   position: Vec2,
   target: Vec2,
@@ -696,6 +710,7 @@ function addProjectile(
   state.projectiles.push({
     id: takeEntityId(state),
     kind,
+    surface,
     label,
     position,
     velocity: directionBetween(position, target),
@@ -706,9 +721,9 @@ function addProjectile(
   });
 }
 
-function randomLogLabel(state: GameState): LogLabel {
-  const index = Math.floor(randomBetween(state, 0, LOG_LABELS.length));
-  return LOG_LABELS[index] ?? LOG_LABELS[0];
+function randomLogEntry(state: GameState): (typeof LOG_ENTRIES)[number] {
+  const index = Math.floor(randomBetween(state, 0, LOG_ENTRIES.length));
+  return LOG_ENTRIES[index] ?? LOG_ENTRIES[0];
 }
 
 function randomReviewLabel(state: GameState): ReviewLabel {
@@ -732,7 +747,7 @@ function labelHitboxWidth(
   minimum: number,
   maximum: number,
 ): number {
-  return Math.min(maximum, Math.max(minimum, 18 + label.length * 7));
+  return Math.min(maximum, Math.max(minimum, 14 + label.length * 6));
 }
 
 function pointOnEdge(

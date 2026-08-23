@@ -2,7 +2,7 @@
 
 ## 1. 제품 정의
 
-`await CODEX: CONTEXT//OVERFLOW`는 AI 코딩 에이전트가 작업하는 동안 키보드로 작은 `>_` task node를 움직여 개발·Codex 작업의 골칫거리를 피하고 최고 생존 기록에 도전하는 싱글플레이 웹 아케이드다.
+`await CODEX: CONTEXT//OVERFLOW`는 AI 코딩 에이전트가 작업하는 동안 키보드로 작은 block caret을 움직여 terminal·browser·Codex 작업의 골칫거리를 피하고 최고 생존 기록에 도전하는 싱글플레이 웹 아케이드다.
 
 고전 플래시 게임 `죽림고수`의 핵심인 사방 공격, 작은 피격 판정, 생존 시간 경쟁, 즉시 재도전 감각을 근간으로 삼는다. 원작 캐릭터·배경·화살은 복제하지 않고 개발자와 브라우저라는 현재 콘셉트로 다시 설계한다.
 
@@ -60,7 +60,7 @@
 
 난이도는 12초 단위 Stage 1–10으로 표시한다. 속도와 생성 간격은 108초까지 연속 상승하고, 해금·동시 수·분할 수는 stage 경계에서 증가한 뒤 Stage 10 상한에 고정된다.
 
-1. Stage 1 `LOG STREAM` — player 좌표와 무관한 무작위 개발·Codex 문구 탄막
+1. Stage 1 `LOG STREAM` — player 좌표와 무관하며 방향선도 없는 terminal·browser·Codex 로그 탄막
 2. Stage 2 `REVIEW REQUEST` — 생성 순간 player 위치를 snapshot한 고정 조준
 3. Stage 3 `CONTEXT MAX` — 지정 지점이 `0% → MAX`로 차오른 뒤 일점 영역 활성화
 4. Stage 4 `RETRY LOOP` — 같은 snapshot을 향한 3–5회 시간차 반복
@@ -90,9 +90,9 @@
 - 브라우저 viewport 전체가 논리 화면이다. Phaser `RESIZE`로 창 크기 변경을 즉시 반영하며 고정 16:9 frame이나 letterbox를 만들지 않는다.
 - 순백 웹페이지와 흰 Canvas를 이어 붙여 별도 게임 프레임처럼 보이지 않게 한다.
 - 격자, 패널, 상단 점수 바, 장식용 배경은 사용하지 않는다.
-- 바탕과 HUD는 white, black, gray를 유지한다. 공격은 실제 terminal 의미에 대응하는 command blue, success green, warning amber, error red, Codex·context violet만 제한적으로 쓰고 실루엣·예고·움직임도 함께 구분한다.
+- 바탕과 HUD는 white, black, gray를 유지한다. 공격은 terminal의 monospace·ANSI 의미색, browser의 sans·page error glyph, Codex의 Pretendard·tool marker·context progress처럼 작업 출처별 문법을 사용한다.
 - 둥근 card와 부드러운 장식을 피하고 각진 1px frame, square pixel, stepped trail, tool-call row로 개발 도구의 digital 질감을 만든다.
-- HUD와 overlay는 `Pretendard Variable`, 공격 문구는 11–13px system monospace를 사용한다. 상단 중앙 공격명 announcement는 표시하지 않는다.
+- HUD와 overlay는 `Pretendard Variable`을 사용한다. 공격은 surface에 따라 10–11px monospace 또는 Pretendard/system sans를 사용한다. 상단 중앙 공격명 announcement는 표시하지 않는다.
 - 시작과 결과 화면은 Codex의 가상 task surface처럼 넓은 여백, 작은 상태 행, 건조한 실행 문구를 사용한다. 로고나 실제 제품 UI는 복제하지 않는다.
 - 탭 blur/hidden으로 멈춘 동안에는 결과 화면처럼 장면을 덮지 않는다. 마지막 게임 장면을 흐리게 남기고 중앙 pause 문구만 표시한다.
 - pause 중에는 마지막 장면과 player 위치를 blur 아래에 그대로 남기고 중앙 재개 문구만 표시한다.

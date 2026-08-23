@@ -8,9 +8,9 @@ import type {
   ProjectileState,
   Vec2,
 } from "../core/model";
-import { COLORS, FONTS, TERMINAL_TONES, TEXT_COLORS } from "./theme";
+import { ATTACK_TONES, COLORS, FONTS, TEXT_COLORS } from "./theme";
 
-type TerminalTone = (typeof TERMINAL_TONES)[keyof typeof TERMINAL_TONES];
+type AttackTone = (typeof ATTACK_TONES)[keyof typeof ATTACK_TONES];
 
 interface ParticleEffect extends Vec2 {
   velocity: Vec2;
@@ -118,7 +118,7 @@ export class GameRenderer {
         );
 
     this.world.fillStyle(
-      TERMINAL_TONES.codex.value,
+      ATTACK_TONES.codex.value,
       active ? 0.94 : 0.02 + progress * 0.035,
     );
     this.world.fillRect(x, y, width, height);
@@ -129,14 +129,14 @@ export class GameRenderer {
         y,
         width,
         height,
-        TERMINAL_TONES.codex.value,
+        ATTACK_TONES.codex.value,
         0.9,
         18,
       );
-      this.world.fillStyle(TERMINAL_TONES.codex.value, 0.82);
+      this.world.fillStyle(ATTACK_TONES.codex.value, 0.82);
       this.world.fillRect(x, y - 2, width * progress, 2);
       this.world.fillStyle(
-        TERMINAL_TONES.codex.value,
+        ATTACK_TONES.codex.value,
         0.14 + progress * 0.38,
       );
       this.world.fillRect(x, y + height * progress - 1, width, 1);
@@ -146,7 +146,7 @@ export class GameRenderer {
       for (let index = 0; index < segments; index += 1) {
         const filled = index / segments <= progress;
         this.world.fillStyle(
-          TERMINAL_TONES.codex.value,
+          ATTACK_TONES.codex.value,
           filled ? 0.58 : 0.1,
         );
         this.world.fillRect(
@@ -165,6 +165,9 @@ export class GameRenderer {
 
   private drawProjectiles(state: GameState): void {
     for (const projectile of state.projectiles) {
+      if (projectile.kind === "log") {
+        continue;
+      }
       if (projectile.telegraphRemainingMs > 0) {
         const tone = this.projectileTone(projectile);
         const progress = Phaser.Math.Clamp(
@@ -175,24 +178,28 @@ export class GameRenderer {
         this.drawDottedRay(
           projectile.position,
           projectile.velocity,
-          Math.min(132, Math.max(72, projectile.hitbox.width * 0.72)),
+          Math.min(112, Math.max(60, projectile.hitbox.width * 0.68)),
           tone.value,
           0.12 + progress * 0.28,
-          projectile.kind === "log" ? 18 : 14,
+          14,
         );
         continue;
       }
 
       const length =
         projectile.kind === "review" || projectile.kind === "race"
-          ? 34
+          ? 28
           : projectile.kind === "retry"
-            ? 30
+            ? 24
             : projectile.kind === "bug" || projectile.kind === "branch"
-              ? 18
-              : 24;
+              ? 14
+              : 20;
       const alpha = projectile.kind === "bug" ? 0.48 : 0.28;
       this.drawMotionRail(projectile, length, alpha);
+    }
+
+    for (const projectile of state.projectiles) {
+      this.drawProjectileSurfaceMark(projectile);
     }
   }
 
@@ -206,8 +213,8 @@ export class GameRenderer {
       for (const origin of sequence.origins) {
         const tone =
           sequence.kind === "fork-bomb"
-            ? TERMINAL_TONES.success
-            : TERMINAL_TONES.error;
+            ? ATTACK_TONES.terminalSuccess
+            : ATTACK_TONES.terminalError;
         const position = {
           x: Phaser.Math.Linear(origin.x, sequence.position.x, progress),
           y: Phaser.Math.Linear(origin.y, sequence.position.y, progress),
@@ -225,8 +232,8 @@ export class GameRenderer {
       const pulse = 8 + Math.floor(progress * 7);
       const tone =
         sequence.kind === "fork-bomb"
-          ? TERMINAL_TONES.success
-          : TERMINAL_TONES.error;
+          ? ATTACK_TONES.terminalSuccess
+          : ATTACK_TONES.terminalError;
       this.world.lineStyle(1, tone.value, 0.52 + progress * 0.32);
       this.world.lineBetween(
         sequence.position.x - pulse,
@@ -261,10 +268,10 @@ export class GameRenderer {
 
     const blink = Math.floor(state.elapsedMs / 420) % 2 === 0;
     this.playerLayer.fillStyle(COLORS.surface, 1);
-    this.playerLayer.fillRect(x - 6, y - 9, 12, 18);
+    this.playerLayer.fillRect(x - 5, y - 8, 10, 16);
     this.playerLayer.fillStyle(COLORS.black, 1);
-    const cursorWidth = blink ? 8 : 3;
-    this.playerLayer.fillRect(x - cursorWidth / 2, y - 7, cursorWidth, 14);
+    const cursorWidth = blink ? 6 : 2;
+    this.playerLayer.fillRect(x - cursorWidth / 2, y - 6, cursorWidth, 12);
   }
 
   private syncProjectileLabels(state: GameState): void {
@@ -279,8 +286,10 @@ export class GameRenderer {
         label = this.scene.add
           .text(0, 0, projectile.label, {
             color: tone.text,
-            fontFamily: FONTS.mono,
+            fontFamily: this.projectileFontFamily(projectile),
             fontSize: `${fontSize}px`,
+            fontStyle:
+              projectile.surface === "terminal" ? "normal" : "500",
             stroke: TEXT_COLORS.surface,
             strokeThickness: 2,
           })
@@ -298,6 +307,7 @@ export class GameRenderer {
         )
         .setRotation(this.readableProjectileRotation(projectile.velocity))
         .setColor(tone.text)
+        .setLetterSpacing(projectile.surface === "terminal" ? 0 : 0.15)
         .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.42 : 0.96)
         .setScale(1)
         .setVisible(true);
@@ -315,9 +325,9 @@ export class GameRenderer {
       if (!label) {
         label = this.scene.add
           .text(0, 0, "", {
-            color: TERMINAL_TONES.codex.text,
-            fontFamily: FONTS.mono,
-            fontSize: "13px",
+            color: ATTACK_TONES.codex.text,
+            fontFamily: FONTS.sans,
+            fontSize: "11px",
             stroke: TEXT_COLORS.surface,
             strokeThickness: 2,
           })
@@ -343,8 +353,8 @@ export class GameRenderer {
         .setText(text)
         .setPosition(Math.round(hazard.position.x), Math.round(hazard.position.y))
         .setRotation(0)
-        .setColor(active ? TEXT_COLORS.surface : TERMINAL_TONES.codex.text)
-        .setFontSize(13)
+        .setColor(active ? TEXT_COLORS.surface : ATTACK_TONES.codex.text)
+        .setFontSize(11)
         .setAlpha(active ? 1 : 0.9)
         .setVisible(true);
     }
@@ -369,13 +379,13 @@ export class GameRenderer {
         if (!label) {
           const tone =
             sequence.kind === "fork-bomb"
-              ? TERMINAL_TONES.success
-              : TERMINAL_TONES.warning;
+              ? ATTACK_TONES.terminalSuccess
+              : ATTACK_TONES.terminalWarning;
           label = this.scene.add
             .text(0, 0, "", {
               color: tone.text,
               fontFamily: FONTS.mono,
-              fontSize: sequence.kind === "fork-bomb" ? "12px" : "11px",
+              fontSize: sequence.kind === "fork-bomb" ? "10px" : "9px",
               stroke: TEXT_COLORS.surface,
               strokeThickness: 2,
             })
@@ -396,8 +406,8 @@ export class GameRenderer {
           )
           .setColor(
             sequence.kind === "fork-bomb"
-              ? TERMINAL_TONES.success.text
-              : TERMINAL_TONES.warning.text,
+              ? ATTACK_TONES.terminalSuccess.text
+              : ATTACK_TONES.terminalWarning.text,
           )
           .setPosition(Math.round(position.x), Math.round(position.y))
           .setRotation(
@@ -417,7 +427,7 @@ export class GameRenderer {
           .text(0, 0, "", {
             color: TEXT_COLORS.ink,
             fontFamily: FONTS.mono,
-            fontSize: "12px",
+            fontSize: "10px",
             stroke: TEXT_COLORS.surface,
             strokeThickness: 2,
           })
@@ -433,8 +443,8 @@ export class GameRenderer {
         )
         .setColor(
           sequence.kind === "fork-bomb"
-            ? TERMINAL_TONES.success.text
-            : TERMINAL_TONES.error.text,
+            ? ATTACK_TONES.terminalSuccess.text
+            : ATTACK_TONES.terminalError.text,
         )
         .setPosition(sequence.position.x, sequence.position.y + 34)
         .setVisible(true);
@@ -445,22 +455,92 @@ export class GameRenderer {
 
   private projectileFontSize(projectile: ProjectileState): number {
     if (projectile.kind === "review") {
-      return 13;
-    }
-    if (projectile.kind === "retry" || projectile.kind === "race") {
-      return 12;
-    }
-    if (projectile.kind === "bug") {
-      return 13;
-    }
-    if (projectile.kind === "branch") {
       return 11;
     }
-    return 12;
+    if (projectile.kind === "retry" || projectile.kind === "race") {
+      return 10;
+    }
+    if (projectile.kind === "bug") {
+      return 11;
+    }
+    if (projectile.kind === "branch") {
+      return 10;
+    }
+    return projectile.surface === "browser" ? 10 : 11;
   }
 
-  private projectileTone(projectile: ProjectileState): TerminalTone {
+  private projectileFontFamily(projectile: ProjectileState): string {
+    return projectile.surface === "terminal" ? FONTS.mono : FONTS.sans;
+  }
+
+  private drawProjectileSurfaceMark(projectile: ProjectileState): void {
+    if (projectile.surface === "terminal") {
+      return;
+    }
+
+    const angle = this.readableProjectileRotation(projectile.velocity);
+    const baseline = { x: Math.cos(angle), y: Math.sin(angle) };
+    const normal = { x: -baseline.y, y: baseline.x };
+    const center = {
+      x: projectile.position.x - baseline.x * (projectile.hitbox.width / 2 + 5),
+      y: projectile.position.y - baseline.y * (projectile.hitbox.width / 2 + 5),
+    };
+    const tone = this.projectileTone(projectile);
+    const alpha = projectile.telegraphRemainingMs > 0 ? 0.34 : 0.72;
+
+    if (projectile.surface === "codex") {
+      this.world.fillStyle(tone.value, alpha);
+      this.world.fillRect(Math.round(center.x) - 1, Math.round(center.y) - 1, 3, 3);
+      return;
+    }
+
+    const halfWidth = 3;
+    const halfHeight = 4;
+    const topLeft = {
+      x: center.x - baseline.x * halfWidth - normal.x * halfHeight,
+      y: center.y - baseline.y * halfWidth - normal.y * halfHeight,
+    };
+    const topRight = {
+      x: center.x + baseline.x * halfWidth - normal.x * halfHeight,
+      y: center.y + baseline.y * halfWidth - normal.y * halfHeight,
+    };
+    const bottomRight = {
+      x: center.x + baseline.x * halfWidth + normal.x * halfHeight,
+      y: center.y + baseline.y * halfWidth + normal.y * halfHeight,
+    };
+    const bottomLeft = {
+      x: center.x - baseline.x * halfWidth + normal.x * halfHeight,
+      y: center.y - baseline.y * halfWidth + normal.y * halfHeight,
+    };
+    this.world.lineStyle(1, tone.value, alpha);
+    this.world.lineBetween(topLeft.x, topLeft.y, topRight.x, topRight.y);
+    this.world.lineBetween(topRight.x, topRight.y, bottomRight.x, bottomRight.y);
+    this.world.lineBetween(
+      bottomRight.x,
+      bottomRight.y,
+      bottomLeft.x,
+      bottomLeft.y,
+    );
+    this.world.lineBetween(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
+    this.world.lineBetween(
+      topLeft.x + baseline.x * 2,
+      topLeft.y + baseline.y * 2,
+      topRight.x - normal.x * 2,
+      topRight.y - normal.y * 2,
+    );
+  }
+
+  private projectileTone(projectile: ProjectileState): AttackTone {
     const label = projectile.label.toLowerCase();
+    if (projectile.surface === "codex") {
+      return ATTACK_TONES.codex;
+    }
+    if (projectile.surface === "browser") {
+      if (label.includes("404") || label.includes("err_")) {
+        return ATTACK_TONES.browserError;
+      }
+      return ATTACK_TONES.browserAccent;
+    }
     if (
       projectile.kind === "bug" ||
       label.includes("error") ||
@@ -468,7 +548,7 @@ export class GameRenderer {
       label.includes("ts2322") ||
       label.includes("pr #404")
     ) {
-      return TERMINAL_TONES.error;
+      return ATTACK_TONES.terminalError;
     }
     if (
       projectile.kind === "retry" ||
@@ -476,26 +556,19 @@ export class GameRenderer {
       label.includes("rebase") ||
       label.startsWith("write")
     ) {
-      return TERMINAL_TONES.warning;
-    }
-    if (
-      projectile.kind === "review" ||
-      label.includes("context") ||
-      label.includes("codex")
-    ) {
-      return TERMINAL_TONES.codex;
+      return ATTACK_TONES.terminalWarning;
     }
     if (
       projectile.kind === "branch" ||
       label.startsWith("+") ||
       label.startsWith("read")
     ) {
-      return TERMINAL_TONES.success;
+      return ATTACK_TONES.terminalSuccess;
     }
     if (label.startsWith("$")) {
-      return TERMINAL_TONES.command;
+      return ATTACK_TONES.terminalCommand;
     }
-    return TERMINAL_TONES.ink;
+    return ATTACK_TONES.neutral;
   }
 
   private readableProjectileRotation(direction: Vec2): number {

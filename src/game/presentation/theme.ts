@@ -19,12 +19,15 @@ export const TEXT_COLORS = {
   surface: "#ffffff",
 } as const;
 
-export const TERMINAL_TONES = {
-  ink: { value: 0x4b4b48, text: "#4b4b48" },
-  command: { value: 0x246b92, text: "#246b92" },
-  success: { value: 0x287a50, text: "#287a50" },
-  warning: { value: 0x9a5b13, text: "#9a5b13" },
-  error: { value: 0xb83d45, text: "#b83d45" },
+export const ATTACK_TONES = {
+  neutral: { value: 0x4b4b48, text: "#4b4b48" },
+  terminalCommand: { value: 0x246b92, text: "#246b92" },
+  terminalSuccess: { value: 0x287a50, text: "#287a50" },
+  terminalWarning: { value: 0x9a5b13, text: "#9a5b13" },
+  terminalError: { value: 0xb83d45, text: "#b83d45" },
+  browserInk: { value: 0x465160, text: "#465160" },
+  browserAccent: { value: 0x356da5, text: "#356da5" },
+  browserError: { value: 0xb64747, text: "#b64747" },
   codex: { value: 0x6754a3, text: "#6754a3" },
 } as const;
 

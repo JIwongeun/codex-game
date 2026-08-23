@@ -38,6 +38,7 @@ function projectile(
   return {
     id: 100,
     kind: "log",
+    surface: "terminal",
     label: "error: CI failed",
     position: { ...state.player.position },
     velocity: { x: 1, y: 0 },
@@ -227,17 +228,20 @@ describe("survival simulation", () => {
       new Set([
         "+ one more change",
         "$ pnpm test --watch",
-        "$ codex retry --last",
-        "warning: working tree dirty",
+        "codex: retrying tool",
+        "warning: tree is dirty",
         "$ git commit --amend",
         "error: CI failed",
         "error TS2322",
         "[context] 12% left",
         "$ cat AGENTS.md",
-        "$ codex inspect workspace",
+        "codex: inspecting...",
         "fixing one last test...",
-        "error: PR #404",
         "git: rebase required",
+        "404 Not Found",
+        "ERR_CONNECTION_REFUSED",
+        "PAGE_UNRESPONSIVE",
+        "net::ERR_FAILED",
       ]),
     );
     expect(reviewLabels).toEqual(
@@ -248,6 +252,19 @@ describe("survival simulation", () => {
         "run command? [y/N]",
       ]),
     );
+
+    const surfaces = new Set<string>();
+    for (let seed = 1; seed <= 512; seed += 1) {
+      const state = playingState(seed, 800, 600);
+      state.spawn.logMs = 0;
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+      for (const candidate of state.projectiles) {
+        if (candidate.kind === "log") {
+          surfaces.add(candidate.surface);
+        }
+      }
+    }
+    expect(surfaces).toEqual(new Set(["terminal", "browser", "codex"]));
   });
 
   it("moves at a fixed speed, normalizes diagonals, and clamps at viewport edges", () => {
@@ -334,6 +351,7 @@ describe("survival simulation", () => {
     state.projectiles = [
       projectile(state, {
         kind: "review",
+        surface: "codex",
         label: "[review] approval required",
         hitbox: {
           width: GAMEPLAY.reviewHitboxMinWidth,

@@ -31,11 +31,11 @@
 
 ### Palette와 Typography
 
-- 바탕과 HUD는 white, black, gray를 유지한다. 공격 색은 실제 terminal의 의미 구분처럼 command blue, success green, warning amber, error red, Codex·context violet만 제한적으로 사용한다.
-- HUD와 overlay는 self-hosted `Pretendard Variable`, 공격과 진행 문구는 11–13px system monospace stack을 사용한다.
-- 투사체는 사각 UI block이 아니라 실제 prompt·log 형식의 작고 보통 굵기인 명령어·상태 문구 자체다.
+- 바탕과 HUD는 white, black, gray를 유지한다. 공격은 하나의 terminal skin으로 통일하지 않고 `terminal`, `browser`, `codex` 작업 surface별 시각 문법을 사용한다.
+- HUD와 overlay는 self-hosted `Pretendard Variable`을 사용한다. 공격은 surface에 따라 10–11px monospace 또는 Pretendard/system sans를 선택한다.
+- 투사체는 큰 사각 UI block이 아니라 실제 command, browser error, tool-state처럼 작고 보통 굵기인 한 줄 문구다.
 - 문구 기준선은 진행 벡터와 평행하게 회전한다. 뒤집혀 읽히는 각도는 180도 보정하되 충돌 사각형의 방향은 동일하게 유지한다.
-- 얇은 흰 외곽 stroke와 18–34px motion rail, 최대 132px의 짧은 점선 예고만 사용한다. viewport를 가로지르는 안내선은 금지한다.
+- 얇은 흰 외곽 stroke를 사용한다. 기본 `LOG STREAM`에는 방향선과 rail을 전혀 표시하지 않고, 조준·반복·교차 공격만 14–28px rail과 최대 112px 점선 예고를 사용한다.
 - 둥근 pill, gradient, 장식용 card, 작은 chip 군집은 사용하지 않는다.
 
 | 역할 | 값 | 사용 범위 |
@@ -43,36 +43,45 @@
 | surface | `#FFFFFF` | 전체 Canvas와 label clearance |
 | ink | `#171717` | HUD, player, 일반 UI |
 | muted | `#686868` | 보조 상태와 조작 안내 |
-| terminal command | `#246B92` | `$ pnpm`, `$ git`, 일반 shell prompt |
-| terminal success | `#287A50` | `+ change`, `branch`, `read()` |
-| terminal warning | `#9A5B13` | `warning:`, `retry`, `rebase`, `write()` |
+| terminal command | `#246B92` | `$ pnpm`, `$ git`, shell prompt |
+| terminal success | `#287A50` | `branch`, `read()`, change |
+| terminal warning | `#9A5B13` | `warning:`, `rebase`, `write()` |
 | terminal error | `#B83D45` | `error:`, `failed`, `TS2322`, `BUG!` |
-| Codex·context | `#6754A3` | `$ codex`, `[review]`, `[context]` |
+| browser ink | `#465160` | 일반 page 상태 |
+| browser accent | `#356DA5` | page 응답·navigation 상태 |
+| browser error | `#B64747` | `404`, `ERR_*`, network failure |
+| Codex tool | `#6754A3` | tool, review, retry, context 상태 |
 
 색은 패턴을 이해하는 유일한 단서가 아니다. 문구, 이동, 짧은 예고선과 warning/active 상태가 색 없이도 공격을 구분해야 한다. 같은 의미에는 언제나 같은 색을 쓰고 entity마다 임의 accent를 배정하지 않는다.
 
-### Terminal 문구 문법
+### 작업 surface별 문법
 
-- 실행 명령은 `$ `로 시작하고 실제 shell처럼 소문자 command와 option을 쓴다.
-- 진단은 `error:`, `warning:`, `git:`, `[review]`, `[context]` prefix로 의미를 먼저 보여 준다.
-- 일반 문장은 sentence case 또는 lowercase를 사용한다. `MAX`, `BUG!`, error code처럼 즉시 판독할 token만 대문자를 허용한다.
-- 한 projectile은 한 줄, 약 28자 이하를 목표로 하며 11–13px regular monospace로 표시한다.
-- label 뒤에 box, pill, badge를 붙이지 않는다. 흰 배경 가독성을 위한 2px white stroke만 허용한다.
+| surface | 서체·크기 | 문구 문법 | 형태 |
+|---|---|---|---|
+| Terminal | system monospace 10–11px | `$ command`, `error:`, `warning:`, `git:` | 별도 box 없이 shell text 자체. command/success/warning/error 의미색 사용 |
+| Browser | Pretendard/system sans 10px | `404 Not Found`, `ERR_CONNECTION_REFUSED`, `PAGE_UNRESPONSIVE` | 문구 앞에 6×8 page-outline glyph. browser ink/accent/error 사용 |
+| Codex | Pretendard Variable 10–11px | `codex:`, `[review]`, `[context]`, `retry n/m` | 문구 앞에 3×3 tool-state square. context만 별도 progress field 사용 |
+
+- 한 projectile은 한 줄, 약 26자 이하를 목표로 한다. `MAX`, `BUG!`, error code처럼 즉시 판독할 token만 대문자를 허용한다.
+- surface는 label 문자열을 보고 renderer가 추측하지 않는다. core `ProjectileState.surface`에 `terminal | browser | codex`로 명시한다.
+- label 뒤에 큰 box, pill, badge를 붙이지 않는다. 흰 배경 가독성을 위한 2px white stroke만 허용한다.
+- 실제 제품 로고나 browser favicon을 복제하지 않고 page outline, tool square 같은 범용 glyph만 사용한다.
 
 ### 선과 Motion
 
-- projectile telegraph는 2px dot, 14–18px 간격, 72–132px 길이로 공격 앞부분에만 둔다.
-- active motion rail은 1px 두께, 18–34px 길이로 문구 뒤에만 둔다. 끝점 block이나 화살촉을 붙이지 않는다.
+- 기본 `LOG STREAM`은 무작위 edge-to-edge 흐름이므로 telegraph dot, motion rail, 화살촉을 모두 표시하지 않는다.
+- 조준·반복·교차 projectile telegraph는 2px dot, 14px 간격, 60–112px 길이로 공격 앞부분에만 둔다.
+- 해당 projectile의 active motion rail은 1px 두께, 14–28px 길이로 문구 뒤에만 둔다. 끝점 block이나 화살촉을 붙이지 않는다.
 - convergence sequence는 origin부터 중심까지 선을 잇지 않고, 이동 중인 문구 바로 뒤의 20px trail만 그린다.
 - 회전은 실제 velocity와 평행하게 하되 글자가 거꾸로 보이면 읽기 방향만 180도 보정한다.
 - 큰 scale pulse, 화면 전체 trajectory, 장식용 corner marker, 굵은 poster typography는 사용하지 않는다.
 
 ### Player
 
-- 시각 크기는 최대 8×14인 검은 terminal block caret이다.
-- 실제 피격 반경은 6px로 시각 외곽보다 작아 정밀 회피에 관용을 둔다.
+- 시각 크기는 최대 6×12인 검은 terminal block caret이다.
+- 실제 피격 반경은 5px로 정밀 회피에 관용을 둔다.
 - caret은 입력 방향과 무관하게 같은 모양을 유지하며 방향 notch, 화살표, corner mark를 표시하지 않는다.
-- 420ms 간격으로 8px block과 3px caret 폭을 오가며 blink하고, 12×18 white clearance로 겹친 문구와 분리한다.
+- 420ms 간격으로 6px block과 2px caret 폭을 오가며 blink하고, 10×16 white clearance로 겹친 문구와 분리한다.
 - OS cursor, OpenAI logo, Codex logo를 모사하지 않는다.
 
 ### 화면 상태
@@ -86,13 +95,13 @@
 
 | 해금 | 패턴 | 화면 문구 | 행동과 개연성 |
 |---|---|---|---|
-| Stage 1 | `LOG STREAM` | `error: CI failed`, `$ pnpm test --watch`, `+ one more change` 등 | player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge로 흐른다. 일상적인 log가 예측 불가능하게 작업 화면을 가로지른다. |
+| Stage 1 | `LOG STREAM` | Terminal `$ pnpm test`, Browser `ERR_*`, Codex `codex: inspecting...` 등 | player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge로 흐른다. 세 작업 surface의 로그가 방향 예고 없이 작업 화면을 가로지른다. |
 | Stage 2 | `REVIEW REQUEST` | `[review] approval required`, `git: needs rebase` 등 | 생성 순간 player 위치를 snapshot하고 짧은 점선 경로를 고정한 뒤 돌진한다. 코드가 움직여도 이미 요청된 review 대상은 바뀌지 않는다. |
 | Stage 3 | `CONTEXT MAX` | `[context] 0–100%` | snapshot 지점의 정사각 context field가 차오른 뒤 0.5초 활성화된다. 경고 중에는 무해하다. |
 | Stage 4 | `RETRY LOOP` | `retry 1/3`, `2/3`, `3/3` | 같은 snapshot을 향해 260ms 간격으로 같은 작업을 반복한다. 후반에는 최대 5회다. |
 | Stage 5 | `FORK BOMB` | `$ git branch --all` → `branch` | 명령어 하나가 지정 지점으로 들어가고 완료 순간 8–16개 branch 탄으로 균등 원형 분할된다. |
 | Stage 6 | `RACE CONDITION` | `read()` / `write()` | 같은 snapshot을 향해 화면 반대편 두 작업이 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
-| Stage 7 | `MERGE → BUG!` | 여러 `change +N`, `git merge` → `BUG!` | 4–8개 변경이 player snapshot 지점으로 수렴한다. merge 완료 순간 12–20개 `BUG!` 탄이 원형 발산한다. |
+| Stage 7 | `MERGE → BUG!` | 여러 `change +N`, `$ git merge` → `BUG!` | 4–8개 변경이 player snapshot 지점으로 수렴한다. merge 완료 순간 12–20개 `BUG!` 탄이 원형 발산한다. |
 
 `LOG`, `REVIEW`, `RETRY`, `RACE`, `BRANCH`, `BUG`는 각각 별도 projectile kind와 회전 사각 hitbox를 가진다. `CONTEXT MAX`만 warning/active를 갖는 area hazard다. `FORK`와 `MERGE`는 수렴 완료 시 projectile을 생성하는 sequence state다.
 
@@ -118,7 +127,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 ## 공정성과 가독성 불변식
 
 - 모든 조준·영역·수렴 공격은 치명 단계 전에 경로 또는 진행률을 보인다.
-- 기본 `LOG STREAM`만 짧은 진입 예고를 사용하며 player를 조준하지 않는다.
+- 기본 `LOG STREAM`은 player를 조준하지 않고 방향 예고·rail도 표시하지 않는다. 생성 후 telegraph 시간 동안은 판정만 비활성이다.
 - 조준점은 생성 뒤 추적하지 않는다. 움직여서 회피할 수 있어야 한다.
 - 회전한 문구와 collision rectangle은 같은 각도를 사용한다.
 - radial projectile은 폭발 중심에서 56px 떨어져 생성되어 중심에 있던 player를 즉시 판정하지 않는다.
@@ -143,6 +152,6 @@ Presentation은 판정을 만들지 않고 simulation state만 그린다. 문구
 - 7개 패턴이 각각 문구의 의미와 일치하는 spawn·예고·이동·분할을 가진다.
 - Stage 1–10 경계와 Stage 10 cap이 자동 테스트로 고정된다.
 - 상단 중앙 공격 설명이 없고 실제 공격 표현만으로 판독 가능하다.
-- 흰 task surface, 의미 기반 terminal accent, UI용 Pretendard Variable, 공격용 monospace와 전체 viewport 규칙을 유지한다.
+- 흰 task surface와 흑백 HUD, terminal·browser·Codex별 서체·glyph·의미색, 전체 viewport 규칙을 유지한다.
 - typecheck, deterministic simulation tests, seeded entity-cap soak와 production build가 통과한다.
 - owner-only production에서 사용자가 실제 가독성과 난이도를 확인한다.

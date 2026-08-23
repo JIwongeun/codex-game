@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — 작업 surface별 공격 언어와 compact gameplay scale
+
+### UI·연출
+
+- 단일 terminal skin을 폐기하고 projectile에 `terminal | browser | codex` surface를 명시
+- terminal은 10–11px monospace와 `$`·error/warning, browser는 10px sans와 page-outline·`404`·`ERR_*`, Codex는 10–11px Pretendard와 tool-state square·review/context 문법으로 분리
+- 기본 `LOG STREAM`의 점선 방향 예고와 active motion rail을 모두 제거하고 조준·반복·교차 공격에만 최대 112px 예고와 28px rail 유지
+- player를 최대 6×12·피격 반경 5px, HUD를 8–24px, projectile label과 oriented hitbox를 10–11px scale에 맞춰 축소
+- Ready 화면의 큰 `>_` prompt glyph도 작은 block caret으로 교체
+
+### 검증
+
+- terminal·browser·Codex surface가 seeded phrase bank에서 모두 생성되는 회귀 테스트 추가
+- 사용자 요청에 따라 자동 browser 시각 판정은 하지 않고 typecheck·simulation tests·production build 뒤 실제 플레이 확인 예정
+
 ## 2026-08-23 — terminal-scale 공격 표현과 block caret player 재설계
 
 ### UI·연출
@@ -16,6 +31,12 @@
 
 - TypeScript typecheck와 Vitest 6 files의 46 tests 통과
 - terminal phrase bank의 전체 seeded 선택 범위, 축소 hitbox 상한, retry·race·fork·merge label 전이를 회귀 테스트로 유지
+
+### production 반영
+
+- 검증된 source commit `5097201`을 Sites version 10으로 owner-only production URL에 배포
+- 배포 완료 뒤 access mode `custom`, owner 1명, group 0개, 외부 방문자 0명을 다시 확인
+- 사용자의 요청에 따라 자동 시각 판정은 하지 않고 실제 플레이 가독성·크기·색 균형 확인을 사용자에게 넘김
 
 ## 2026-08-23 — 회전 text projectile, 7개 의미 기반 패턴과 Stage 1–10 재설계
 

@@ -29,25 +29,25 @@ export class Hud {
 
   constructor(scene: Phaser.Scene) {
     this.overlay = scene.add.graphics().setDepth(30);
-    this.brandText = this.text(scene, 0, 0, 14, TEXT_COLORS.ink)
+    this.brandText = this.text(scene, 0, 0, 12, TEXT_COLORS.ink)
       .setFontStyle("700")
       .setLetterSpacing(0.7)
       .setDepth(32);
-    this.statusText = this.text(scene, 0, 0, 11, TEXT_COLORS.muted)
+    this.statusText = this.text(scene, 0, 0, 9, TEXT_COLORS.muted)
       .setFontStyle("620")
       .setLetterSpacing(0.6)
       .setDepth(21);
-    this.timeText = this.text(scene, 0, 0, 30, TEXT_COLORS.ink)
+    this.timeText = this.text(scene, 0, 0, 24, TEXT_COLORS.ink)
       .setFontStyle("680")
       .setLetterSpacing(0.7)
       .setOrigin(1, 0)
       .setDepth(21);
-    this.bestText = this.text(scene, 0, 0, 11, TEXT_COLORS.faint)
+    this.bestText = this.text(scene, 0, 0, 9, TEXT_COLORS.faint)
       .setFontStyle("560")
       .setLetterSpacing(0.5)
       .setOrigin(1, 0)
       .setDepth(21);
-    this.hintText = this.text(scene, 0, 0, 10, TEXT_COLORS.muted)
+    this.hintText = this.text(scene, 0, 0, 8, TEXT_COLORS.muted)
       .setFontStyle("580")
       .setLetterSpacing(0.6)
       .setOrigin(0, 1)
@@ -104,7 +104,7 @@ export class Hud {
         state,
         "Codex is working.",
         "Use the wait time.",
-        `>_  SURVIVE THE QUEUE\n\nMOVE                  WASD / ARROW KEYS\nFAIL CONDITION   ONE HIT\nLOCAL BEST          ${formatSurvivalTime(localBest)}`,
+        `RUN  SURVIVE THE QUEUE\n\nMOVE                  WASD / ARROW KEYS\nFAIL CONDITION   ONE HIT\nLOCAL BEST          ${formatSurvivalTime(localBest)}`,
         ">  CLICK / SPACE TO RUN  █",
       );
     } else if (state.phase === "results") {
@@ -128,24 +128,24 @@ export class Hud {
   private layout(state: GameState): void {
     const { width, height } = state.arena;
     const compact = width < 640;
-    const padding = compact ? 20 : Math.min(48, Math.max(32, width * 0.035));
+    const padding = compact ? 16 : Math.min(36, Math.max(24, width * 0.028));
 
     this.brandText.setPosition(padding, padding);
-    this.statusText.setPosition(padding, padding + 25);
-    this.timeText.setPosition(width - padding, padding - 5);
-    this.bestText.setPosition(width - padding, padding + 33);
+    this.statusText.setPosition(padding, padding + 21);
+    this.timeText.setPosition(width - padding, padding - 3);
+    this.bestText.setPosition(width - padding, padding + 27);
     this.hintText.setPosition(padding, height - Math.max(16, padding * 0.55));
     this.footerText.setPosition(
       width - padding,
       height - Math.max(16, padding * 0.55),
     );
 
-    this.brandText.setFontSize(compact ? 12 : 14);
-    this.statusText.setFontSize(compact ? 9 : 11);
-    this.timeText.setFontSize(compact ? 22 : 30);
-    this.bestText.setFontSize(compact ? 9 : 11);
-    this.hintText.setFontSize(compact ? 8 : 10);
-    this.footerText.setFontSize(compact ? 8 : 9);
+    this.brandText.setFontSize(compact ? 11 : 12);
+    this.statusText.setFontSize(compact ? 8 : 9);
+    this.timeText.setFontSize(compact ? 19 : 24);
+    this.bestText.setFontSize(compact ? 8 : 9);
+    this.hintText.setFontSize(compact ? 7 : 8);
+    this.footerText.setFontSize(compact ? 7 : 8);
   }
 
   private showOverlay(
@@ -203,11 +203,7 @@ export class Hud {
 
   private drawAgentPrompt(x: number, y: number): void {
     this.overlay.fillStyle(COLORS.black, 1);
-    this.overlay.fillRect(x, y, 30, 20);
-    this.overlay.lineStyle(2, COLORS.surface, 1);
-    this.overlay.lineBetween(x + 7, y + 6, x + 11, y + 10);
-    this.overlay.lineBetween(x + 11, y + 10, x + 7, y + 14);
-    this.overlay.lineBetween(x + 15, y + 14, x + 22, y + 14);
+    this.overlay.fillRect(x, y + 4, 6, 12);
   }
 
   private hideOverlay(): void {
