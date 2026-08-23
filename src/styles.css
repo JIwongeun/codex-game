@@ -324,7 +324,12 @@ body {
   font-weight: 400;
   letter-spacing: 0;
   animation: ready-signal-stream 42s linear infinite;
+  animation-fill-mode: backwards;
   will-change: transform;
+}
+
+.ready-signal > span {
+  white-space: pre;
 }
 
 .ready-signal--terminal {

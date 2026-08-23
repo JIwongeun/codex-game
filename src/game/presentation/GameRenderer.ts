@@ -9,10 +9,15 @@ import type {
   ProjectileState,
   Vec2,
 } from "../core/model";
-import { attackTextColor, attackTextTokens } from "./attackText";
+import {
+  attackTextColor,
+  attackTextTokens,
+  layoutAttackTextTokens,
+} from "./attackText";
 import { ATTACK_TONES, COLORS, FONTS, TEXT_COLORS } from "./theme";
 
 type AttackTone = (typeof ATTACK_TONES)[keyof typeof ATTACK_TONES];
+const RICH_LABEL_STROKE_THICKNESS = 2;
 
 interface ParticleEffect extends Vec2 {
   velocity: Vec2;
@@ -452,7 +457,8 @@ export class GameRenderer {
 
     view.container.removeAll(true);
     view.signature = signature;
-    const pieces = attackTextTokens(style.surface, style.label).map((part) =>
+    const tokens = attackTextTokens(style.surface, style.label);
+    const pieces = tokens.map((part) =>
       this.scene.add
         .text(0, 0, part.text, {
           color: style.colorOverride ?? attackTextColor(part.role),
@@ -460,16 +466,23 @@ export class GameRenderer {
           fontSize: `${style.fontSize}px`,
           fontStyle: style.fontStyle,
           stroke: TEXT_COLORS.surface,
-          strokeThickness: 2,
+          strokeThickness: RICH_LABEL_STROKE_THICKNESS,
         })
         .setOrigin(0, 0.5)
         .setLetterSpacing(style.letterSpacing ?? 0),
     );
-    const totalWidth = pieces.reduce((width, piece) => width + piece.width, 0);
-    let cursorX = -totalWidth / 2;
-    for (const piece of pieces) {
-      piece.setPosition(cursorX, 0);
-      cursorX += piece.width;
+    const layout = layoutAttackTextTokens(
+      style.surface,
+      tokens,
+      pieces.map((piece) => piece.width),
+      RICH_LABEL_STROKE_THICKNESS,
+    );
+    for (let index = 0; index < pieces.length; index += 1) {
+      const piece = pieces[index];
+      if (!piece) {
+        continue;
+      }
+      piece.setPosition(layout.offsets[index] ?? 0, 0);
       view.container.add(piece);
     }
   }

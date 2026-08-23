@@ -63,7 +63,7 @@
 
 | surface | 서체·크기 | 문구 문법 | 형태 |
 |---|---|---|---|
-| Terminal | Cascadia Mono·Consolas 10–11px | `$ command`, `error:`, `warning:`, `git:` | prompt와 바로 뒤 한 칸은 하나의 token으로 묶고, 이후 executable·parameter·string·output의 실제 공백과 색 역할을 한 줄 내부에서 구분 |
+| Terminal | Cascadia Mono·Consolas 10–11px | `$ command`, `error:`, `warning:`, `git:` | prompt와 바로 뒤 한 칸은 하나의 token으로 묶고, Phaser에서는 그 token 뒤의 중복 stroke padding만 제거한다. 이후 executable·parameter·string·output의 실제 공백과 색 역할은 그대로 유지 |
 | Browser | system UI sans 10px | `404 Not Found`, `ERR_CONNECTION_REFUSED`, `PAGE_UNRESPONSIVE` | 문구 앞에 6×8 page-outline glyph. error code·path와 일반 상태 본문을 분리 |
 | Codex | Pretendard Variable 10–11px | `[tool]`, `[approval]`, `[context]`, `[effort]`, `[agent]`, `[review]`, `[usage]` | 문구 앞에 3×3 tool-state square. tool token·진행 수치와 본문을 분리 |
 
@@ -90,7 +90,7 @@
 
 ### 화면 상태
 
-- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·local best와 하나의 실행 CTA로 구성한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 edge에서 반대 edge까지, 플레이보다 느린 34–56초 속도로 흐른다.
+- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·local best와 하나의 실행 CTA로 구성한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 viewport 바깥에서 생성되어 반대 edge 바깥까지, 플레이보다 느린 34–56초 속도로 흐른다. 최초 진입에서도 animation 중간 지점부터 갑자기 나타나지 않는다.
 - Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 local best, 하단 조작과 fictional feed 고지만 유지한다.
 - Pause는 별도 화면이 아니라 마지막 Game 장면 위의 일시적인 blur 계층이다.
 

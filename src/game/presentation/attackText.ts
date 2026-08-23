@@ -8,6 +8,11 @@ export interface AttackTextToken {
   role: AttackTextRole;
 }
 
+export interface AttackTextLayout {
+  offsets: number[];
+  totalWidth: number;
+}
+
 const TERMINAL_EXECUTABLES = new Set([
   "cat",
   "git",
@@ -35,6 +40,33 @@ export function attackTextTokens(
 
 export function attackTextColor(role: AttackTextRole): string {
   return ATTACK_TEXT_COLORS[role];
+}
+
+export function layoutAttackTextTokens(
+  surface: AttackSurface,
+  tokens: readonly AttackTextToken[],
+  widths: readonly number[],
+  strokeThickness: number,
+): AttackTextLayout {
+  const promptStrokeOverlap =
+    surface === "terminal" && /^\$\s+$/.test(tokens[0]?.text ?? "")
+      ? strokeThickness * 2
+      : 0;
+  const totalWidth =
+    widths.reduce((width, pieceWidth) => width + pieceWidth, 0) -
+    promptStrokeOverlap;
+  const offsets: number[] = [];
+  let cursorX = -totalWidth / 2;
+
+  for (let index = 0; index < widths.length; index += 1) {
+    offsets.push(cursorX);
+    cursorX += widths[index] ?? 0;
+    if (index === 0) {
+      cursorX -= promptStrokeOverlap;
+    }
+  }
+
+  return { offsets, totalWidth };
 }
 
 function terminalTokens(label: string): AttackTextToken[] {

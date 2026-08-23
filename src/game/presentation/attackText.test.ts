@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { attackTextTokens } from "./attackText";
+import { attackTextTokens, layoutAttackTextTokens } from "./attackText";
 
 describe("attackTextTokens", () => {
   it("matches Codex terminal syntax roles inside one command", () => {
@@ -61,5 +61,22 @@ describe("attackTextTokens", () => {
       text: "ENOENT:",
       role: "terminalError",
     });
+  });
+
+  it("removes only the duplicated stroke gap after a terminal prompt", () => {
+    const tokens = attackTextTokens("terminal", "$ git commit");
+    const layout = layoutAttackTextTokens(
+      "terminal",
+      tokens,
+      [10, 18, 6, 36],
+      2,
+    );
+
+    expect(layout).toEqual({
+      totalWidth: 66,
+      offsets: [-33, -27, -9, -3],
+    });
+    expect(layout.offsets[2] - layout.offsets[1]).toBe(18);
+    expect(layout.offsets[3] - layout.offsets[2]).toBe(6);
   });
 });

@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — command 공백과 Start ambient 진입 경로 수정
+
+### 구현
+
+- Start ambient의 whitespace-only DOM token에 `white-space: pre`를 적용해 terminal·browser·Codex 문장 내부의 원래 한 칸 공백을 보존
+- Game의 terminal prompt는 `$ ` token 뒤에 중복 계산되던 Phaser stroke padding만 상쇄하고 executable 이후 option·argument·message 간격은 변경하지 않음
+- ambient label의 실제 회전 외곽 길이를 측정해 viewport 바깥에서 생성하고 반대편 바깥까지 이동하도록 px 경로로 변경
+- 최초 음수 animation delay를 제거하고 0–8초 양수 stagger와 backwards fill을 사용해 최초 진입에서 경로 중앙에 갑자기 나타나지 않도록 수정
+
+### 검증
+
+- prompt 경계 보정 뒤 나머지 token advance가 그대로 유지되는 presentation unit test 추가
+- ambient의 시작·종료 좌표가 viewport 밖이고 최초 delay가 음수가 아닌 회귀 테스트 추가
+- `pnpm check` 통과: typecheck, 12개 test file의 71개 test, production build, production verifier 완료
+- production 반영과 공개 URL 응답 확인은 별도로 진행
+
 ## 2026-08-24 — procedural gameplay BGM 추가
 
 ### 구현

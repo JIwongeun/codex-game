@@ -6,17 +6,36 @@ import { createAmbientPath, startScreenView } from "./ReadyOverlay";
 describe("createAmbientPath", () => {
   it("moves a signal from one viewport edge to the opposite edge", () => {
     const values = [0, 0.5, 0.5, 0, 0];
-    const path = createAmbientPath(() => values.shift() ?? 0, 1_000, 1_000);
+    const path = createAmbientPath(
+      () => values.shift() ?? 0,
+      1_000,
+      1_000,
+      100,
+    );
 
     expect(path).toEqual({
-      startX: -18,
-      startY: 50,
-      endX: 112,
-      endY: 50,
+      startX: -116,
+      startY: 500,
+      endX: 1_116,
+      endY: 500,
       angleDeg: 0,
       durationSeconds: 34,
       delaySeconds: 0,
     });
+  });
+
+  it("keeps the first appearance outside the viewport with a positive stagger", () => {
+    const values = [0.4, 0.2, 0.8, 0.5, 0.75];
+    const path = createAmbientPath(
+      () => values.shift() ?? 0,
+      1_000,
+      1_000,
+      100,
+    );
+
+    expect(path.startY).toBeLessThan(0);
+    expect(path.endY).toBeGreaterThan(100);
+    expect(path.delaySeconds).toBe(6);
   });
 });
 

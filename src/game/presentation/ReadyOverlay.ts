@@ -33,21 +33,31 @@ export function createAmbientPath(
   random: () => number,
   viewportWidth: number,
   viewportHeight: number,
+  signalExtent: number,
 ): AmbientPath {
   const startEdge = Math.floor(random() * 4) % 4;
   const endEdge = (startEdge + 2) % 4;
-  const start = pointOnViewportEdge(startEdge, random());
-  const end = pointOnViewportEdge(endEdge, random());
-  const angleRadians = Math.atan2(
-    ((end.y - start.y) * viewportHeight) / 100,
-    ((end.x - start.x) * viewportWidth) / 100,
+  const start = pointOutsideViewport(
+    startEdge,
+    random(),
+    viewportWidth,
+    viewportHeight,
+    signalExtent,
   );
+  const end = pointOutsideViewport(
+    endEdge,
+    random(),
+    viewportWidth,
+    viewportHeight,
+    signalExtent,
+  );
+  const angleRadians = Math.atan2(end.y - start.y, end.x - start.x);
   let angleDeg = (angleRadians * 180) / Math.PI;
   if (angleDeg > 90 || angleDeg < -90) {
     angleDeg += 180;
   }
   const durationSeconds = 34 + random() * 22;
-  const delaySeconds = random() * durationSeconds;
+  const delaySeconds = random() * 8;
 
   return {
     startX: start.x,
@@ -56,25 +66,29 @@ export function createAmbientPath(
     endY: end.y,
     angleDeg,
     durationSeconds,
-    delaySeconds: delaySeconds === 0 ? 0 : -delaySeconds,
+    delaySeconds,
   };
 }
 
-function pointOnViewportEdge(
+function pointOutsideViewport(
   edge: number,
   along: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  signalExtent: number,
 ): { x: number; y: number } {
-  const inset = 8 + along * 84;
+  const inset = 0.08 + along * 0.84;
+  const outside = Math.max(1, signalExtent) + 16;
   if (edge === 0) {
-    return { x: -18, y: inset };
+    return { x: -outside, y: viewportHeight * inset };
   }
   if (edge === 1) {
-    return { x: inset, y: -12 };
+    return { x: viewportWidth * inset, y: -outside };
   }
   if (edge === 2) {
-    return { x: 112, y: inset };
+    return { x: viewportWidth + outside, y: viewportHeight * inset };
   }
-  return { x: inset, y: 106 };
+  return { x: viewportWidth * inset, y: viewportHeight + outside };
 }
 
 const HIT_SOURCE_LABEL: Record<HitSource, string> = {
@@ -182,8 +196,8 @@ export class ReadyOverlay {
     this.bestValue = bestValue;
     this.lastRunValue = lastRunValue;
     this.actionSuffix = actionSuffix;
-    this.createAmbientSignals();
     parent.append(this.root);
+    this.createAmbientSignals();
   }
 
   render(state: GameState, localBest: number): void {
@@ -225,24 +239,28 @@ export class ReadyOverlay {
         element.append(text);
       }
 
+      element.style.visibility = "hidden";
+      layer.append(element);
       this.applyAmbientPath(element, true);
+      element.style.visibility = "";
       element.addEventListener("animationiteration", () => {
         this.applyAmbientPath(element, false);
       });
-      layer.append(element);
     }
   }
 
   private applyAmbientPath(element: HTMLElement, initial: boolean): void {
+    const bounds = element.getBoundingClientRect();
     const path = createAmbientPath(
       Math.random,
       Math.max(1, window.innerWidth),
       Math.max(1, window.innerHeight),
+      Math.hypot(bounds.width, bounds.height),
     );
-    element.style.setProperty("--ready-start-x", `${path.startX}vw`);
-    element.style.setProperty("--ready-start-y", `${path.startY}vh`);
-    element.style.setProperty("--ready-end-x", `${path.endX}vw`);
-    element.style.setProperty("--ready-end-y", `${path.endY}vh`);
+    element.style.setProperty("--ready-start-x", `${path.startX}px`);
+    element.style.setProperty("--ready-start-y", `${path.startY}px`);
+    element.style.setProperty("--ready-end-x", `${path.endX}px`);
+    element.style.setProperty("--ready-end-y", `${path.endY}px`);
     element.style.setProperty("--ready-angle", `${path.angleDeg}deg`);
     element.style.animationDuration = `${path.durationSeconds}s`;
     element.style.animationDelay = initial ? `${path.delaySeconds}s` : "0s";
