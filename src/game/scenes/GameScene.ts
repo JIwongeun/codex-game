@@ -128,6 +128,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private renderFrame(delta: number): void {
+    this.soundService.syncMusic(
+      this.state.phase === "playing" && !this.focusPause.isPaused,
+      this.state.elapsedMs,
+    );
     this.gameRenderer.render(this.state, this.focusPause.isPaused ? 0 : delta);
     this.hud.render(
       this.state,
@@ -165,6 +169,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private readonly handleSuspend = (): void => {
+    this.soundService.pauseMusic();
     this.focusPause.suspend(this.state.phase);
   };
 

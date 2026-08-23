@@ -380,7 +380,9 @@ function spawnScheduledAttacks(
   }
 
   if (difficulty.approvalUnlocked && state.spawn.approvalMs <= 0) {
-    spawnApproval(state, difficulty.approvalSpeed);
+    if (spawnApproval(state, difficulty.approvalSpeed)) {
+      events.push({ type: "pattern-warning", kind: "approval-required" });
+    }
     state.spawn.approvalMs += difficulty.approvalIntervalMs;
   }
 

@@ -94,6 +94,14 @@
 - Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 local best, 하단 조작과 fictional feed 고지만 유지한다.
 - Pause는 별도 화면이 아니라 마지막 Game 장면 위의 일시적인 blur 계층이다.
 
+### Sound
+
+- 첫 시작 click 또는 Space로 AudioContext를 연 뒤 original 32-step E minor arpeggio·bass·pulse loop를 저음량으로 재생한다. Stage 1의 132 BPM에서 stage마다 4 BPM씩 올라 Stage 10의 168 BPM에 고정된다.
+- BGM은 `playing`에서만 진행하고 game over·blur·hidden pause에서 즉시 멈춘다. 재시작과 명시적 pause 해제 뒤에는 첫 step부터 다시 시작한다.
+- `M`은 BGM과 효과음을 함께 음소거한다. 공격 warning·burst·hit 효과음이 BGM보다 항상 앞에서 들리도록 BGM gain을 낮게 유지한다.
+- 기본 `TOOL CALL STREAM`은 별도 SFX 없이 흘러가고, `APPROVAL`, `COMPACTION`, `RETRY`, `XHIGH`, `PARALLEL AGENTS`, `REVIEW`, `USAGE LIMIT`은 각각 prompt beep·impact·반복 click·charge·dual tone·review pair·low alarm으로 구분한다.
+- 외부 음원 파일과 음악 dependency를 사용하지 않고 Web Audio oscillator로 실시간 합성한다.
+
 ## 8개 Codex 경험 공격 패턴
 
 | 해금 | 패턴 | 화면 문구 | 행동과 개연성 |

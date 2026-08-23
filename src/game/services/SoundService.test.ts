@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { GameEvent } from "../core/model";
-import { SoundService } from "./SoundService";
+import { musicBpmAt, SoundService } from "./SoundService";
 
 class FakeAudioParam {
   readonly setValueAtTime = vi.fn();
@@ -74,6 +74,72 @@ describe("SoundService", () => {
 
     expect(sound.isMuted).toBe(true);
     expect(FakeAudioContext.instances).toHaveLength(0);
+  });
+
+  it("plays one procedural music step once and advances with game time", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    sound.syncMusic(true, 0);
+    const context = FakeAudioContext.instances[0];
+    const firstStepOscillators = context?.oscillators.length ?? 0;
+
+    expect(firstStepOscillators).toBeGreaterThan(0);
+    sound.syncMusic(true, 0);
+    expect(context?.oscillators).toHaveLength(firstStepOscillators);
+
+    sound.syncMusic(true, 500);
+    sound.syncMusic(true, 1_000);
+    expect(context?.oscillators.length).toBeGreaterThan(firstStepOscillators);
+  });
+
+  it("accelerates the music tempo at each stage up to stage ten", () => {
+    expect(musicBpmAt(0)).toBe(132);
+    expect(musicBpmAt(12_000)).toBe(136);
+    expect(musicBpmAt(108_000)).toBe(168);
+    expect(musicBpmAt(999_000)).toBe(168);
+  });
+
+  it("disconnects music on pause and restarts the step after resume", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    sound.syncMusic(true, 0);
+    const context = FakeAudioContext.instances[0];
+    const firstStepGains = context?.gains.slice() ?? [];
+    const firstStepOscillators = context?.oscillators.length ?? 0;
+
+    sound.pauseMusic();
+    expect(firstStepGains.every((gain) => gain.disconnect.mock.calls.length === 1)).toBe(
+      true,
+    );
+
+    sound.syncMusic(true, 0);
+    expect(context?.oscillators.length).toBeGreaterThan(firstStepOscillators);
+  });
+
+  it("plays a cue for every special pattern and the compaction burst", () => {
+    const sound = new SoundService();
+    const events: readonly GameEvent[] = [
+      { type: "pattern-warning", kind: "approval-required" },
+      { type: "hazard-warning", kind: "compaction" },
+      { type: "hazard-activated", kind: "compaction" },
+      { type: "pattern-warning", kind: "retry-loop" },
+      { type: "pattern-warning", kind: "reasoning-xhigh" },
+      { type: "pattern-warning", kind: "parallel-agents" },
+      { type: "pattern-warning", kind: "review-loop" },
+      { type: "pattern-burst", kind: "review-loop", position: { x: 1, y: 1 } },
+      { type: "pattern-warning", kind: "usage-limit" },
+      { type: "pattern-burst", kind: "usage-limit", position: { x: 1, y: 1 } },
+    ];
+
+    sound.unlock();
+    const context = FakeAudioContext.instances[0];
+    for (const event of events) {
+      const before = context?.oscillators.length ?? 0;
+      sound.consume([event]);
+      expect(context?.oscillators.length).toBeGreaterThan(before);
+    }
   });
 
   it("plays after unmute and disconnects an active tone when muted again", () => {

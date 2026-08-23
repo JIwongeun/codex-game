@@ -2,6 +2,24 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — procedural gameplay BGM 추가
+
+### 구현
+
+- 저작권·외부 asset·새 dependency 없이 Web Audio oscillator로 original 32-step E minor loop 구성
+- triangle arpeggio, square bass와 짧은 pulse를 기존 effect tone보다 낮은 gain으로 조합
+- Stage 1의 132 BPM에서 stage마다 4 BPM씩 가속해 Stage 10의 168 BPM에 고정하고, elapsed time 기반 next-step gate로 frame 중복과 background backlog를 차단
+- 첫 시작 action 뒤에만 재생하고 game over·blur·hidden pause·mute에서 active music gain과 step을 즉시 초기화
+- 재시작과 pause 해제 후 첫 step부터 다시 시작하도록 `GameScene` lifecycle에 연결
+- 기본 tool call을 제외한 approval·compaction warning/activation·retry·reasoning·parallel agents·review warning/burst·usage warning/burst에 각각 다른 oscillator cue 추가
+
+### 검증
+
+- 음악 step 중복 차단, stage별 132→168 BPM curve, 시간 진행 뒤 다음 step, pause disconnect와 resume 재시작을 SoundService unit test에 추가
+- Stage 2–8의 모든 특수 공격 warning·activation·burst event가 oscillator cue를 생성하는 회귀 테스트 추가
+- `pnpm check` 통과: typecheck, 12개 test file의 69개 test, production build, production verifier 완료
+- production 반영과 공개 URL 응답 확인은 별도로 진행
+
 ## 2026-08-24 — Start ambient 대비와 terminal prompt 간격 조정
 
 ### 시각 조정

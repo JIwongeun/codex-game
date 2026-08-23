@@ -171,6 +171,7 @@ export type GameEvent =
       type: "pattern-warning";
       kind:
         | SequenceKind
+        | "approval-required"
         | "retry-loop"
         | "reasoning-xhigh"
         | "parallel-agents";

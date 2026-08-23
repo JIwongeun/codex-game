@@ -2,6 +2,14 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-029 — 저작권 독립적인 procedural BGM을 gameplay에 사용한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, 음량과 음형은 플레이 테스트로 조정 가능
+- 배경: warning·burst·hit 효과음만으로는 반복 플레이를 이끄는 일정한 박자와 긴장감이 부족했다. 외부 음원을 추가하면 저작권 기록, 파일 용량과 loop 편집 부담이 생긴다.
+- 결정: 첫 사용자 action 이후 Web Audio oscillator가 32-step E minor arpeggio·bass·pulse를 실시간 합성한다. Stage 1은 132 BPM으로 시작해 stage마다 4 BPM씩 가속하고 Stage 10의 168 BPM에 고정한다. BGM은 `playing`에서만 elapsed time에 맞춰 진행하며 game over·blur·hidden pause에서 끊고 `M` mute에 효과음과 함께 반응한다.
+- 결과: 새 production dependency와 audio asset 없이 original loop를 제공한다. BGM gain은 warning·pattern burst·hit tone보다 낮게 두고 같은 music step에서 중복 음이 생성되지 않도록 한다. 기본 `TOOL CALL STREAM`은 조용하게 유지하고 Stage 2–8 특수 패턴에는 의미가 다른 짧은 cue를 배정한다.
+
 ## D-001 — 실시간 멀티플레이를 만들지 않는다
 
 - 날짜: 2026-08-23

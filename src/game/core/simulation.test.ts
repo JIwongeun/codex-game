@@ -510,7 +510,14 @@ describe("survival simulation", () => {
     expect(events.filter((event) => event.type === "hazard-warning")).toHaveLength(
       3,
     );
-    expect(events.filter((event) => event.type === "pattern-warning")).toHaveLength(5);
+    const patternWarnings = events.filter(
+      (event) => event.type === "pattern-warning",
+    );
+    expect(patternWarnings).toHaveLength(6);
+    expect(patternWarnings).toContainEqual({
+      type: "pattern-warning",
+      kind: "approval-required",
+    });
     expect(
       state.projectiles.every((candidate) => candidate.telegraphRemainingMs > 0),
     ).toBe(true);
