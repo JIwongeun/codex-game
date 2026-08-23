@@ -498,6 +498,56 @@ describe("survival simulation", () => {
     expect(token.velocity.y).toBeGreaterThan(0);
   });
 
+  it("bursts seeded context words with irregular trajectories", () => {
+    const first = playingState(73);
+    const second = playingState(73);
+    first.hazards = [hazard(first)];
+    second.hazards = [hazard(second)];
+    first.player.position = { x: 5, y: 5 };
+    second.player.position = { x: 5, y: 5 };
+
+    stepGame(first, EMPTY_INPUT, FIXED_STEP_MS * 2);
+    stepGame(second, EMPTY_INPUT, FIXED_STEP_MS * 2);
+
+    const tokens = first.projectiles.filter(
+      (candidate) => candidate.kind === "context-token",
+    );
+    const secondTokens = second.projectiles.filter(
+      (candidate) => candidate.kind === "context-token",
+    );
+    expect(tokens).toEqual(secondTokens);
+    expect(tokens).toHaveLength(12);
+    expect(tokens.every(({ label }) => !label.startsWith("[tok]"))).toBe(true);
+    expect(new Set(tokens.map(({ label }) => label)).size).toBeGreaterThan(7);
+    expect(new Set(tokens.map(({ hitbox }) => hitbox.width)).size).toBeGreaterThan(
+      3,
+    );
+
+    const radii = tokens.map(({ position }) =>
+      Math.hypot(position.x - 640, position.y - 360).toFixed(2),
+    );
+    const speeds = tokens.map(({ speed }) => speed.toFixed(2));
+    const gravity = tokens.map(({ gravityScale }) =>
+      (gravityScale ?? 1).toFixed(2),
+    );
+    const angles = tokens
+      .map(({ velocity }) => {
+        const angle = Math.atan2(velocity.y, velocity.x);
+        return angle < 0 ? angle + Math.PI * 2 : angle;
+      })
+      .sort((left, right) => left - right);
+    const gaps = angles.map((angle, index) => {
+      const next = angles[(index + 1) % angles.length] ?? angle;
+      return (next + (index === angles.length - 1 ? Math.PI * 2 : 0) - angle)
+        .toFixed(2);
+    });
+
+    expect(new Set(radii).size).toBeGreaterThan(5);
+    expect(new Set(speeds).size).toBeGreaterThan(8);
+    expect(new Set(gravity).size).toBeGreaterThan(7);
+    expect(new Set(gaps).size).toBeGreaterThan(5);
+  });
+
   it("fits late-stage compaction and full access to a small viewport", () => {
     const state = playingState(17, 375, 640);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;

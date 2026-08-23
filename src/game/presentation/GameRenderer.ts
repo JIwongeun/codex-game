@@ -49,6 +49,11 @@ function directionBetweenPoints(from: Vec2, to: Vec2): Vec2 {
   return { x: deltaX / magnitude, y: deltaY / magnitude };
 }
 
+function seededUnit(value: number): number {
+  const noise = Math.sin(value * 12.9898) * 43_758.5453;
+  return noise - Math.floor(noise);
+}
+
 export class GameRenderer {
   private readonly scene: Phaser.Scene;
   private readonly background: Phaser.GameObjects.Graphics;
@@ -152,60 +157,83 @@ export class GameRenderer {
     const centerY = y + height / 2;
 
     if (!active) {
-      const compression = Phaser.Math.Easing.Quadratic.In(progress);
+      const compression = Phaser.Math.Easing.Cubic.In(progress);
+      const strainProgress = Phaser.Math.Clamp((progress - 0.72) / 0.28, 0, 1);
+      const strain = Math.sin(progress * 74) * strainProgress;
+      const startWidth = width * 0.74;
+      const startHeight = height * 0.34;
+      const frameWidth = Math.max(
+        15,
+        Phaser.Math.Linear(startWidth, 15, compression) * (1 + strain * 0.04),
+      );
+      const frameHeight = Math.max(
+        7,
+        Phaser.Math.Linear(startHeight, 7, compression) * (1 - strain * 0.08),
+      );
 
-      for (let index = 0; index < 4; index += 1) {
-        const startSize = Math.min(width, height) * (0.16 + index * 0.05);
-        const frameWidth = Phaser.Math.Linear(
-          startSize,
-          10 + index * 3,
-          compression,
-        );
-        const frameHeight = Phaser.Math.Linear(
-          startSize * (0.62 + (index % 2) * 0.12),
-          10 + index * 3,
-          compression,
-        );
+      for (let index = 0; index < 3; index += 1) {
+        const inset = index * 5;
         this.world.lineStyle(
           1,
-          index % 2 === 0 ? tone : COLORS.muted,
-          0.12 + progress * 0.24,
+          index === 0 ? tone : COLORS.muted,
+          index === 0 ? 0.34 + progress * 0.42 : 0.12 + progress * 0.16,
         );
         this.world.strokeRect(
-          centerX - frameWidth / 2,
-          centerY - frameHeight / 2,
-          frameWidth,
-          frameHeight,
+          centerX - frameWidth / 2 + inset,
+          centerY - frameHeight / 2 + inset * 0.45,
+          Math.max(3, frameWidth - inset * 2),
+          Math.max(2, frameHeight - inset * 0.9),
         );
       }
 
-      for (let index = 0; index < 7; index += 1) {
-        const startX = centerX + ((index % 3) - 1) * width * 0.17;
-        const startY = centerY + (index - 3) * height * 0.055;
-        const lineCenterX = Phaser.Math.Linear(startX, centerX, compression);
+      for (let index = 0; index < 9; index += 1) {
+        const lane = (index + 1) / 10;
+        const startX = centerX + ((index % 4) - 1.5) * startWidth * 0.12;
+        const startY = centerY - startHeight / 2 + startHeight * lane;
+        const lineCenterX = Phaser.Math.Linear(
+          startX,
+          centerX + ((index % 3) - 1) * 2,
+          compression,
+        );
         const lineY = Phaser.Math.Linear(
           startY,
-          centerY + (index - 3) * 2,
+          centerY + (index - 4) * 0.55,
           compression,
         );
         const lineWidth = Phaser.Math.Linear(
-          width * (0.13 + (index % 3) * 0.035),
-          3 + (index % 2) * 2,
+          startWidth * (0.1 + (index % 4) * 0.028),
+          2 + (index % 2),
           compression,
         );
         this.world.fillStyle(
-          index % 3 === 0 ? tone : COLORS.muted,
-          0.16 + progress * 0.28,
+          index % 4 === 0 ? tone : COLORS.muted,
+          0.18 + progress * 0.3,
         );
         this.world.fillRect(
           Math.round(lineCenterX - lineWidth / 2),
           Math.round(lineY),
           Math.max(2, Math.round(lineWidth)),
-          index % 3 === 0 ? 2 : 1,
+          index % 4 === 0 ? 2 : 1,
         );
       }
 
-      const coreSize = 3 + Math.round(progress * 5);
+      if (strainProgress > 0) {
+        for (let index = 0; index < 4; index += 1) {
+          const side = index % 2 === 0 ? -1 : 1;
+          const vertical = index < 2 ? -1 : 1;
+          const startX = centerX + side * frameWidth * 0.47;
+          const startY = centerY + vertical * frameHeight * 0.44;
+          this.world.lineStyle(1, COLORS.ink, strainProgress * 0.48);
+          this.world.lineBetween(
+            startX,
+            startY,
+            startX + side * (4 + strainProgress * 9),
+            startY + vertical * (2 + (index % 2) * 3),
+          );
+        }
+      }
+
+      const coreSize = 2 + Math.round(progress * 4);
       this.world.fillStyle(tone, 0.52 + progress * 0.4);
       this.world.fillRect(
         Math.round(centerX - coreSize / 2),
@@ -223,20 +251,17 @@ export class GameRenderer {
     );
     const frameFade = 1 - burstProgress;
 
-    for (let index = 0; index < 3; index += 1) {
-      const ringProgress = Phaser.Math.Clamp(
-        burstProgress * 1.25 - index * 0.12,
-        0,
-        1,
-      );
-      const ringWidth = Phaser.Math.Linear(8, 62 + index * 12, ringProgress);
-      const ringHeight = Phaser.Math.Linear(8, 44 + index * 10, ringProgress);
-      this.world.lineStyle(1, tone, (1 - ringProgress) * 0.64);
-      this.world.strokeRect(
-        centerX - ringWidth / 2,
-        centerY - ringHeight / 2,
-        ringWidth,
-        ringHeight,
+    for (let index = 0; index < 7; index += 1) {
+      const noise = seededUnit(hazard.id * 31 + index * 17);
+      const angle = noise * Math.PI * 2;
+      const length = (12 + seededUnit(hazard.id * 47 + index * 23) * 42) *
+        Phaser.Math.Easing.Quadratic.Out(burstProgress);
+      this.world.lineStyle(1, index % 3 === 0 ? COLORS.ink : tone, frameFade * 0.6);
+      this.world.lineBetween(
+        centerX + Math.cos(angle) * 4,
+        centerY + Math.sin(angle) * 3,
+        centerX + Math.cos(angle) * length,
+        centerY + Math.sin(angle) * length * 0.72,
       );
     }
 
@@ -322,10 +347,12 @@ export class GameRenderer {
         continue;
       }
 
+      if (projectile.kind === "context-token") {
+        continue;
+      }
+
       const length =
-        projectile.kind === "context-token"
-          ? 10
-          : projectile.kind === "approval" || projectile.kind === "agent"
+        projectile.kind === "approval" || projectile.kind === "agent"
             ? 28
             : projectile.kind === "retry"
               ? 24
@@ -641,7 +668,10 @@ export class GameRenderer {
   }
 
   private drawProjectileSurfaceMark(projectile: ProjectileState): void {
-    if (projectile.surface === "terminal") {
+    if (
+      projectile.surface === "terminal" ||
+      projectile.kind === "context-token"
+    ) {
       return;
     }
 
@@ -873,19 +903,24 @@ export class GameRenderer {
   }
 
   private addContextBurst(position: Vec2, phase: number): void {
-    const count = 32;
+    const count = 20;
     for (let index = 0; index < count; index += 1) {
-      const angle = phase + (Math.PI * 2 * index) / count;
-      const speed = 105 + (index % 6) * 24;
+      const seed = phase * 0.001 + index * 19.37;
+      const angle = seededUnit(seed + 1.7) * Math.PI * 2;
+      const speed = 80 + seededUnit(seed + 4.1) * 190;
+      const originRadius = 2 + seededUnit(seed + 8.3) * 22;
       this.particles.push({
-        ...position,
+        x: position.x + Math.cos(angle) * originRadius,
+        y: position.y + Math.sin(angle) * originRadius * 0.65,
         velocity: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
         ageMs: 0,
-        durationMs: 640 + (index % 4) * 70,
-        size: 2 + (index % 3),
-        gravity: 520,
+        durationMs: 480 + seededUnit(seed + 12.9) * 520,
+        size: 1.5 + seededUnit(seed + 16.4) * 3.5,
+        gravity: 360 + seededUnit(seed + 22.2) * 440,
         color:
-          index % 4 === 0 ? COLORS.black : ATTACK_TONES.codex.value,
+          seededUnit(seed + 27.6) > 0.72
+            ? COLORS.black
+            : ATTACK_TONES.codex.value,
       });
     }
   }

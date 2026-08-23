@@ -74,6 +74,8 @@ export interface ProjectileState {
   speed: number;
   ageMs: number;
   telegraphRemainingMs: number;
+  gravityScale?: number;
+  horizontalDragPerSecond?: number;
 }
 
 export interface AreaHazardState {

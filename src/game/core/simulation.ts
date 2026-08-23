@@ -49,14 +49,54 @@ const USAGE_LIMIT_RESULTS: readonly SequenceResultLabel[] = [
   "RESETS IN 4 DAYS",
 ];
 const CONTEXT_TOKEN_LABELS = [
-  "[tok] src/",
-  "[tok] diff",
-  "[tok] plan",
-  "[tok] fix",
-  "[tok] 128t",
-  "[tok] {...}",
-  "[tok] =>",
-  "[tok] lost",
+  "context",
+  "system",
+  "developer",
+  "user",
+  "assistant",
+  "reasoning",
+  "summary",
+  "memory",
+  "prompt",
+  "input",
+  "output",
+  "response",
+  "message",
+  "tool",
+  "result",
+  "function",
+  "return",
+  "const",
+  "state",
+  "player",
+  "hazard",
+  "projectile",
+  "token",
+  "window",
+  "cache",
+  "retry",
+  "merge",
+  "branch",
+  "commit",
+  "tests",
+  "files",
+  "patch",
+  "build",
+  "deploy",
+  "await",
+  "overflow",
+  "stream",
+  "buffer",
+  "limit",
+  "compact",
+  "restore",
+  "truncate",
+  "src/",
+  "diff",
+  "plan",
+  "true",
+  "false",
+  "null",
 ] as const;
 
 export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
@@ -260,11 +300,14 @@ function updateProjectiles(
       projectile.position.y += projectile.velocity.y * projectile.speed * stepSeconds;
       if (projectile.kind === "context-token") {
         projectile.velocity.x *= Math.pow(
-          GAMEPLAY.contextTokenHorizontalDragPerSecond,
+          projectile.horizontalDragPerSecond ??
+            GAMEPLAY.contextTokenHorizontalDragPerSecond,
           stepSeconds,
         );
         projectile.velocity.y +=
-          GAMEPLAY.contextTokenGravityPerSecond * stepSeconds;
+          GAMEPLAY.contextTokenGravityPerSecond *
+          (projectile.gravityScale ?? 1) *
+          stepSeconds;
       }
     }
 
@@ -808,32 +851,46 @@ function spawnContextTokens(
     return;
   }
 
-  const phase = randomBetween(state, 0, Math.PI * 2);
+  const labels = [...CONTEXT_TOKEN_LABELS];
   for (let index = 0; index < available; index += 1) {
-    const angle = phase + (Math.PI * 2 * index) / available;
+    const angle = randomBetween(state, 0, Math.PI * 2);
     const direction = { x: Math.cos(angle), y: Math.sin(angle) };
+    const originAngle = angle + randomBetween(state, -0.52, 0.52);
+    const originRadius = randomBetween(
+      state,
+      GAMEPLAY.contextTokenBurstMinRadius,
+      GAMEPLAY.contextTokenBurstMaxRadius,
+    );
     const position = {
-      x: center.x + direction.x * GAMEPLAY.contextTokenBurstRadius,
-      y: center.y + direction.y * GAMEPLAY.contextTokenBurstRadius,
+      x: center.x + Math.cos(originAngle) * originRadius,
+      y: center.y + Math.sin(originAngle) * originRadius,
     };
     const target = {
       x: position.x + direction.x * 100,
       y: position.y + direction.y * 100,
     };
-    addProjectile(
+    const labelIndex = Math.floor(randomBetween(state, 0, labels.length));
+    const [label = "context"] = labels.splice(labelIndex, 1);
+    const projectile = addProjectile(
       state,
       "context-token",
       "codex",
-      CONTEXT_TOKEN_LABELS[index % CONTEXT_TOKEN_LABELS.length]!,
+      label,
       position,
       target,
       {
-        width: GAMEPLAY.contextTokenHitboxWidth,
+        width: labelHitboxWidth(
+          label,
+          GAMEPLAY.contextTokenHitboxMinWidth,
+          GAMEPLAY.contextTokenHitboxMaxWidth,
+        ),
         height: GAMEPLAY.contextTokenHitboxHeight,
       },
-      speed * (0.76 + (index % 5) * 0.07),
+      speed * randomBetween(state, 0.58, 1.28),
       0,
     );
+    projectile.gravityScale = randomBetween(state, 0.7, 1.45);
+    projectile.horizontalDragPerSecond = randomBetween(state, 0.58, 0.86);
   }
 }
 
@@ -847,8 +904,8 @@ function addProjectile(
   hitbox: RectangleHitbox,
   speed: number,
   telegraphMs: number,
-): void {
-  state.projectiles.push({
+): ProjectileState {
+  const projectile: ProjectileState = {
     id: takeEntityId(state),
     kind,
     surface,
@@ -859,7 +916,9 @@ function addProjectile(
     speed,
     ageMs: 0,
     telegraphRemainingMs: telegraphMs,
-  });
+  };
+  state.projectiles.push(projectile);
+  return projectile;
 }
 
 function randomToolCallEntry(
