@@ -121,3 +121,11 @@
 - 배경: 흰 화면과 검정 타이포만 강조한 1차 UI는 둥글고 무채색인 일반 웹 UI처럼 보여 개발 도구·픽셀·digital 콘셉트가 약했다. 사용자는 흑백은 base일 뿐 전체 palette 제한이 아니며 font는 Pretendard Variable이어야 한다고 명확히 했다.
 - 결정: warm white와 black을 base로 유지하되 `TAB` blue, `POP-UP` amber, `MEMORY LEAK` violet, `CONTEXT OVERFLOW` red, running status green을 사용한다. rounded rectangle과 smooth ring을 square frame, pixel ring, stepped trail로 바꾼다. 모든 Phaser HUD/overlay와 DOM fallback font는 self-hosted `Pretendard Variable`로 통일한다.
 - 결과: `pretendard@1.3.9`를 production dependency로 고정하고 dynamic unicode subset CSS를 bundle한다. font license는 OFL-1.1이다. 게임은 font load가 끝난 뒤 boot해 Phaser text texture에도 같은 face가 적용되도록 한다.
+
+## D-016 — pointer hotspot은 유지하고 검은 pixel cursor와 투명 pause 계층을 사용한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, D-013의 native cursor 외형과 기존 pause overlay를 대체
+- 배경: 운영체제 기본 커서는 게임의 digital 도구 시각 언어와 충분히 연결되지 않았고, 기존 pause 화면은 마지막 플레이 장면을 거의 흰색으로 덮어 맥락을 잃게 했다.
+- 결정: pointer 입력과 충돌 좌표의 1:1 규칙은 유지하되 Canvas 안에서 24×32 hard-edge black PNG cursor를 CSS hotspot `(1, 1)`로 사용한다. pause는 Phaser 결과 overlay와 분리한 DOM 계층에서 `backdrop-filter`로 마지막 장면을 흐리고 중앙 문구만 표시한다.
+- 결과: 별도 player sprite나 추적 지연 없이 cursor 외형만 제품 언어에 맞는다. pause 안내는 입력을 가로채지 않아 기존 클릭·Space 재개 흐름을 유지하며, Scene 종료 시 DOM 계층을 제거한다.

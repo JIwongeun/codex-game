@@ -33,12 +33,67 @@ body {
   height: 100%;
 }
 
+#game-root {
+  position: relative;
+}
+
 #game-root canvas {
   display: block;
   width: 100%;
   height: 100%;
-  cursor: default;
+  cursor:
+    url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAgCAYAAAAIXrg4AAAAo0lEQVR4nN3WQQrAIAwEQH/h/39Z8NDSQyCIZk2y6aGCxzpstNE2xnXLbBXjXbj3XocIUIZoQCM0aAboaXYADbEASskQkE5zCoQRDxBCvIB7XyKAK00GOEKyACwZAzDTMIElwgYECQO63tZM/wfw/COA1mVXC+mo6RS7Gw2VLwTM0a0U7l60+yCdAnXGT65Uyl4g5L8pqO+n+cTRn5rlL/HIeAAsXiaqS8qKQwAAAABJRU5ErkJggg==")
+      1 1,
+    default;
   image-rendering: pixelated;
   touch-action: none;
   user-select: none;
+}
+
+.pause-overlay {
+  position: absolute;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: rgb(251 251 248 / 16%);
+  backdrop-filter: blur(7px) saturate(0.7);
+  -webkit-backdrop-filter: blur(7px) saturate(0.7);
+}
+
+.pause-overlay[hidden] {
+  display: none;
+}
+
+.pause-overlay__copy {
+  text-align: center;
+  color: #171717;
+}
+
+.pause-overlay__title,
+.pause-overlay__time,
+.pause-overlay__action {
+  margin: 0;
+}
+
+.pause-overlay__title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 760;
+  letter-spacing: -0.04em;
+}
+
+.pause-overlay__time {
+  margin-top: 10px;
+  font-size: 0.875rem;
+  font-weight: 590;
+  letter-spacing: 0.08em;
+}
+
+.pause-overlay__action {
+  margin-top: 32px;
+  color: #1677ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }

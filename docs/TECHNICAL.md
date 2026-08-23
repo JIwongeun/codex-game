@@ -101,7 +101,7 @@ flowchart LR
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
 - Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
 - Input: Phaser 입력을 시작·재시작 action과 native pointer의 현재 viewport 좌표로 변환
-- Presentation: domain state를 읽어 Canvas와 HUD만 갱신
+- Presentation: domain state를 읽어 Canvas와 HUD를 갱신하고, `PauseOverlay`가 blur 상태의 DOM 안내만 담당
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환
 - Services: local storage와 브라우저 효과음. leaderboard HTTP는 실제 구현 시에만 추가
 
@@ -206,7 +206,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - 에셋은 브라우저 캐시가 가능한 정적 파일로 제공한다.
 - 개발자 도구를 열지 않아도 오류 상태를 알 수 있게 한다.
 - simulation은 60 Hz 고정 timestep으로만 전진한다. render delta는 100ms로 제한하고 한 frame에서 최대 6 tick만 처리한다.
-- 탭 blur/hidden 동안 게임과 타이머를 멈추고 복귀 시 accumulator를 비운다.
+- 탭 blur/hidden 동안 게임과 타이머를 멈추고 복귀 시 accumulator를 비운다. pause 표현은 Canvas 전체를 다시 칠하지 않고 pointer-events가 없는 DOM `backdrop-filter` 계층에서 마지막 장면만 흐린다.
 
 ## 9. 테스트 전략
 
@@ -222,7 +222,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - Chrome과 Edge 최신 버전
 - 1280×720, 작은 노트북, 세로형 모바일 viewport
-- native pointer 1:1 위치와 Space action
+- custom cursor hotspot과 pointer 1:1 위치, Space action
 - 탭이 background로 갔다 돌아온 뒤 타이머 폭주 여부
 - 랭킹을 구현한 경우의 API 연결 실패
 - 재시작 후 이전 게임 객체와 입력 listener가 남지 않는지

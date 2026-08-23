@@ -113,7 +113,6 @@ export class Hud {
   render(
     state: GameState,
     localBest: number,
-    focusPaused: boolean,
     muted: boolean,
   ): void {
     this.layout(state);
@@ -134,15 +133,7 @@ export class Hud {
     this.hintText.setText(`POINTER = YOU   ·   M  ${muted ? "SOUND ON" : "MUTE"}`);
     this.renderAnnouncement(state);
 
-    if (focusPaused) {
-      this.showOverlay(
-        state,
-        "This tab is paused.",
-        "Your run is safe.",
-        `SURVIVED  ${formatSurvivalTime(state.elapsedMs)}\n\nThe timer and every incoming request are frozen.\nReturn when Codex needs a little more time.`,
-        "CLICK / SPACE TO RESUME",
-      );
-    } else if (state.phase === "ready") {
+    if (state.phase === "ready") {
       this.showOverlay(
         state,
         "await CODEX",

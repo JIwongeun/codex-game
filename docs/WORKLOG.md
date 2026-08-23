@@ -2,6 +2,25 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — black pixel cursor와 background blur pause
+
+### 구현
+
+- 실제 pointer 좌표와 충돌 hotspot의 1:1 규칙은 유지하면서 Canvas 안에서만 24×32 hard-edge black PNG cursor가 보이도록 변경
+- cursor PNG를 CSS data URL로 포함해 별도 로딩 요청과 anti-aliasing 없이 즉시 적용하고 `(1, 1)`을 입력 hotspot으로 지정
+- 기존 Phaser full-screen pause overlay를 제거하고 `PauseOverlay` DOM presentation 모듈로 분리
+- pause 중 마지막 게임 장면에는 blur·저채도만 적용하고 화면 중앙에 생존 시간과 재개 문구만 표시
+- pause 계층을 `pointer-events: none`으로 두어 클릭 재개가 기존 Canvas 입력으로 그대로 전달되도록 유지
+
+### 검증
+
+- `pnpm check`: typecheck, Vitest 5 files의 31 tests, Worker/client production build 통과
+- pixel rendering 설정(`pixelArt`, `antialias: false`, `roundPixels`, `image-rendering: pixelated`)과 PNG cursor 형식 유지 확인
+
+### 사용자 확인 대기
+
+- 사용자가 열린 local development 화면에서 cursor 크기·hotspot 감각과 pause blur 강도를 직접 확인한 뒤 production 배포 여부를 결정한다.
+
 ## 2026-08-23 — native cursor·전체 viewport·공격 UI 재설계
 
 ### 접근 제어

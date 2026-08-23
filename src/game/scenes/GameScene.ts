@@ -13,6 +13,7 @@ import {
 import { InputController } from "../input/InputController";
 import { GameRenderer } from "../presentation/GameRenderer";
 import { Hud } from "../presentation/Hud";
+import { PauseOverlay } from "../presentation/PauseOverlay";
 import { FixedStepRunner } from "../runtime/FixedStepRunner";
 import { readLocalBest, saveLocalBest } from "../services/localBest";
 import { SoundService } from "../services/SoundService";
@@ -22,6 +23,7 @@ export class GameScene extends Phaser.Scene {
   private inputController!: InputController;
   private gameRenderer!: GameRenderer;
   private hud!: Hud;
+  private pauseOverlay!: PauseOverlay;
   private readonly fixedStep = new FixedStepRunner();
   private readonly soundService = new SoundService();
   private localBest = 0;
@@ -41,6 +43,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.gameRenderer = new GameRenderer(this);
     this.hud = new Hud(this);
+    this.pauseOverlay = new PauseOverlay(this.game.canvas.parentElement ?? document.body);
     this.inputController = new InputController(this);
     this.localBest = readLocalBest();
 
@@ -126,9 +129,9 @@ export class GameScene extends Phaser.Scene {
     this.hud.render(
       this.state,
       this.localBest,
-      this.focusPaused,
       this.soundService.isMuted,
     );
+    this.pauseOverlay.render(this.focusPaused, this.state.elapsedMs);
   }
 
   private handleEvents(events: readonly GameEvent[]): void {
@@ -179,6 +182,7 @@ export class GameScene extends Phaser.Scene {
     this.game.events.off(Phaser.Core.Events.VISIBLE, this.handleFocus);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize);
     this.inputController.destroy();
+    this.pauseOverlay.destroy();
     this.soundService.destroy();
   };
 
