@@ -31,6 +31,13 @@
 
 - owner-only production에 배포한 뒤 사용자가 회전 문구 가독성, 수렴 과정, radial 회피 여유와 Stage별 실제 난이도를 직접 확인
 
+### production 반영
+
+- 검증된 source commit `bceee5a`를 Sites version 9로 저장하고 기존 owner-only production URL에 배포
+- 배포 상태 `succeeded`, live URL의 latest version 9 확인
+- access mode `custom`, owner 1명, group 0개, 외부 방문자 0명 유지 확인
+- 사용자 요청에 따라 자동 browser 시각 판정은 수행하지 않고 실제 플레이 확인을 사용자에게 넘김
+
 ## 2026-08-23 — Codex task surface와 개발·vibe coding 공격 전면 재설계
 
 ### 제품·문서
