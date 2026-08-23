@@ -1,5 +1,80 @@
-import type { GameState, HitSource } from "../core/model";
+import type { AttackSurface, GameState, HitSource } from "../core/model";
 import { formatSurvivalTime } from "../core/rules";
+import { attackTextColor, attackTextTokens } from "./attackText";
+
+interface AmbientSignal {
+  label: string;
+  surface: AttackSurface;
+}
+
+export interface AmbientPath {
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  angleDeg: number;
+  durationSeconds: number;
+  delaySeconds: number;
+}
+
+const AMBIENT_SIGNALS: readonly AmbientSignal[] = [
+  { label: '$ git commit -m "fix"', surface: "terminal" },
+  { label: "$ pnpm test --watch", surface: "terminal" },
+  { label: "[context] 84% used", surface: "codex" },
+  { label: "[review] changes requested", surface: "codex" },
+  { label: "codex: reading AGENTS.md", surface: "codex" },
+  { label: "404 Not Found", surface: "browser" },
+  { label: "ERR_CONNECTION_REFUSED", surface: "browser" },
+  { label: "net::ERR_FAILED", surface: "browser" },
+];
+
+export function createAmbientPath(
+  random: () => number,
+  viewportWidth: number,
+  viewportHeight: number,
+): AmbientPath {
+  const startEdge = Math.floor(random() * 4) % 4;
+  const endEdge = (startEdge + 2) % 4;
+  const start = pointOnViewportEdge(startEdge, random());
+  const end = pointOnViewportEdge(endEdge, random());
+  const angleRadians = Math.atan2(
+    ((end.y - start.y) * viewportHeight) / 100,
+    ((end.x - start.x) * viewportWidth) / 100,
+  );
+  let angleDeg = (angleRadians * 180) / Math.PI;
+  if (angleDeg > 90 || angleDeg < -90) {
+    angleDeg += 180;
+  }
+  const durationSeconds = 34 + random() * 22;
+  const delaySeconds = random() * durationSeconds;
+
+  return {
+    startX: start.x,
+    startY: start.y,
+    endX: end.x,
+    endY: end.y,
+    angleDeg,
+    durationSeconds,
+    delaySeconds: delaySeconds === 0 ? 0 : -delaySeconds,
+  };
+}
+
+function pointOnViewportEdge(
+  edge: number,
+  along: number,
+): { x: number; y: number } {
+  const inset = 8 + along * 84;
+  if (edge === 0) {
+    return { x: -18, y: inset };
+  }
+  if (edge === 1) {
+    return { x: inset, y: -12 };
+  }
+  if (edge === 2) {
+    return { x: 112, y: inset };
+  }
+  return { x: inset, y: 106 };
+}
 
 const HIT_SOURCE_LABEL: Record<HitSource, string> = {
   log: "ONE MORE CHANGE",
@@ -48,16 +123,7 @@ export class ReadyOverlay {
     this.root.className = "ready-overlay";
     this.root.setAttribute("aria-label", "await CODEX 시작 화면");
     this.root.innerHTML = `
-      <div class="ready-overlay__signals" aria-hidden="true">
-        <span class="ready-signal ready-signal--terminal ready-signal--one">$ pnpm test --watch</span>
-        <span class="ready-signal ready-signal--codex ready-signal--two">[context] 84% used</span>
-        <span class="ready-signal ready-signal--error ready-signal--three">error: merge conflict</span>
-        <span class="ready-signal ready-signal--browser ready-signal--four">ERR_CONNECTION_REFUSED</span>
-        <span class="ready-signal ready-signal--success ready-signal--five">git: branch created</span>
-        <span class="ready-signal ready-signal--codex ready-signal--six">codex: reading AGENTS.md</span>
-        <span class="ready-signal ready-signal--warning ready-signal--seven">warning: one more change</span>
-        <span class="ready-signal ready-signal--browser ready-signal--eight">404 /api/approval</span>
-      </div>
+      <div class="ready-overlay__signals" aria-hidden="true"></div>
 
       <header class="ready-header">
         <div class="ready-brand">
@@ -114,6 +180,7 @@ export class ReadyOverlay {
     this.bestValue = bestValue;
     this.lastRunValue = lastRunValue;
     this.actionSuffix = actionSuffix;
+    this.createAmbientSignals();
     parent.append(this.root);
   }
 
@@ -131,5 +198,51 @@ export class ReadyOverlay {
 
   destroy(): void {
     this.root.remove();
+  }
+
+  private createAmbientSignals(): void {
+    const layer = this.root.querySelector<HTMLElement>(
+      ".ready-overlay__signals",
+    );
+    if (!layer) {
+      throw new Error("Ready overlay ambient layer was not found.");
+    }
+
+    for (const signal of AMBIENT_SIGNALS) {
+      const element = document.createElement("span");
+      element.className = `ready-signal ready-signal--${signal.surface}`;
+      if (signal.surface !== "terminal") {
+        const mark = document.createElement("i");
+        mark.className = `ready-signal__mark ready-signal__mark--${signal.surface}`;
+        element.append(mark);
+      }
+      for (const part of attackTextTokens(signal.surface, signal.label)) {
+        const text = document.createElement("span");
+        text.textContent = part.text;
+        text.style.color = attackTextColor(part.role);
+        element.append(text);
+      }
+
+      this.applyAmbientPath(element, true);
+      element.addEventListener("animationiteration", () => {
+        this.applyAmbientPath(element, false);
+      });
+      layer.append(element);
+    }
+  }
+
+  private applyAmbientPath(element: HTMLElement, initial: boolean): void {
+    const path = createAmbientPath(
+      Math.random,
+      Math.max(1, window.innerWidth),
+      Math.max(1, window.innerHeight),
+    );
+    element.style.setProperty("--ready-start-x", `${path.startX}vw`);
+    element.style.setProperty("--ready-start-y", `${path.startY}vh`);
+    element.style.setProperty("--ready-end-x", `${path.endX}vw`);
+    element.style.setProperty("--ready-end-y", `${path.endY}vh`);
+    element.style.setProperty("--ready-angle", `${path.angleDeg}deg`);
+    element.style.animationDuration = `${path.durationSeconds}s`;
+    element.style.animationDelay = initial ? `${path.delaySeconds}s` : "0s";
   }
 }

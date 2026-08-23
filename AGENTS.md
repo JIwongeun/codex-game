@@ -51,7 +51,8 @@
 - OpenAI 로고, 상표, 캐릭터를 복제하지 않는다. 개발 도구의 구조적 인상만 사용한다.
 - 시작 화면의 game mark는 black square·white context loop·violet core로 만든 original symbol을 사용하며 OpenAI knot나 Codex 제품 logo를 모사하지 않는다.
 - 색은 각 작업 surface 안에서 의미에만 연결하며 장식용 무작위 색을 만들지 않는다. terminal은 ANSI식 의미색, browser는 page/error 계열, Codex는 tool/review/context violet 계열을 사용한다.
-- 기본 `log`에는 예고선과 motion rail을 표시하지 않는다. 그 외 projectile 예고선은 112px, motion rail은 28px를 넘지 않는다. player는 정적인 정사각형 아이콘이며 blink·방향 notch·화살표·corner mark를 추가하지 않는다.
+- 기본 `log`에는 예고선과 motion rail을 표시하지 않는다. 그 외 projectile 예고선은 112px, motion rail은 28px를 넘지 않는다. player는 내부 glyph나 inset이 없는 12×12 검은 정사각형이며 blink·방향 notch·화살표·corner mark를 추가하지 않는다.
+- 공격 문구 전체에 entity별 단색을 칠하지 않는다. terminal은 Codex terminal의 command·parameter·quoted string·output syntax를, browser와 Codex는 각 surface의 error code·path·tool token·본문 문법을 문장 내부 token 단위로 표현한다.
 - 발표 문구는 사용자가 요청할 때만 작성한다.
 
 ## 기술 기준

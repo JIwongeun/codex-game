@@ -35,7 +35,7 @@ export type LogLabel =
   | "$ pnpm test --watch"
   | "codex: retrying tool"
   | "warning: tree is dirty"
-  | "$ git commit --amend"
+  | '$ git commit -m "fix"'
   | "error: CI failed"
   | "error TS2322"
   | "[context] 12% left"

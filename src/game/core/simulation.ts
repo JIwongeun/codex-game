@@ -38,7 +38,7 @@ const LOG_ENTRIES: readonly {
   { label: "$ pnpm test --watch", surface: "terminal" },
   { label: "codex: retrying tool", surface: "codex" },
   { label: "warning: tree is dirty", surface: "terminal" },
-  { label: "$ git commit --amend", surface: "terminal" },
+  { label: '$ git commit -m "fix"', surface: "terminal" },
   { label: "error: CI failed", surface: "terminal" },
   { label: "error TS2322", surface: "terminal" },
   { label: "[context] 12% left", surface: "codex" },
@@ -51,11 +51,14 @@ const LOG_ENTRIES: readonly {
   { label: "PAGE_UNRESPONSIVE", surface: "browser" },
   { label: "net::ERR_FAILED", surface: "browser" },
 ];
-const REVIEW_LABELS: readonly ReviewLabel[] = [
-  "[review] approval required",
-  "[review] changes requested",
-  "git: needs rebase",
-  "run command? [y/N]",
+const REVIEW_ENTRIES: readonly {
+  label: ReviewLabel;
+  surface: AttackSurface;
+}[] = [
+  { label: "[review] approval required", surface: "codex" },
+  { label: "[review] changes requested", surface: "codex" },
+  { label: "git: needs rebase", surface: "terminal" },
+  { label: "run command? [y/N]", surface: "codex" },
 ];
 
 export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
@@ -481,18 +484,18 @@ function spawnReview(state: GameState, speed: number): boolean {
     18,
   );
   const target = { ...state.player.position };
-  const label = randomReviewLabel(state);
+  const entry = randomReviewEntry(state);
 
   addProjectile(
     state,
     "review",
-    "codex",
-    label,
+    entry.surface,
+    entry.label,
     position,
     target,
     {
       width: labelHitboxWidth(
-        label,
+        entry.label,
         GAMEPLAY.reviewHitboxMinWidth,
         GAMEPLAY.reviewHitboxMaxWidth,
       ),
@@ -726,9 +729,9 @@ function randomLogEntry(state: GameState): (typeof LOG_ENTRIES)[number] {
   return LOG_ENTRIES[index] ?? LOG_ENTRIES[0];
 }
 
-function randomReviewLabel(state: GameState): ReviewLabel {
-  const index = Math.floor(randomBetween(state, 0, REVIEW_LABELS.length));
-  return REVIEW_LABELS[index] ?? REVIEW_LABELS[0];
+function randomReviewEntry(state: GameState): (typeof REVIEW_ENTRIES)[number] {
+  const index = Math.floor(randomBetween(state, 0, REVIEW_ENTRIES.length));
+  return REVIEW_ENTRIES[index] ?? REVIEW_ENTRIES[0];
 }
 
 function logHitbox(label: LogLabel): RectangleHitbox {

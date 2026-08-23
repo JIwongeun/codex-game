@@ -2,6 +2,31 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — surface syntax 공격과 edge-to-edge Start ambient
+
+### 플레이어와 공격 표현
+
+- player에서 white inset과 violet core를 제거하고 판정 반경은 유지한 채 12×12 black square 하나만 표시
+- `attackText.ts`가 terminal·browser·Codex label을 문장 내부의 executable, parameter, quoted string, error code, path, tool token과 본문 역할로 분리
+- terminal font stack을 Codex terminal에 가까운 Cascadia Mono·Consolas로 조정하고 `$ git commit -m "fix"`가 executable gold, parameter gray, quoted message blue, 나머지 black으로 한 줄 안에서 표현되도록 변경
+- Browser는 page glyph와 error code·path·본문, Codex는 tool marker와 `[review]`·`[context]`·진행 수치·본문을 각 surface 문법으로 분리
+- projectile, context label과 fork·merge sequence label을 token Text가 함께 회전·이동하는 bounded Phaser Container로 변경
+- `git: needs rebase` review가 Codex가 아닌 terminal surface를 사용하도록 phrase source 교정
+
+### Start ambient
+
+- 고정 위치의 짧은 drift를 제거하고 여덟 문구가 무작위 viewport edge에서 반대 edge까지 34–56초 동안 느리게 이동하도록 변경
+- Start 문구도 gameplay와 같은 tokenizer, font, browser page glyph와 Codex tool marker를 공유
+- `prefers-reduced-motion`에서는 ambient layer를 숨김
+
+### 검증
+
+- terminal command token, Browser `404`·`net::ERR_*`, Codex `[context]` token 분리를 단위 테스트로 고정
+- Start ambient가 선택된 viewport edge에서 반대 edge로 이동하는 순수 path 테스트 추가
+- `pnpm check`: typecheck, 9 files / 51 tests, production build 통과
+- 알려진 비차단 경고: Phaser 포함 client chunk가 Vite 기본 500 kB 경고를 넘으며 gzip 약 333 kB
+- 실제 player 대비, token 간격과 ambient 밀도는 사용자 production 확인 대상으로 유지
+
 ## 2026-08-23 — 로그인 없는 공개 제출 URL
 
 ### 접근과 검색 노출

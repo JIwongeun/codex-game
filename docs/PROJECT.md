@@ -26,7 +26,7 @@
 
 ## 3. 핵심 경험
 
-플레이어는 Canvas가 직접 그리는 hard-edge 검은 `>_` agent prompt다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 회전 명령어, snapshot review, context 점 폭발, retry·race·branch·merge 수렴 패턴을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
+플레이어는 Canvas가 직접 그리는 glyph 없는 hard-edge 검은 정사각형이다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 회전 명령어, snapshot review, context 점 폭발, retry·race·branch·merge 수렴 패턴을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
 
 핵심 감정은 다음 세 단계다.
 
@@ -51,7 +51,7 @@
 - `WASD`와 방향키를 동일한 8방향 입력으로 합치고, 440px/s 고정 속도로 이동한다.
 - 대각선 입력은 정규화해 직선보다 빠르지 않게 하며 가속과 관성은 사용하지 않는다.
 - 플레이어는 화면 경계를 넘지 않는다.
-- 화면에는 black square·white inset·Codex violet core로 된 정적인 정사각형 agent node를 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
+- 화면에는 내부 glyph와 inset이 없는 12×12 black square를 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
 - 탭 blur/hidden pause 중에는 simulation과 타이머를 동결하고 held movement key를 초기화한다. 복귀 후 클릭 또는 Space로 재개한다.
 - 직선 공격은 보이는 명령어 외곽과 같은 방향으로 회전하는 사각 hitbox를 사용하고 player는 작은 원형 hitbox를 사용한다.
 - 프레임률과 관계없이 60 Hz 고정 timestep으로 이동과 충돌을 판정한다.
@@ -93,7 +93,7 @@
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 terminal의 monospace·ANSI 의미색, browser의 sans·page error glyph, Codex의 Pretendard·tool marker·context progress처럼 작업 출처별 문법을 사용한다.
 - 둥근 card와 부드러운 장식을 피하고 각진 1px frame, square pixel, stepped trail, tool-call row로 개발 도구의 digital 질감을 만든다.
 - HUD와 overlay는 `Pretendard Variable`을 사용한다. 공격은 surface에 따라 10–11px monospace 또는 Pretendard/system sans를 사용한다. 상단 중앙 공격명 announcement는 표시하지 않는다.
-- 사용자에게 보이는 완전한 화면은 Start와 Game 두 개뿐이다. Start는 최초 진입과 game over 뒤에 공유하며 original context-loop game mark, 상단 background task 상태, 큰 `Codex is working.` headline, objective·control·fail state·last run·local best와 하나의 실행 CTA로 구성한다. 뒤에는 실제 공격 문법을 미리 보여주는 저대비 terminal·browser·Codex 문구가 천천히 떠다닌다. 별도 Results 화면은 만들지 않는다.
+- 사용자에게 보이는 완전한 화면은 Start와 Game 두 개뿐이다. Start는 최초 진입과 game over 뒤에 공유하며 original context-loop game mark, 상단 background task 상태, 큰 `Codex is working.` headline, objective·control·fail state·last run·local best와 하나의 실행 CTA로 구성한다. 뒤에는 실제 공격과 같은 token 문법과 edge-to-edge 진행 방향을 가진 저대비 terminal·browser·Codex 문구가 느린 속도로 화면을 가로지른다. 별도 Results 화면은 만들지 않는다.
 - 탭 blur/hidden으로 멈춘 동안에는 결과 화면처럼 장면을 덮지 않는다. 마지막 게임 장면을 흐리게 남기고 중앙 pause 문구만 표시한다.
 - pause 중에는 마지막 장면과 player 위치를 blur 아래에 그대로 남기고 중앙 재개 문구만 표시한다.
 - 공격의 실루엣, 예고 범위, 실제 위험 범위를 명확히 구분한다.

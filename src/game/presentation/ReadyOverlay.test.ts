@@ -1,7 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import { createGameState, startRun } from "../core/simulation";
-import { startScreenView } from "./ReadyOverlay";
+import { createAmbientPath, startScreenView } from "./ReadyOverlay";
+
+describe("createAmbientPath", () => {
+  it("moves a signal from one viewport edge to the opposite edge", () => {
+    const values = [0, 0.5, 0.5, 0, 0];
+    const path = createAmbientPath(() => values.shift() ?? 0, 1_000, 1_000);
+
+    expect(path).toEqual({
+      startX: -18,
+      startY: 50,
+      endX: 112,
+      endY: 50,
+      angleDeg: 0,
+      durationSeconds: 34,
+      delaySeconds: 0,
+    });
+  });
+});
 
 describe("startScreenView", () => {
   it("uses the same start surface before the first run and after game over", () => {

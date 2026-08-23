@@ -32,8 +32,9 @@
 ### Palette와 Typography
 
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 하나의 terminal skin으로 통일하지 않고 `terminal`, `browser`, `codex` 작업 surface별 시각 문법을 사용한다.
-- HUD와 overlay는 self-hosted `Pretendard Variable`을 사용한다. 공격은 surface에 따라 10–11px monospace 또는 Pretendard/system sans를 선택한다.
+- HUD와 overlay는 self-hosted `Pretendard Variable`을 사용한다. Terminal 공격은 Codex terminal과 가까운 `Cascadia Mono`·`Consolas` system stack을, Browser는 system UI sans를, Codex는 Pretendard를 10–11px로 사용한다.
 - 투사체는 큰 사각 UI block이 아니라 실제 command, browser error, tool-state처럼 작고 보통 굵기인 한 줄 문구다.
+- 투사체 전체에 한 색을 주지 않는다. 같은 한 줄 안에서도 executable, parameter, quoted string, error code, path, tool token과 본문을 각 surface의 실제 syntax 역할에 따라 나눈다.
 - 문구 기준선은 진행 벡터와 평행하게 회전한다. 뒤집혀 읽히는 각도는 180도 보정하되 충돌 사각형의 방향은 동일하게 유지한다.
 - 얇은 흰 외곽 stroke를 사용한다. 기본 `LOG STREAM`에는 방향선과 rail을 전혀 표시하지 않고, 조준·반복·교차 공격만 14–28px rail과 최대 112px 점선 예고를 사용한다.
 - 둥근 pill, gradient, 장식용 card, 작은 chip 군집은 사용하지 않는다.
@@ -43,7 +44,10 @@
 | surface | `#FFFFFF` | 전체 Canvas와 label clearance |
 | ink | `#171717` | HUD, player, 일반 UI |
 | muted | `#686868` | 보조 상태와 조작 안내 |
-| terminal command | `#246B92` | `$ pnpm`, `$ git`, shell prompt |
+| terminal executable | `#D18D00` | Codex terminal의 `git`, `pnpm`, `npm`, `cat` |
+| terminal string | `#147BD1` | quoted commit message와 문자열 argument |
+| terminal parameter | `#6F6F6B` | `-m`, `--watch`, `--force` |
+| terminal output | `#171717` | subcommand와 일반 출력 본문 |
 | terminal success | `#287A50` | `branch`, `read()`, change |
 | terminal warning | `#9A5B13` | `warning:`, `rebase`, `write()` |
 | terminal error | `#B83D45` | `error:`, `failed`, `TS2322`, `BUG!` |
@@ -58,9 +62,9 @@
 
 | surface | 서체·크기 | 문구 문법 | 형태 |
 |---|---|---|---|
-| Terminal | system monospace 10–11px | `$ command`, `error:`, `warning:`, `git:` | 별도 box 없이 shell text 자체. command/success/warning/error 의미색 사용 |
-| Browser | Pretendard/system sans 10px | `404 Not Found`, `ERR_CONNECTION_REFUSED`, `PAGE_UNRESPONSIVE` | 문구 앞에 6×8 page-outline glyph. browser ink/accent/error 사용 |
-| Codex | Pretendard Variable 10–11px | `codex:`, `[review]`, `[context]`, `retry n/m` | 문구 앞에 3×3 tool-state square. context만 별도 progress field 사용 |
+| Terminal | Cascadia Mono·Consolas 10–11px | `$ command`, `error:`, `warning:`, `git:` | 별도 box 없이 Codex terminal처럼 executable·parameter·string·output을 한 줄 내부에서 구분 |
+| Browser | system UI sans 10px | `404 Not Found`, `ERR_CONNECTION_REFUSED`, `PAGE_UNRESPONSIVE` | 문구 앞에 6×8 page-outline glyph. error code·path와 일반 상태 본문을 분리 |
+| Codex | Pretendard Variable 10–11px | `codex:`, `[review]`, `[context]`, `retry n/m` | 문구 앞에 3×3 tool-state square. tool token·진행 수치와 본문을 분리 |
 
 - 한 projectile은 한 줄, 약 26자 이하를 목표로 한다. `MAX`, `BUG!`, error code처럼 즉시 판독할 token만 대문자를 허용한다.
 - surface는 label 문자열을 보고 renderer가 추측하지 않는다. core `ProjectileState.surface`에 `terminal | browser | codex`로 명시한다.
@@ -78,15 +82,14 @@
 
 ### Player
 
-- 아이콘은 12×12 black square, 4×4 white inset, 2×2 Codex violet core로 구성한 정사각형 agent node다.
-- 16×16 white clearance를 먼저 그려 흰 화면에서도 외곽이 공격 문구에 묻히지 않게 한다.
+- 아이콘은 내부 글자, inset, core가 없는 12×12 black square 하나다.
 - 실제 피격 반경은 5px로 시각 외곽보다 작아 정밀 회피에 관용을 둔다.
 - 아이콘은 시간과 입력 방향에 따라 변하지 않는다. blink, 폭 변화, 방향 notch, 화살표, corner mark를 표시하지 않는다.
 - OS cursor, OpenAI logo, Codex logo를 모사하지 않는다.
 
 ### 화면 상태
 
-- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·local best와 하나의 실행 CTA를 제공한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack surface와 같은 terminal·browser·Codex 문구가 저대비 blur 상태로 천천히 떠다닌다.
+- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·local best와 하나의 실행 CTA를 제공한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 무작위 edge에서 반대 edge로, 플레이보다 느린 34–56초 속도로 화면을 가로지른다.
 - Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 local best, 하단 조작과 fictional feed 고지만 유지한다.
 - Pause는 별도 화면이 아니라 마지막 Game 장면 위의 일시적인 blur 계층이다.
 
@@ -139,7 +142,8 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 - `core/model.ts`: projectile, hazard, convergence sequence와 event 계약
 - `core/rules.ts`: 12초 단위 Stage 1–10, 해금과 연속 난이도 곡선
 - `core/simulation.ts`: seeded spawn, snapshot, 수렴·분할, 회전 충돌, entity cap
-- `presentation/GameRenderer.ts`: 회전 텍스트, 경로, context progress, convergence와 particle 표현
+- `presentation/attackText.ts`: terminal·browser·Codex label을 surface별 syntax token으로 분리하고 공통 색 역할 제공
+- `presentation/GameRenderer.ts`: token별 회전 텍스트, 경로, context progress, convergence와 particle 표현
 - `presentation/ReadyOverlay.ts`: 최초 진입과 game over가 공유하는 Start DOM layout, original game mark, last run·local best와 ambient attack feed
 - `presentation/Hud.ts`: Game 화면의 stage·시간·best만 표시. 공격명 announcement와 별도 Results UI는 금지
 - `presentation/PauseOverlay.ts`: focus pause 표현

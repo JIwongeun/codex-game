@@ -21,7 +21,7 @@ export const TEXT_COLORS = {
 
 export const ATTACK_TONES = {
   neutral: { value: 0x4b4b48, text: "#4b4b48" },
-  terminalCommand: { value: 0x246b92, text: "#246b92" },
+  terminalCommand: { value: 0xd18d00, text: "#d18d00" },
   terminalSuccess: { value: 0x287a50, text: "#287a50" },
   terminalWarning: { value: 0x9a5b13, text: "#9a5b13" },
   terminalError: { value: 0xb83d45, text: "#b83d45" },
@@ -31,7 +31,21 @@ export const ATTACK_TONES = {
   codex: { value: 0x6754a3, text: "#6754a3" },
 } as const;
 
+export const ATTACK_TEXT_COLORS = {
+  ink: "#171717",
+  muted: "#747470",
+  terminalExecutable: "#d18d00",
+  terminalParameter: "#6f6f6b",
+  terminalString: "#147bd1",
+  terminalWarning: "#9a5b13",
+  terminalError: "#b83d45",
+  browserError: "#b64747",
+  browserMeta: "#596675",
+  codexToken: "#6754a3",
+} as const;
+
 export const FONTS = {
-  mono: 'ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+  mono: '"Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Monaco, "Liberation Mono", monospace',
+  browser: '-apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
   sans: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 } as const;

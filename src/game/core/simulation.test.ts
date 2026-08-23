@@ -195,6 +195,7 @@ describe("survival simulation", () => {
   it("selects seeded parody labels with bounded label-sized hitboxes", () => {
     const logLabels = new Set<string>();
     const reviewLabels = new Set<string>();
+    const reviewSurfaces = new Map<string, string>();
 
     for (let seed = 1; seed <= 512; seed += 1) {
       const state = playingState(seed, 800, 600);
@@ -214,6 +215,7 @@ describe("survival simulation", () => {
           );
         } else {
           reviewLabels.add(candidate.label);
+          reviewSurfaces.set(candidate.label, candidate.surface);
           expect(candidate.hitbox.width).toBeGreaterThanOrEqual(
             GAMEPLAY.reviewHitboxMinWidth,
           );
@@ -230,7 +232,7 @@ describe("survival simulation", () => {
         "$ pnpm test --watch",
         "codex: retrying tool",
         "warning: tree is dirty",
-        "$ git commit --amend",
+        '$ git commit -m "fix"',
         "error: CI failed",
         "error TS2322",
         "[context] 12% left",
@@ -250,6 +252,14 @@ describe("survival simulation", () => {
         "[review] changes requested",
         "git: needs rebase",
         "run command? [y/N]",
+      ]),
+    );
+    expect(reviewSurfaces).toEqual(
+      new Map([
+        ["[review] approval required", "codex"],
+        ["[review] changes requested", "codex"],
+        ["git: needs rebase", "terminal"],
+        ["run command? [y/N]", "codex"],
       ]),
     );
 

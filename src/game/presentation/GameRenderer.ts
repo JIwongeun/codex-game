@@ -2,12 +2,14 @@ import Phaser from "phaser";
 
 import { GAMEPLAY } from "../constants";
 import type {
+  AttackSurface,
   AreaHazardState,
   GameEvent,
   GameState,
   ProjectileState,
   Vec2,
 } from "../core/model";
+import { attackTextColor, attackTextTokens } from "./attackText";
 import { ATTACK_TONES, COLORS, FONTS, TEXT_COLORS } from "./theme";
 
 type AttackTone = (typeof ATTACK_TONES)[keyof typeof ATTACK_TONES];
@@ -17,6 +19,21 @@ interface ParticleEffect extends Vec2 {
   ageMs: number;
   durationMs: number;
   size: number;
+}
+
+interface RichLabelView {
+  readonly container: Phaser.GameObjects.Container;
+  signature: string;
+}
+
+interface RichLabelStyle {
+  surface: AttackSurface;
+  label: string;
+  fontFamily: string;
+  fontSize: number;
+  fontStyle: string;
+  letterSpacing?: number;
+  colorOverride?: string;
 }
 
 function directionBetweenPoints(from: Vec2, to: Vec2): Vec2 {
@@ -32,9 +49,9 @@ export class GameRenderer {
   private readonly world: Phaser.GameObjects.Graphics;
   private readonly playerLayer: Phaser.GameObjects.Graphics;
   private readonly effectsLayer: Phaser.GameObjects.Graphics;
-  private readonly projectileLabels = new Map<number, Phaser.GameObjects.Text>();
-  private readonly hazardLabels = new Map<number, Phaser.GameObjects.Text>();
-  private readonly sequenceLabels = new Map<number, Phaser.GameObjects.Text>();
+  private readonly projectileLabels = new Map<number, RichLabelView>();
+  private readonly hazardLabels = new Map<number, RichLabelView>();
+  private readonly sequenceLabels = new Map<number, RichLabelView>();
   private readonly particles: ParticleEffect[] = [];
   private hitFlashMs = 0;
 
@@ -88,9 +105,9 @@ export class GameRenderer {
 
   resetEffects(): void {
     this.particles.length = 0;
-    this.destroyTextMap(this.projectileLabels);
-    this.destroyTextMap(this.hazardLabels);
-    this.destroyTextMap(this.sequenceLabels);
+    this.destroyRichLabelMap(this.projectileLabels);
+    this.destroyRichLabelMap(this.hazardLabels);
+    this.destroyRichLabelMap(this.sequenceLabels);
     this.hitFlashMs = 0;
   }
 
@@ -266,14 +283,8 @@ export class GameRenderer {
     const x = Math.round(state.player.position.x);
     const y = Math.round(state.player.position.y);
 
-    this.playerLayer.fillStyle(COLORS.surface, 1);
-    this.playerLayer.fillRect(x - 8, y - 8, 16, 16);
     this.playerLayer.fillStyle(COLORS.black, 1);
     this.playerLayer.fillRect(x - 6, y - 6, 12, 12);
-    this.playerLayer.fillStyle(COLORS.surface, 1);
-    this.playerLayer.fillRect(x - 2, y - 2, 4, 4);
-    this.playerLayer.fillStyle(ATTACK_TONES.codex.value, 1);
-    this.playerLayer.fillRect(x - 1, y - 1, 2, 2);
   }
 
   private syncProjectileLabels(state: GameState): void {
@@ -281,41 +292,32 @@ export class GameRenderer {
 
     for (const projectile of state.projectiles) {
       activeIds.add(projectile.id);
-      let label = this.projectileLabels.get(projectile.id);
-      if (!label) {
-        const fontSize = this.projectileFontSize(projectile);
-        const tone = this.projectileTone(projectile);
-        label = this.scene.add
-          .text(0, 0, projectile.label, {
-            color: tone.text,
-            fontFamily: this.projectileFontFamily(projectile),
-            fontSize: `${fontSize}px`,
-            fontStyle:
-              projectile.surface === "terminal" ? "normal" : "500",
-            stroke: TEXT_COLORS.surface,
-            strokeThickness: 2,
-          })
-          .setOrigin(0.5)
-          .setDepth(6);
-        this.projectileLabels.set(projectile.id, label);
+      let view = this.projectileLabels.get(projectile.id);
+      if (!view) {
+        view = this.createRichLabel(6);
+        this.projectileLabels.set(projectile.id, view);
       }
 
-      const tone = this.projectileTone(projectile);
-      label
-        .setText(projectile.label)
+      this.updateRichLabel(view, {
+        surface: projectile.surface,
+        label: projectile.label,
+        fontFamily: this.projectileFontFamily(projectile),
+        fontSize: this.projectileFontSize(projectile),
+        fontStyle: projectile.surface === "terminal" ? "normal" : "500",
+        letterSpacing: projectile.surface === "terminal" ? 0 : 0.15,
+      });
+      view.container
         .setPosition(
           Math.round(projectile.position.x),
           Math.round(projectile.position.y),
         )
         .setRotation(this.readableProjectileRotation(projectile.velocity))
-        .setColor(tone.text)
-        .setLetterSpacing(projectile.surface === "terminal" ? 0 : 0.15)
         .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.42 : 0.96)
         .setScale(1)
         .setVisible(true);
     }
 
-    this.removeInactiveText(this.projectileLabels, activeIds);
+    this.removeInactiveRichLabels(this.projectileLabels, activeIds);
   }
 
   private syncHazardLabels(state: GameState): void {
@@ -323,19 +325,10 @@ export class GameRenderer {
 
     for (const hazard of state.hazards) {
       activeIds.add(hazard.id);
-      let label = this.hazardLabels.get(hazard.id);
-      if (!label) {
-        label = this.scene.add
-          .text(0, 0, "", {
-            color: ATTACK_TONES.codex.text,
-            fontFamily: FONTS.sans,
-            fontSize: "11px",
-            stroke: TEXT_COLORS.surface,
-            strokeThickness: 2,
-          })
-          .setOrigin(0.5)
-          .setDepth(3);
-        this.hazardLabels.set(hazard.id, label);
+      let view = this.hazardLabels.get(hazard.id);
+      if (!view) {
+        view = this.createRichLabel(3);
+        this.hazardLabels.set(hazard.id, view);
       }
 
       const active = hazard.phase === "active";
@@ -351,17 +344,22 @@ export class GameRenderer {
         ? "[context] MAX"
         : `[context] ${Math.round(progress * 100)}%`;
 
-      label
-        .setText(text)
+      this.updateRichLabel(view, {
+        surface: "codex",
+        label: text,
+        fontFamily: FONTS.sans,
+        fontSize: 11,
+        fontStyle: "500",
+        colorOverride: active ? TEXT_COLORS.surface : undefined,
+      });
+      view.container
         .setPosition(Math.round(hazard.position.x), Math.round(hazard.position.y))
         .setRotation(0)
-        .setColor(active ? TEXT_COLORS.surface : ATTACK_TONES.codex.text)
-        .setFontSize(11)
         .setAlpha(active ? 1 : 0.9)
         .setVisible(true);
     }
 
-    this.removeInactiveText(this.hazardLabels, activeIds);
+    this.removeInactiveRichLabels(this.hazardLabels, activeIds);
   }
 
   private syncSequenceLabels(state: GameState): void {
@@ -377,40 +375,27 @@ export class GameRenderer {
         const origin = sequence.origins[index]!;
         const id = sequence.id * 100 + index;
         activeIds.add(id);
-        let label = this.sequenceLabels.get(id);
-        if (!label) {
-          const tone =
-            sequence.kind === "fork-bomb"
-              ? ATTACK_TONES.terminalSuccess
-              : ATTACK_TONES.terminalWarning;
-          label = this.scene.add
-            .text(0, 0, "", {
-              color: tone.text,
-              fontFamily: FONTS.mono,
-              fontSize: sequence.kind === "fork-bomb" ? "10px" : "9px",
-              stroke: TEXT_COLORS.surface,
-              strokeThickness: 2,
-            })
-            .setOrigin(0.5)
-            .setDepth(5);
-          this.sequenceLabels.set(id, label);
+        let view = this.sequenceLabels.get(id);
+        if (!view) {
+          view = this.createRichLabel(5);
+          this.sequenceLabels.set(id, view);
         }
 
         const position = {
           x: Phaser.Math.Linear(origin.x, sequence.position.x, progress),
           y: Phaser.Math.Linear(origin.y, sequence.position.y, progress),
         };
-        label
-          .setText(
+        this.updateRichLabel(view, {
+          surface: "terminal",
+          label:
             sequence.kind === "fork-bomb"
               ? sequence.label
               : `change +${index + 1}`,
-          )
-          .setColor(
-            sequence.kind === "fork-bomb"
-              ? ATTACK_TONES.terminalSuccess.text
-              : ATTACK_TONES.terminalWarning.text,
-          )
+          fontFamily: FONTS.mono,
+          fontSize: sequence.kind === "fork-bomb" ? 10 : 9,
+          fontStyle: "normal",
+        });
+        view.container
           .setPosition(Math.round(position.x), Math.round(position.y))
           .setRotation(
             this.readableProjectileRotation(
@@ -423,36 +408,72 @@ export class GameRenderer {
 
       const coreId = sequence.id * 100 + 99;
       activeIds.add(coreId);
-      let coreLabel = this.sequenceLabels.get(coreId);
-      if (!coreLabel) {
-        coreLabel = this.scene.add
-          .text(0, 0, "", {
-            color: TEXT_COLORS.ink,
-            fontFamily: FONTS.mono,
-            fontSize: "10px",
-            stroke: TEXT_COLORS.surface,
-            strokeThickness: 2,
-          })
-          .setOrigin(0.5)
-          .setDepth(5);
-        this.sequenceLabels.set(coreId, coreLabel);
+      let coreView = this.sequenceLabels.get(coreId);
+      if (!coreView) {
+        coreView = this.createRichLabel(5);
+        this.sequenceLabels.set(coreId, coreView);
       }
-      coreLabel
-        .setText(
+      this.updateRichLabel(coreView, {
+        surface: "terminal",
+        label:
           sequence.kind === "fork-bomb"
             ? `fork: ${Math.round(progress * 100)}%`
             : `$ git merge ${Math.round(progress * 100)}%`,
-        )
-        .setColor(
-          sequence.kind === "fork-bomb"
-            ? ATTACK_TONES.terminalSuccess.text
-            : ATTACK_TONES.terminalError.text,
-        )
+        fontFamily: FONTS.mono,
+        fontSize: 10,
+        fontStyle: "normal",
+      });
+      coreView.container
         .setPosition(sequence.position.x, sequence.position.y + 34)
         .setVisible(true);
     }
 
-    this.removeInactiveText(this.sequenceLabels, activeIds);
+    this.removeInactiveRichLabels(this.sequenceLabels, activeIds);
+  }
+
+  private createRichLabel(depth: number): RichLabelView {
+    return {
+      container: this.scene.add.container(0, 0).setDepth(depth),
+      signature: "",
+    };
+  }
+
+  private updateRichLabel(view: RichLabelView, style: RichLabelStyle): void {
+    const signature = [
+      style.surface,
+      style.label,
+      style.fontFamily,
+      style.fontSize,
+      style.fontStyle,
+      style.letterSpacing ?? 0,
+      style.colorOverride ?? "",
+    ].join("|");
+    if (view.signature === signature) {
+      return;
+    }
+
+    view.container.removeAll(true);
+    view.signature = signature;
+    const pieces = attackTextTokens(style.surface, style.label).map((part) =>
+      this.scene.add
+        .text(0, 0, part.text, {
+          color: style.colorOverride ?? attackTextColor(part.role),
+          fontFamily: style.fontFamily,
+          fontSize: `${style.fontSize}px`,
+          fontStyle: style.fontStyle,
+          stroke: TEXT_COLORS.surface,
+          strokeThickness: 2,
+        })
+        .setOrigin(0, 0.5)
+        .setLetterSpacing(style.letterSpacing ?? 0),
+    );
+    const totalWidth = pieces.reduce((width, piece) => width + piece.width, 0);
+    let cursorX = -totalWidth / 2;
+    for (const piece of pieces) {
+      piece.setPosition(cursorX, 0);
+      cursorX += piece.width;
+      view.container.add(piece);
+    }
   }
 
   private projectileFontSize(projectile: ProjectileState): number {
@@ -472,7 +493,10 @@ export class GameRenderer {
   }
 
   private projectileFontFamily(projectile: ProjectileState): string {
-    return projectile.surface === "terminal" ? FONTS.mono : FONTS.sans;
+    if (projectile.surface === "terminal") {
+      return FONTS.mono;
+    }
+    return projectile.surface === "browser" ? FONTS.browser : FONTS.sans;
   }
 
   private drawProjectileSurfaceMark(projectile: ProjectileState): void {
@@ -728,21 +752,21 @@ export class GameRenderer {
     }
   }
 
-  private removeInactiveText(
-    map: Map<number, Phaser.GameObjects.Text>,
+  private removeInactiveRichLabels(
+    map: Map<number, RichLabelView>,
     activeIds: ReadonlySet<number>,
   ): void {
-    for (const [id, text] of map) {
+    for (const [id, view] of map) {
       if (!activeIds.has(id)) {
-        text.destroy();
+        view.container.destroy(true);
         map.delete(id);
       }
     }
   }
 
-  private destroyTextMap(map: Map<number, Phaser.GameObjects.Text>): void {
-    for (const text of map.values()) {
-      text.destroy();
+  private destroyRichLabelMap(map: Map<number, RichLabelView>): void {
+    for (const view of map.values()) {
+      view.container.destroy(true);
     }
     map.clear();
   }

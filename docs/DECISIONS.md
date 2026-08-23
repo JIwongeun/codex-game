@@ -173,7 +173,7 @@
 ## D-022 — 흑백 base 위에서 terminal·browser·Codex surface를 각각 표현한다
 
 - 날짜: 2026-08-23
-- 상태: 일부 대체됨 — 공격 surface 결정은 유지하고 D-023이 player caret만 정적 정사각형 node로 교체
+- 상태: 일부 대체됨 — 공격 surface 결정은 유지하고 D-023이 player caret을, D-027이 label 단색 표현을 교체
 - 배경: 흑백은 전체 게임의 base일 뿐 모든 Codex 작업이 terminal인 것은 아니다. browser 작업과 Codex tool·review·context까지 monospace와 ANSI식 색으로 통일하면 출처의 개연성이 사라진다. 기존 크기도 넓은 viewport에서 여전히 크게 느껴졌다.
 - 결정: projectile에 `surface: terminal | browser | codex`를 명시한다. terminal은 10–11px monospace와 `$`·ANSI 의미색, browser는 10px sans와 6×8 page-outline·page/error 색, Codex는 10–11px Pretendard와 3×3 tool-state marker·violet context 언어를 쓴다. 기본 `LOG STREAM`에는 점선 경로와 motion rail을 표시하지 않는다. player는 최대 6×12, HUD는 8–24px, projectile hitbox는 새 font scale에 맞춰 축소한다.
 - 결과: 하나의 탄막 안에서도 작업 출처가 font·copy·glyph·색으로 구분된다. 흑백 task surface는 통일감을 담당하고 accent는 각 surface의 정보 의미만 전달한다. 기본 공격은 경로선 없이 날아오는 문구 자체만 남고 전체 viewport는 상대적으로 넓게 느껴진다.
@@ -181,7 +181,7 @@
 ## D-023 — player를 정적인 정사각형 agent node로 교체한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, 크기와 inset 대비만 실제 플레이로 미세 조정 가능
+- 상태: 대체됨 — D-027이 내부 inset과 violet core를 제거
 - 배경: 6×12 caret은 흰 배경에서 너무 가늘어 player 위치가 잘 보이지 않았고, 6px↔2px blink 때문에 아이콘 실루엣도 계속 달라졌다. 사용자는 animation이 없는 정적인 정사각형 아이콘을 요청했다.
 - 결정: player는 12×12 black square, 4×4 white inset, 2×2 Codex violet core로 그린다. 16×16 white clearance로 주변 공격 문구와 분리한다. 시간과 입력 방향에 따른 blink·폭 변화·방향 장식은 모두 제거한다. 기존 이동, 피격 반경 5px과 판정은 변경하지 않는다.
 - 결과: 흰 화면에서 검은 정사각형 외곽이 항상 같은 크기로 보이고, 작은 violet core가 Codex 작업 주체임을 표시한다. Ready 화면의 player glyph도 동일한 구조로 맞춘다.
@@ -189,7 +189,7 @@
 ## D-024 — Ready 화면을 독립적인 wait-time game identity로 구성한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, 실제 viewport 확인 뒤 간격과 ambient 밀도만 조정 가능
+- 상태: 일부 대체됨 — layout과 game mark는 유지하고 D-027이 ambient의 색과 이동 규칙을 교체
 - 배경: 기존 Ready는 작은 player glyph와 제목·설명 텍스트만 있어 화면 상단이 비고, Codex를 기다리며 하는 게임이라는 정체성과 실제 공격의 terminal·browser·Codex 문법을 시작 전에 전달하지 못했다.
 - 결정: Ready를 Canvas text block이 아닌 presentation-only DOM overlay로 분리한다. 상단에는 black square, white rotated context loop와 violet core로 구성한 original mark와 task-running 상태를 둔다. 본문은 큰 headline, 두 줄 설명, 네 줄 run spec과 단일 rectangular CTA로 제한한다. 실제 phrase bank의 의미색·서체를 반영한 여덟 ambient attack 문구는 낮은 opacity와 약한 blur, 19–31초 저속 drift로 배경에서만 움직인다. OpenAI knot와 Codex 제품 logo는 복제하지 않는다.
 - 결과: Ready의 typography와 responsive layout을 gameplay HUD와 독립적으로 조정할 수 있다. 같은 mark를 runtime-generated PNG favicon으로 browser tab에 표시한다. 장식 문구는 pointer event를 받지 않고 simulation·spawn·collision에 참여하지 않으며, 시작 click과 Space 입력 흐름은 그대로 유지한다.
@@ -209,3 +209,11 @@
 - 배경: owner-only `custom` 접근은 사용자가 매 변경 뒤 새로고침해 확인하고 링크를 심사위원·테스터에게 바로 공유하기에 불편했다. Sites에는 별도의 unlisted 또는 secret-link 접근 모드가 없고 `custom`과 `public`만 제공된다.
 - 결정: production Sites 접근을 `public`으로 전환한다. URL을 아는 방문자는 로그인·승인 없이 플레이할 수 있다. HTML에는 `noindex, nofollow, noarchive` robots meta를 넣고 Worker가 모든 응답에 같은 `X-Robots-Tag`를 추가해 검색 색인을 요청하지 않는다.
 - 결과: 같은 URL을 개발 확인과 대회 제출에 사용할 수 있다. Sites 외부 응답에서 `X-Robots-Tag`가 노출되지 않아 production 검색 제외는 HTML robots meta가 담당한다. `noindex`는 인증이나 접근 제어가 아니므로 URL을 전달받거나 발견한 사람의 접속을 차단하지 않으며, 이를 비공개 링크로 표현하지 않는다.
+
+## D-027 — player를 순수 black square로 줄이고 공격 문구를 surface syntax로 조립한다
+
+- 날짜: 2026-08-23
+- 상태: 확정
+- 배경: player 내부의 white inset과 violet core는 작은 크기에서 불필요한 glyph처럼 보였다. 공격 label도 문장 전체가 command blue·error red처럼 한 색을 가져 Codex terminal, browser error, Codex tool surface의 실제 문법과 달랐다. Start 배경 문구는 짧은 drift만 반복해 플레이 중 edge-to-edge 공격 움직임을 미리 보여주지 못했다.
+- 결정: player는 판정을 바꾸지 않고 내부 요소 없는 12×12 black square 하나만 그린다. 한 projectile label은 surface별 syntax token으로 나눠 같은 회전 Container 안에 배치한다. Terminal은 Codex terminal의 executable gold, quoted string blue, parameter gray, 일반 output black을 기준으로 하고 Browser는 error code·path·본문, Codex는 tool token·진행 수치·본문을 각각 분리한다. Start ambient도 같은 tokenizer, font, surface glyph를 사용하고 무작위 edge에서 반대 edge까지 34–56초 동안 직선 이동한다.
+- 결과: 색은 공격 entity의 종류가 아니라 문장 내부 정보 구조를 설명한다. projectile의 core label·surface·hitbox·이동·충돌은 유지되며 presentation만 token Text Container로 바뀐다. Start ambient는 simulation과 충돌에 참여하지 않지만 실제 공격의 방향성과 문법을 낮은 대비로 선행 학습시킨다.
