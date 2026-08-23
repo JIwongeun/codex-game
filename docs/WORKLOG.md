@@ -17,10 +17,11 @@
 - `pnpm check`: typecheck, Vitest 5 files의 31 tests, Worker/client production build 통과
 - pixel rendering 설정(`pixelArt`, `antialias: false`, `roundPixels`, `image-rendering: pixelated`)과 PNG cursor 형식 유지 확인
 
-### 사용자 확인 대기
+### production 반영과 사용자 확인 대기
 
-- 사용자가 열린 local development 화면에서 cursor 크기·hotspot 감각과 pause blur 강도를 직접 확인한 뒤 production 배포 여부를 결정한다.
-- 검증된 source commit `d2fc8c0`을 Sites production에 반영하지 않은 배포 대기 version 5로 저장했다. 현재 live URL은 이전 version 4이며 owner-only 접근 정책도 그대로다.
+- 검증된 source commit `d2fc8c0`을 Sites version 5로 저장하고 owner-only production에 배포했다.
+- 배포 성공 후 live URL의 latest version이 5이며 access mode `custom`, owner 1명, group 0개, 외부 방문자 0명으로 유지됨을 확인했다.
+- 사용자가 production 화면에서 cursor 크기·hotspot 감각과 pause blur 강도를 직접 확인한 뒤 필요한 시각 조정을 반영한다.
 
 ## 2026-08-23 — native cursor·전체 viewport·공격 UI 재설계
 
