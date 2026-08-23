@@ -18,6 +18,13 @@
 - pause 중 pointer action의 실제 좌표는 보존되지만 gameplay 좌표는 동결되는 `InputController` 회귀 테스트 추가
 - frozen cursor 경계 안 click 허용, 바깥 click과 keyboard action 차단을 검증하는 순수 gate 테스트 추가
 
+### production 반영과 사용자 확인 대기
+
+- 검증된 source commit `a5f4884`를 Sites version 6으로 저장하고 owner-only production에 배포
+- 배포 상태 `succeeded`, live URL의 latest version 6 확인
+- access mode `custom`, owner 1명, group 0개, 외부 방문자 0명으로 비공개 접근 유지 확인
+- 실제 cursor 외형과 pause 복귀 감각은 사용자가 production 화면에서 확인한 뒤 조정
+
 ## 2026-08-23 — black pixel cursor와 background blur pause
 
 ### 구현
