@@ -78,15 +78,15 @@ describe("survival simulation", () => {
     expect(startRun(first)).toEqual([]);
   });
 
-  it("produces identical state for the same seed and pointer stream", () => {
+  it("produces identical state for the same seed and keyboard stream", () => {
     const first = restartRun(314_159, 960, 640);
     const second = restartRun(314_159, 960, 640);
 
     for (let tick = 0; tick < 900 && first.phase === "playing"; tick += 1) {
       const intent = {
-        position: {
-          x: 480 + Math.cos(tick / 90) * 180,
-          y: 320 + Math.sin(tick / 90) * 130,
+        direction: {
+          x: Math.cos(tick / 90),
+          y: Math.sin(tick / 90),
         },
       };
       stepGame(first, intent, FIXED_STEP_MS);
@@ -96,15 +96,24 @@ describe("survival simulation", () => {
     expect(first).toEqual(second);
   });
 
-  it("places the player exactly at the pointer and clamps only at viewport edges", () => {
+  it("moves at a fixed speed, normalizes diagonals, and clamps at viewport edges", () => {
     const state = playingState(1, 800, 600);
 
-    stepGame(state, { position: { x: 243.5, y: 117.25 } }, FIXED_STEP_MS);
-    expect(state.player.position).toEqual({ x: 243.5, y: 117.25 });
+    stepGame(state, { direction: { x: 1, y: 0 } }, 500);
+    expect(state.player.position).toEqual({ x: 620, y: 300 });
 
-    stepGame(state, { position: { x: -100, y: 900 } }, FIXED_STEP_MS);
+    const beforeDiagonal = { ...state.player.position };
+    stepGame(state, { direction: { x: 1, y: 1 } }, 100);
+    expect(
+      Math.hypot(
+        state.player.position.x - beforeDiagonal.x,
+        state.player.position.y - beforeDiagonal.y,
+      ),
+    ).toBeCloseTo(GAMEPLAY.playerSpeed * 0.1);
+
+    stepGame(state, { direction: { x: 1, y: 1 } }, 5_000);
     expect(state.player.position).toEqual({
-      x: GAMEPLAY.playerRadius,
+      x: 800 - GAMEPLAY.playerRadius,
       y: 600 - GAMEPLAY.playerRadius,
     });
   });
@@ -142,7 +151,7 @@ describe("survival simulation", () => {
     expect(state.hazards[1]!.position.x).toBeLessThanOrEqual(375);
   });
 
-  it("does not move without a pointer sample", () => {
+  it("does not move without keyboard input", () => {
     const state = playingState();
     const start = { ...state.player.position };
 
@@ -232,7 +241,7 @@ describe("survival simulation", () => {
 
     const events = stepGame(
       state,
-      { position: { x: 450, y: 300 } },
+      EMPTY_INPUT,
       FIXED_STEP_MS,
     );
 
@@ -263,16 +272,16 @@ describe("survival simulation", () => {
     const resultSnapshot = structuredClone(state);
 
     expect(
-      stepGame(state, { position: { x: 20, y: 20 } }, 5_000),
+      stepGame(state, { direction: { x: -1, y: -1 } }, 5_000),
     ).toEqual([]);
     expect(state).toEqual(resultSnapshot);
 
-    const restarted = restartRun(73, 800, 500, { x: 30, y: 40 });
+    const restarted = restartRun(73, 800, 500);
     expect(restarted.phase).toBe("playing");
     expect(restarted.seed).toBe(73);
     expect(restarted.score).toBe(0);
     expect(restarted.arena).toEqual({ width: 800, height: 500 });
-    expect(restarted.player.position).toEqual({ x: 30, y: 40 });
+    expect(restarted.player.position).toEqual({ x: 400, y: 250 });
     expect(restarted.projectiles).toEqual([]);
     expect(restarted.hazards).toEqual([]);
   });
@@ -287,9 +296,9 @@ describe("survival simulation", () => {
         stepGame(
           state,
           {
-            position: {
-              x: width / 2 + Math.cos((tick + seed) / 75) * width * 0.22,
-              y: height / 2 + Math.sin((tick + seed) / 75) * height * 0.2,
+            direction: {
+              x: Math.cos((tick + seed) / 75),
+              y: Math.sin((tick + seed) / 75),
             },
           },
           FIXED_STEP_MS,

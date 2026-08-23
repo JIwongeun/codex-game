@@ -7,7 +7,7 @@ export const MAX_STEPS_PER_FRAME = 6;
 
 export const GAMEPLAY = {
   playerRadius: 3,
-  pauseResumeRadius: 18,
+  playerSpeed: 440,
   projectileMargin: 88,
   projectileRadius: 8,
   popupRadius: 14,

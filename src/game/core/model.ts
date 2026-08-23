@@ -67,7 +67,7 @@ export interface GameState {
 }
 
 export interface InputIntent {
-  position: Vec2 | null;
+  direction: Vec2;
 }
 
 export type GameEvent =

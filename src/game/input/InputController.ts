@@ -2,6 +2,17 @@ import Phaser from "phaser";
 
 import type { Vec2 } from "../core/model";
 
+const MOVEMENT_CODES = new Set([
+  "KeyW",
+  "KeyA",
+  "KeyS",
+  "KeyD",
+  "ArrowUp",
+  "ArrowLeft",
+  "ArrowDown",
+  "ArrowRight",
+]);
+
 interface TouchGesture {
   pointerId: number;
   startX: number;
@@ -9,25 +20,17 @@ interface TouchGesture {
   startTime: number;
 }
 
-export interface InputAction {
-  source: "pointer" | "keyboard";
-  position: Vec2 | null;
-}
-
 export class InputController {
   private readonly keyboard: Phaser.Input.Keyboard.KeyboardPlugin | null;
-  private pointerTarget: Vec2 | null = null;
-  private pointerPosition: Vec2 | null = null;
-  private gameplayPointerTracking = true;
+  private readonly movementCodes = new Set<string>();
   private touchGesture: TouchGesture | null = null;
-  private actionPending: InputAction | null = null;
+  private actionPending = false;
   private muteTogglePending = false;
 
   constructor(private readonly scene: Phaser.Scene) {
     this.keyboard = scene.input.keyboard;
 
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown);
-    scene.input.on(Phaser.Input.Events.POINTER_MOVE, this.handlePointerMove);
     scene.input.on(Phaser.Input.Events.POINTER_UP, this.handlePointerUp);
     scene.input.on(
       Phaser.Input.Events.POINTER_UP_OUTSIDE,
@@ -37,20 +40,30 @@ export class InputController {
       Phaser.Input.Keyboard.Events.ANY_KEY_DOWN,
       this.handleKeyDown,
     );
+    this.keyboard?.on(
+      Phaser.Input.Keyboard.Events.ANY_KEY_UP,
+      this.handleKeyUp,
+    );
   }
 
-  position(): Vec2 | null {
-    return this.pointerTarget ? { ...this.pointerTarget } : null;
+  direction(): Vec2 {
+    const x =
+      Number(this.isPressed("KeyD", "ArrowRight")) -
+      Number(this.isPressed("KeyA", "ArrowLeft"));
+    const y =
+      Number(this.isPressed("KeyS", "ArrowDown")) -
+      Number(this.isPressed("KeyW", "ArrowUp"));
+    const magnitude = Math.hypot(x, y);
+
+    return magnitude > 0
+      ? { x: x / magnitude, y: y / magnitude }
+      : { x: 0, y: 0 };
   }
 
-  consumeAction(): InputAction | null {
+  consumeAction(): boolean {
     const pending = this.actionPending;
-    this.actionPending = null;
+    this.actionPending = false;
     return pending;
-  }
-
-  setGameplayPointerTracking(enabled: boolean): void {
-    this.gameplayPointerTracking = enabled;
   }
 
   consumeMuteToggle(): boolean {
@@ -60,13 +73,14 @@ export class InputController {
   }
 
   clearTransient(): void {
-    this.actionPending = null;
+    this.actionPending = false;
     this.muteTogglePending = false;
     this.touchGesture = null;
   }
 
   resetForSuspend(): void {
     this.clearTransient();
+    this.movementCodes.clear();
     this.keyboard?.resetKeys();
   }
 
@@ -74,10 +88,6 @@ export class InputController {
     this.scene.input.off(
       Phaser.Input.Events.POINTER_DOWN,
       this.handlePointerDown,
-    );
-    this.scene.input.off(
-      Phaser.Input.Events.POINTER_MOVE,
-      this.handlePointerMove,
     );
     this.scene.input.off(Phaser.Input.Events.POINTER_UP, this.handlePointerUp);
     this.scene.input.off(
@@ -88,11 +98,13 @@ export class InputController {
       Phaser.Input.Keyboard.Events.ANY_KEY_DOWN,
       this.handleKeyDown,
     );
+    this.keyboard?.off(
+      Phaser.Input.Keyboard.Events.ANY_KEY_UP,
+      this.handleKeyUp,
+    );
   }
 
   private readonly handlePointerDown = (pointer: Phaser.Input.Pointer): void => {
-    this.updatePointerTarget(pointer);
-
     if (pointer.wasTouch) {
       this.touchGesture = {
         pointerId: pointer.id,
@@ -103,19 +115,10 @@ export class InputController {
       return;
     }
 
-    this.actionPending = {
-      source: "pointer",
-      position: this.pointerPosition ? { ...this.pointerPosition } : null,
-    };
-  };
-
-  private readonly handlePointerMove = (pointer: Phaser.Input.Pointer): void => {
-    this.updatePointerTarget(pointer);
+    this.actionPending = true;
   };
 
   private readonly handlePointerUp = (pointer: Phaser.Input.Pointer): void => {
-    this.updatePointerTarget(pointer);
-
     if (!pointer.wasTouch || this.touchGesture?.pointerId !== pointer.id) {
       this.touchGesture = null;
       return;
@@ -128,18 +131,20 @@ export class InputController {
     const duration = pointer.upTime - this.touchGesture.startTime;
 
     if (distance < 12 && duration < 250) {
-      this.actionPending = {
-        source: "pointer",
-        position: this.pointerPosition ? { ...this.pointerPosition } : null,
-      };
+      this.actionPending = true;
     }
 
     this.touchGesture = null;
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (event.code === "Space") {
+    if (event.code === "Space" || MOVEMENT_CODES.has(event.code)) {
       event.preventDefault();
+    }
+
+    if (MOVEMENT_CODES.has(event.code)) {
+      this.movementCodes.add(event.code);
+      return;
     }
 
     if (event.repeat) {
@@ -147,22 +152,20 @@ export class InputController {
     }
 
     if (event.code === "Space") {
-      this.actionPending = {
-        source: "keyboard",
-        position: this.pointerPosition ? { ...this.pointerPosition } : null,
-      };
+      this.actionPending = true;
     } else if (event.code === "KeyM") {
       this.muteTogglePending = true;
     }
   };
 
-  private updatePointerTarget(pointer: Phaser.Input.Pointer): void {
-    if (Number.isFinite(pointer.worldX) && Number.isFinite(pointer.worldY)) {
-      this.pointerPosition = { x: pointer.worldX, y: pointer.worldY };
-
-      if (this.gameplayPointerTracking) {
-        this.pointerTarget = { ...this.pointerPosition };
-      }
+  private readonly handleKeyUp = (event: KeyboardEvent): void => {
+    if (MOVEMENT_CODES.has(event.code)) {
+      event.preventDefault();
+      this.movementCodes.delete(event.code);
     }
+  };
+
+  private isPressed(...codes: string[]): boolean {
+    return codes.some((code) => this.movementCodes.has(code));
   }
 }

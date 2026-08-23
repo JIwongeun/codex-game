@@ -1,6 +1,6 @@
 # await CODEX: CONTEXT//OVERFLOW
 
-Codex가 작업하는 동안 마우스 포인터로 브라우저 요청과 오류를 피하는 무한 생존 아케이드 게임입니다. 한 번 맞으면 run이 끝나고, 버틴 시간이 로컬 최고 기록이 됩니다.
+Codex가 작업하는 동안 키보드로 검은 cursor avatar를 움직여 브라우저 요청과 오류를 피하는 무한 생존 아케이드 게임입니다. 한 번 맞으면 run이 끝나고, 버틴 시간이 로컬 최고 기록이 됩니다.
 
 현재 상태는 **처음부터 결과·재시작까지 플레이 가능한 개발 빌드**입니다. 게임 계정, 서버, 랭킹 없이 정적 웹 빌드만으로 실행되며 완성 전까지 호스팅 접근은 소유자에게만 열려 있습니다.
 
@@ -12,12 +12,12 @@ Codex가 작업하는 동안 마우스 포인터로 브라우저 요청과 오�
 
 ## 플레이
 
-- 이동: 브라우저의 실제 마우스 포인터 좌표를 1:1로 사용하며 게임 영역 안에서는 검은 pixel cursor로 표시
+- 이동: `WASD` 또는 방향키로 검은 cursor avatar 조작
 - 시작·재시작: 클릭 또는 Space
 - 목표: 사방에서 날아오는 `TAB`과 `POP-UP`, 예고 후 발동하는 `MEMORY LEAK`과 `CONTEXT OVERFLOW`를 회피
 - 한 판: 시간 제한 없이 한 번 피격될 때까지
 - 결과: 생존 시간과 브라우저 로컬 최고 기록을 표시하고 즉시 재시작
-- 일시정지: 다른 탭으로 이동하면 게임 좌표와 타이머가 멈추고 OS 기본 cursor가 복구됩니다. 흐려진 장면에 남은 검은 cursor 위치로 돌아와 클릭하면 기존 위치에서 재개됩니다.
+- 일시정지: 다른 탭으로 이동하면 게임과 타이머가 멈추고 held movement key가 초기화됩니다. 복귀 후 클릭 또는 Space로 재개합니다.
 
 ## 시작하기
 
@@ -62,6 +62,6 @@ pnpm check      # typecheck + test + build
 - pnpm
 - Cloudflare Workers-compatible static hosting
 
-게임 판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 입력, renderer, HUD, fixed-step runtime, local storage, 효과음은 각각 별도 모듈이며 `pnpm check`에서 typecheck, 35개 단위 테스트, production build를 함께 검증합니다.
+게임 판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 입력, renderer, HUD, fixed-step runtime, local storage, 효과음은 각각 별도 모듈이며 `pnpm check`에서 typecheck, 33개 단위 테스트, production build를 함께 검증합니다.
 
 개발 서버에서 `?qaElapsedSeconds=45`를 붙이면 `MEMORY LEAK`과 `CONTEXT OVERFLOW`가 해제된 후반 난이도를 바로 확인할 수 있습니다. 이 옵션은 production build에서는 무시됩니다.

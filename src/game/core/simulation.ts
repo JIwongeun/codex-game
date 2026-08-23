@@ -21,7 +21,7 @@ import { difficultyAt } from "./rules";
 
 const PLAYER_START_DIRECTION: Vec2 = { x: 1, y: 0 };
 
-export const EMPTY_INPUT: InputIntent = { position: null };
+export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
 
 export function createGameState(
   seed: number,
@@ -57,15 +57,11 @@ export function createGameState(
   };
 }
 
-export function startRun(
-  state: GameState,
-  initialPosition: Vec2 | null = null,
-): GameEvent[] {
+export function startRun(state: GameState): GameEvent[] {
   if (state.phase !== "ready") {
     return [];
   }
 
-  placePlayer(state, initialPosition);
   state.phase = "playing";
   return [{ type: "run-started" }];
 }
@@ -74,10 +70,9 @@ export function restartRun(
   seed: number,
   width = DEFAULT_GAME_WIDTH,
   height = DEFAULT_GAME_HEIGHT,
-  initialPosition: Vec2 | null = null,
 ): GameState {
   const state = createGameState(seed, width, height);
-  startRun(state, initialPosition);
+  startRun(state);
   return state;
 }
 
@@ -87,7 +82,11 @@ export function resizeArena(
   height: number,
 ): void {
   state.arena = createArena(width, height);
-  placePlayer(state, state.player.position);
+  state.player.position = clampPointToArena(
+    state.player.position,
+    state.arena,
+    GAMEPLAY.playerRadius,
+  );
 
   for (const hazard of state.hazards) {
     if (hazard.kind === "memory-leak") {
@@ -107,28 +106,33 @@ export function resizeArena(
   }
 }
 
-export function placePlayer(
+function movePlayer(
   state: GameState,
-  requestedPosition: Vec2 | null,
+  requestedDirection: Vec2,
+  stepSeconds: number,
 ): void {
-  if (!requestedPosition) {
+  if (
+    !Number.isFinite(requestedDirection.x) ||
+    !Number.isFinite(requestedDirection.y)
+  ) {
     return;
   }
 
+  const magnitude = Math.hypot(requestedDirection.x, requestedDirection.y);
+  if (magnitude <= Number.EPSILON) {
+    return;
+  }
+
+  const direction = normalize(requestedDirection, state.player.direction);
   const nextPosition = clampPointToArena(
-    requestedPosition,
+    {
+      x: state.player.position.x + direction.x * GAMEPLAY.playerSpeed * stepSeconds,
+      y: state.player.position.y + direction.y * GAMEPLAY.playerSpeed * stepSeconds,
+    },
     state.arena,
     GAMEPLAY.playerRadius,
   );
-  const movement = {
-    x: nextPosition.x - state.player.position.x,
-    y: nextPosition.y - state.player.position.y,
-  };
-
-  if (Math.hypot(movement.x, movement.y) > Number.EPSILON) {
-    state.player.direction = normalize(movement, state.player.direction);
-  }
-
+  state.player.direction = direction;
   state.player.position = nextPosition;
 }
 
@@ -146,7 +150,7 @@ export function stepGame(
   state.elapsedMs += stepMs;
   state.score = Math.floor(state.elapsedMs);
 
-  placePlayer(state, intent.position);
+  movePlayer(state, intent.direction, stepSeconds);
   updateProjectiles(state, stepMs, stepSeconds);
   updateHazards(state, stepMs, events);
   spawnScheduledAttacks(state, stepMs, events);

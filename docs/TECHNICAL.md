@@ -78,10 +78,8 @@ flowchart LR
 │     │  ├─ rules.ts
 │     │  └─ simulation.ts
 │     ├─ input/
-│     │  ├─ InputController.ts
-│     │  └─ pauseResume.ts
+│     │  └─ InputController.ts
 │     ├─ presentation/
-│     │  ├─ GameCursor.ts
 │     │  ├─ GameRenderer.ts
 │     │  ├─ Hud.ts
 │     │  ├─ PauseOverlay.ts
@@ -103,8 +101,8 @@ flowchart LR
 
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
 - Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
-- Input: Phaser 입력을 시작·재시작 action과 pointer 좌표로 변환한다. pause 중에도 갱신되는 실제 pointer 위치와 동결되는 gameplay target을 분리하고 `pauseResume` gate가 동결 위치의 pointer click만 허용한다.
-- Presentation: domain state를 읽어 Canvas와 HUD를 갱신한다. `GameCursor`가 playing의 custom cursor와 pause의 frozen cursor를 전환하고, `PauseOverlay`는 blur 상태의 DOM 안내를 담당한다.
+- Input: Phaser keyboard event를 정규화된 WASD·방향키 방향 intent로 변환하고 click·Space action 및 음소거를 분리한다. blur/hidden에서는 held movement key를 비운다.
+- Presentation: domain state를 읽어 공격과 검은 cursor avatar를 Canvas에 그리고 HUD를 갱신한다. `PauseOverlay`는 blur 상태의 DOM 안내만 담당한다.
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환
 - Services: local storage와 브라우저 효과음. leaderboard HTTP는 실제 구현 시에만 추가
 
@@ -225,9 +223,9 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - Chrome과 Edge 최신 버전
 - 1280×720, 작은 노트북, 세로형 모바일 viewport
-- custom cursor hotspot과 pointer 1:1 위치, Space 시작·재시작 action
-- 탭이 background로 갔다 돌아온 뒤 타이머 폭주 여부, OS cursor 복구, gameplay 좌표 동결
-- pause 중 다른 위치의 click·Space로 재개되지 않고 frozen cursor 위치의 click만 재개하는지
+- WASD·방향키가 같은 8방향 intent를 만들고 대각선 이동 속도가 정규화되는지
+- 탭이 background로 갔다 돌아온 뒤 타이머 폭주와 held-key 잔류가 없는지
+- click·Space 시작·재시작·pause 해제와 OS 기본 cursor 유지
 - 랭킹을 구현한 경우의 API 연결 실패
 - 재시작 후 이전 게임 객체와 입력 listener가 남지 않는지
 

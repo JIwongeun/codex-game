@@ -54,6 +54,7 @@ export class GameRenderer {
     this.drawHazards(state);
     this.drawProjectileTrails(state);
     this.drawProjectiles(state);
+    this.drawPlayer(state);
     this.drawEffects();
 
     if (this.hitFlashMs > 0) {
@@ -248,6 +249,31 @@ export class GameRenderer {
         this.drawTab(projectile, state);
       }
     }
+  }
+
+  private drawPlayer(state: GameState): void {
+    const x = Math.round(state.player.position.x);
+    const y = Math.round(state.player.position.y);
+    const points = [
+      { x, y },
+      { x, y: y + 22 },
+      { x: x + 6, y: y + 17 },
+      { x: x + 11, y: y + 28 },
+      { x: x + 15, y: y + 26 },
+      { x: x + 10, y: y + 16 },
+      { x: x + 20, y: y + 16 },
+    ];
+
+    this.graphics.fillStyle(COLORS.text, 1);
+    this.graphics.lineStyle(2, COLORS.surface, 1);
+    this.graphics.beginPath();
+    this.graphics.moveTo(points[0]!.x, points[0]!.y);
+    for (let index = 1; index < points.length; index += 1) {
+      this.graphics.lineTo(points[index]!.x, points[index]!.y);
+    }
+    this.graphics.closePath();
+    this.graphics.fillPath();
+    this.graphics.strokePath();
   }
 
   private drawTab(projectile: ProjectileState, state: GameState): void {

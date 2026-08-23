@@ -6,12 +6,14 @@ vi.mock("phaser", () => ({
     Input: {
       Events: {
         POINTER_DOWN: "pointerdown",
-        POINTER_MOVE: "pointermove",
         POINTER_UP: "pointerup",
         POINTER_UP_OUTSIDE: "pointerupoutside",
       },
       Keyboard: {
-        Events: { ANY_KEY_DOWN: "keydown" },
+        Events: {
+          ANY_KEY_DOWN: "keydown",
+          ANY_KEY_UP: "keyup",
+        },
       },
     },
   },
@@ -21,8 +23,7 @@ import { InputController } from "./InputController";
 
 type Handler = (...args: never[]) => void;
 
-class TestInput {
-  readonly keyboard = null;
+class TestEmitter {
   private readonly handlers = new Map<string, Handler>();
 
   on(event: string, handler: Handler): void {
@@ -38,36 +39,55 @@ class TestInput {
   }
 }
 
-function pointer(x: number, y: number): Phaser.Input.Pointer {
-  return {
-    worldX: x,
-    worldY: y,
-    wasTouch: false,
-  } as Phaser.Input.Pointer;
+class TestKeyboard extends TestEmitter {
+  readonly resetKeys = vi.fn();
 }
 
-describe("InputController pause tracking", () => {
-  it("keeps gameplay position frozen while retaining pointer actions", () => {
+class TestInput extends TestEmitter {
+  readonly keyboard = new TestKeyboard();
+}
+
+function key(code: string, repeat = false): KeyboardEvent {
+  return {
+    code,
+    repeat,
+    preventDefault: vi.fn(),
+  } as unknown as KeyboardEvent;
+}
+
+describe("InputController keyboard input", () => {
+  it("maps WASD and arrows to normalized movement and clears held keys on suspend", () => {
     const input = new TestInput();
     const controller = new InputController({ input } as unknown as Phaser.Scene);
 
-    input.emit("pointermove", pointer(40, 60));
-    expect(controller.position()).toEqual({ x: 40, y: 60 });
+    input.keyboard.emit("keydown", key("KeyW"));
+    expect(controller.direction()).toEqual({ x: 0, y: -1 });
 
-    controller.setGameplayPointerTracking(false);
-    input.emit("pointermove", pointer(300, 240));
-    input.emit("pointerdown", pointer(300, 240));
+    input.keyboard.emit("keydown", key("ArrowRight"));
+    expect(controller.direction().x).toBeCloseTo(Math.SQRT1_2);
+    expect(controller.direction().y).toBeCloseTo(-Math.SQRT1_2);
 
-    expect(controller.position()).toEqual({ x: 40, y: 60 });
-    expect(controller.consumeAction()).toEqual({
-      source: "pointer",
-      position: { x: 300, y: 240 },
-    });
+    input.keyboard.emit("keyup", key("KeyW"));
+    expect(controller.direction()).toEqual({ x: 1, y: 0 });
 
-    controller.setGameplayPointerTracking(true);
-    expect(controller.position()).toEqual({ x: 40, y: 60 });
+    controller.resetForSuspend();
+    expect(controller.direction()).toEqual({ x: 0, y: 0 });
+    expect(input.keyboard.resetKeys).toHaveBeenCalledOnce();
+  });
 
-    input.emit("pointermove", pointer(42, 62));
-    expect(controller.position()).toEqual({ x: 42, y: 62 });
+  it("keeps click and Space as actions and M as the mute toggle", () => {
+    const input = new TestInput();
+    const controller = new InputController({ input } as unknown as Phaser.Scene);
+
+    input.emit("pointerdown", { wasTouch: false } as Phaser.Input.Pointer);
+    expect(controller.consumeAction()).toBe(true);
+    expect(controller.consumeAction()).toBe(false);
+
+    input.keyboard.emit("keydown", key("Space"));
+    expect(controller.consumeAction()).toBe(true);
+
+    input.keyboard.emit("keydown", key("KeyM"));
+    expect(controller.consumeMuteToggle()).toBe(true);
+    expect(controller.consumeMuteToggle()).toBe(false);
   });
 });

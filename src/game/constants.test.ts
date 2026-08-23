@@ -12,10 +12,11 @@ describe("game requirements", () => {
     expect(DEFAULT_GAME_HEIGHT).toBeGreaterThan(0);
   });
 
-  it("keeps the native-pointer hitbox smaller than attack silhouettes", () => {
+  it("keeps the player hitbox smaller than attack silhouettes", () => {
     expect(GAMEPLAY.playerRadius).toBeLessThan(GAMEPLAY.projectileRadius);
     expect(GAMEPLAY.playerRadius).toBeLessThan(GAMEPLAY.popupRadius);
     expect(GAMEPLAY.maxProjectiles).toBeGreaterThan(100);
+    expect(GAMEPLAY.playerSpeed).toBeGreaterThan(0);
   });
 
   it("telegraphs every projectile family before it becomes lethal", () => {

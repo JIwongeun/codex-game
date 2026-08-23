@@ -101,7 +101,7 @@
 ## D-013 — native cursor와 전체 viewport를 게임 규칙으로 사용한다
 
 - 날짜: 2026-08-23
-- 상태: 확정
+- 상태: 일부 대체됨, D-018이 player 입력과 표현을 변경하고 전체 viewport 규칙은 유지
 - 배경: 고정 1280×720 `FIT` Canvas와 속도 기반 삼각형 추적은 브라우저 창이 잘려 보이고 커서와 플레이어 사이의 지연을 만들었다. 직선 화살과 단순한 원·band는 개발자 브라우저 콘셉트도 충분히 전달하지 못했다.
 - 결정: Phaser `RESIZE`로 현재 browser viewport 전체를 arena로 사용한다. 운영체제 native cursor hotspot을 플레이어 좌표에 직접 반영하고 키보드 방향 이동, 추적 속도, dead zone, 삼각형 캐릭터와 별도 hitbox indicator를 제거한다. 화면에는 브라우저가 그리는 native cursor만 플레이어로 남긴다. 공격은 브라우저 탭 군집, pop-up 창, 동심원 memory leak, stripe context sweep로 표현하며 예고와 활성 상태를 시각적으로 분리한다.
 - 결과: `GameState`가 동적 arena 크기를 소유하고 resize를 순수 simulation 함수로 처리한다. renderer의 잔상은 presentation-only state로 유지해 판정 결정성을 해치지 않는다.
@@ -125,7 +125,7 @@
 ## D-016 — pointer hotspot은 유지하고 검은 pixel cursor와 투명 pause 계층을 사용한다
 
 - 날짜: 2026-08-23
-- 상태: 일부 대체됨, D-017이 cursor 규격과 pause 재개 입력을 변경
+- 상태: 대체됨, D-017을 거쳐 D-018이 pointer 입력을 제거
 - 배경: 운영체제 기본 커서는 게임의 digital 도구 시각 언어와 충분히 연결되지 않았고, 기존 pause 화면은 마지막 플레이 장면을 거의 흰색으로 덮어 맥락을 잃게 했다.
 - 결정: pointer 입력과 충돌 좌표의 1:1 규칙은 유지하되 Canvas 안에서 24×32 hard-edge black PNG cursor를 CSS hotspot `(1, 1)`로 사용한다. pause는 Phaser 결과 overlay와 분리한 DOM 계층에서 `backdrop-filter`로 마지막 장면을 흐리고 중앙 문구만 표시한다.
 - 결과: 별도 player sprite나 추적 지연 없이 cursor 외형만 제품 언어에 맞는다. pause 안내는 입력을 가로채지 않아 기존 클릭·Space 재개 흐름을 유지하며, Scene 종료 시 DOM 계층을 제거한다.
@@ -133,7 +133,15 @@
 ## D-017 — pause 입력을 동결하고 frozen cursor 복귀로만 재개한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, D-016의 cursor 규격과 pause 재개 흐름을 대체
+- 상태: 대체됨, D-018이 pointer 입력과 frozen cursor gate를 제거
 - 배경: pause 중 custom cursor와 gameplay target이 계속 움직여, 다른 위치로 옮긴 뒤 재개하면 공격을 피하는 순간이동 플레이가 가능했다. 24×32 cursor 외형도 일반적인 시스템 pointer보다 크고 넓게 보였다.
 - 결정: 입력은 실제 pointer 위치와 gameplay target을 분리한다. blur/hidden부터 gameplay target을 동결하고 Canvas는 OS 기본 cursor로 복구한다. 마지막 player 위치에는 동일한 검은 cursor 이미지를 pause blur 아래에 남기며, 반경 18px 안으로 돌아온 pointer click만 재개한다. 다른 위치의 click과 keyboard action은 재개하지 않는다. 검은 cursor는 32×32 canvas 안에 일반적인 시스템 화살표 비율로 좁게 그린 hard-edge PNG와 hotspot `(2, 1)`을 사용한다.
 - 결과: pause 중 OS cursor는 자유롭게 움직이지만 게임 좌표는 변하지 않는다. 재개 직후에도 동결 좌표를 유지하고 다음 pointer move부터 다시 1:1 추적한다. 웹 플랫폼은 사용자의 OS cursor bitmap과 배율을 읽어 색만 바꿀 수 없으므로 외형은 공통 시스템 화살표에 가까운 custom asset으로 유지한다.
+
+## D-018 — 플레이어 입력을 WASD·방향키로 단순화한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, D-013·D-016·D-017의 pointer 입력 결정을 대체
+- 배경: 실제 OS pointer와 custom cursor 외형, pause 중 pointer 위치, 재개 gate를 동시에 관리하면 브라우저별 동작과 exploit을 계속 조정해야 한다. 사용자는 pointer 조작 대신 WASD와 방향키 조작으로 전환해 입력을 단순화하기로 했다.
+- 결정: 실제 OS cursor는 게임 판정에서 제외하고 항상 기본 모양을 사용한다. 플레이어는 Canvas가 직접 그리는 검은 cursor silhouette이며 `WASD`와 방향키로 440px/s 고정 속도의 8방향 이동을 한다. 대각선 입력은 정규화하고 가속·관성은 두지 않는다. click·Space는 시작·재시작·pause 해제 action으로 유지하며 blur/hidden에서 held movement key를 초기화한다.
+- 결과: `InputIntent`는 pointer position 대신 direction vector를 전달하고 60Hz simulation이 delta time으로 player를 이동·경계 clamp한다. `GameCursor`와 pause resume gate를 제거해 OS cursor 상태와 gameplay 좌표가 완전히 분리된다.

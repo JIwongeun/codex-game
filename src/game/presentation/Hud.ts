@@ -130,7 +130,9 @@ export class Hud {
             .toString()
             .padStart(3, "0")} REQUESTS CLEARED`,
     );
-    this.hintText.setText(`POINTER = YOU   ·   M  ${muted ? "SOUND ON" : "MUTE"}`);
+    this.hintText.setText(
+      `WASD / ARROWS  MOVE   ·   M  ${muted ? "SOUND ON" : "MUTE"}`,
+    );
     this.renderAnnouncement(state);
 
     if (state.phase === "ready") {
@@ -138,7 +140,7 @@ export class Hud {
         state,
         "await CODEX",
         "Codex is taking longer than expected.",
-        `The pointer is you.\nAvoid every tab, pop-up, and browser error.\nOne hit ends the run.\n\nLOCAL BEST  ${formatSurvivalTime(localBest)}`,
+        `Move the black cursor with WASD or arrow keys.\nAvoid every tab, pop-up, and browser error.\nOne hit ends the run.\n\nLOCAL BEST  ${formatSurvivalTime(localBest)}`,
         "CLICK / SPACE TO START",
       );
     } else if (state.phase === "results") {

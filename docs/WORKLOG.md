@@ -2,6 +2,27 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — pointer 입력에서 WASD·방향키 이동으로 전환
+
+### 구현
+
+- `InputController`가 WASD와 방향키 held state를 하나의 정규화된 8방향 vector로 제공하도록 변경
+- simulation이 pointer 좌표 대입 대신 440px/s 고정 속도와 fixed timestep으로 player를 이동하고 viewport 경계에서 clamp하도록 변경
+- 대각선 이동 속도를 직선과 동일하게 정규화하고 blur/hidden에서 held key를 초기화
+- 실제 OS cursor는 항상 기본 모양으로 복구하고, Canvas renderer가 검은 cursor silhouette player를 직접 표시
+- `GameCursor`, frozen cursor resume gate와 관련 테스트를 제거하고 click·Space pause 해제를 복원
+- HUD와 pause 안내를 WASD·방향키 규칙에 맞게 변경
+
+### 검증
+
+- `pnpm check`: typecheck, Vitest 6 files의 33 tests, Worker/client production build 통과
+- WASD·방향키 조합, 대각선 정규화, keyup, suspend held-key 초기화, click·Space action을 `InputController` 테스트로 검증
+- 고정 속도 이동, 대각선 이동 거리, viewport clamp, 동일 keyboard stream 결정성을 simulation 테스트로 검증
+
+### 남은 확인
+
+- 실제 production 화면에서 player silhouette 크기와 440px/s 이동 감각은 사용자 확인 후 조정
+
 ## 2026-08-23 — pause cursor 순간이동 차단과 system-arrow 비율 정리
 
 ### 구현

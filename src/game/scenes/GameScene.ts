@@ -4,15 +4,12 @@ import { FIXED_STEP_MS } from "../constants";
 import type { GameEvent, GameState } from "../core/model";
 import {
   createGameState,
-  placePlayer,
   resizeArena,
   restartRun,
   startRun,
   stepGame,
 } from "../core/simulation";
 import { InputController } from "../input/InputController";
-import { canResumeFromPause } from "../input/pauseResume";
-import { GameCursor } from "../presentation/GameCursor";
 import { GameRenderer } from "../presentation/GameRenderer";
 import { Hud } from "../presentation/Hud";
 import { PauseOverlay } from "../presentation/PauseOverlay";
@@ -24,7 +21,6 @@ export class GameScene extends Phaser.Scene {
   private state!: GameState;
   private inputController!: InputController;
   private gameRenderer!: GameRenderer;
-  private gameCursor!: GameCursor;
   private hud!: Hud;
   private pauseOverlay!: PauseOverlay;
   private readonly fixedStep = new FixedStepRunner();
@@ -45,10 +41,6 @@ export class GameScene extends Phaser.Scene {
       this.scale.height,
     );
     this.gameRenderer = new GameRenderer(this);
-    this.gameCursor = new GameCursor(
-      this.game.canvas,
-      this.game.canvas.parentElement ?? document.body,
-    );
     this.hud = new Hud(this);
     this.pauseOverlay = new PauseOverlay(this.game.canvas.parentElement ?? document.body);
     this.inputController = new InputController(this);
@@ -73,10 +65,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.state.phase === "ready") {
-      placePlayer(this.state, this.inputController.position());
       if (this.inputController.consumeAction()) {
         this.soundService.unlock();
-        const events = startRun(this.state, this.inputController.position());
+        const events = startRun(this.state);
         this.applyDevelopmentElapsedTime();
         this.inputController.clearTransient();
         this.handleEvents(events);
@@ -86,14 +77,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.focusPaused) {
-      const action = this.inputController.consumeAction();
-
-      if (canResumeFromPause(this.state.player.position, action)) {
+      if (this.inputController.consumeAction()) {
         this.soundService.unlock();
         this.focusPaused = false;
         this.fixedStep.reset();
         this.inputController.clearTransient();
-        this.inputController.setGameplayPointerTracking(true);
       }
       this.renderFrame(0);
       return;
@@ -106,7 +94,6 @@ export class GameScene extends Phaser.Scene {
           this.createSeed(),
           this.state.arena.width,
           this.state.arena.height,
-          this.inputController.position(),
         );
         this.applyDevelopmentElapsedTime();
         this.fixedStep.reset();
@@ -123,7 +110,7 @@ export class GameScene extends Phaser.Scene {
       const events = stepGame(
         this.state,
         {
-          position: this.inputController.position(),
+          direction: this.inputController.direction(),
         },
         FIXED_STEP_MS,
       );
@@ -142,7 +129,6 @@ export class GameScene extends Phaser.Scene {
       this.soundService.isMuted,
     );
     this.pauseOverlay.render(this.focusPaused, this.state.elapsedMs);
-    this.gameCursor.render(this.focusPaused, this.state.player.position);
   }
 
   private handleEvents(events: readonly GameEvent[]): void {
@@ -174,7 +160,6 @@ export class GameScene extends Phaser.Scene {
     this.focusPaused = true;
     this.fixedStep.reset();
     this.inputController.resetForSuspend();
-    this.inputController.setGameplayPointerTracking(false);
   };
 
   private readonly handleFocus = (): void => {
@@ -194,7 +179,6 @@ export class GameScene extends Phaser.Scene {
     this.game.events.off(Phaser.Core.Events.VISIBLE, this.handleFocus);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize);
     this.inputController.destroy();
-    this.gameCursor.destroy();
     this.pauseOverlay.destroy();
     this.soundService.destroy();
   };

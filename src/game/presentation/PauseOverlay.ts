@@ -23,7 +23,7 @@ export class PauseOverlay {
 
     const action = document.createElement("p");
     action.className = "pause-overlay__action";
-    action.textContent = "//  RETURN TO POINTER · CLICK TO RESUME";
+    action.textContent = "//  CLICK / SPACE TO RESUME";
 
     copy.append(title, this.timeText, action);
     this.element.append(copy);
