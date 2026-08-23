@@ -19,6 +19,8 @@
 - compaction 시작·최대 크기, fragment 수·속도, 작은 viewport 67.5% fit, warning 뒤 전체 frame이 직접 피격을 만들지 않고 12개 token이 생성되는 회귀 테스트 추가
 - token의 초기 상향 이동 뒤 수평 감속과 중력으로 속도가 하향 전환되는 ballistic 회귀 테스트 추가
 - 최종 `pnpm check` 통과: typecheck, 12개 test file의 76개 test, production build, production verifier 완료
+- Sites version 27 production deployment 성공
+- 공개 root, `index-BaPvsLsL.js`, `index-BBmZ4hxh.css`가 모두 HTTP 200으로 응답하고 배포 직후 최근 worker 오류 로그 0건 확인
 - 새 context frame·압축 motion·token burst의 실제 가독성과 체감 난이도는 production 배포 후 사용자 플레이 확인 필요
 
 ## 2026-08-24 — BGM 음량과 original notification motif 보강
