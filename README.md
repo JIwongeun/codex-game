@@ -4,6 +4,12 @@ Codex가 작업하는 짧은 대기 시간에 플레이하는 90초 브라우저
 
 현재 상태는 **처음부터 결과·재시작까지 플레이 가능한 1차 MVP 기반**입니다. 로그인, 서버, 랭킹 없이 정적 웹 빌드만으로 실행됩니다.
 
+## 바로 플레이
+
+- 공개 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
+- 계정 생성, 로그인, 설치 없이 링크를 열고 클릭 또는 Space로 시작합니다.
+- 제출용 게임은 공개 호스팅에서 실행되므로 개발자 PC를 켜 두거나 외부에 노출할 필요가 없습니다.
+
 ## 플레이
 
 - 이동: 마우스 또는 WASD/방향키
@@ -52,6 +58,7 @@ pnpm check      # typecheck + test + build
 - Phaser 3
 - Vitest
 - pnpm
+- Cloudflare Workers-compatible static hosting
 
 게임 판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 입력, renderer, HUD, fixed-step runtime, local storage, 효과음은 각각 별도 모듈이며 `pnpm check`에서 typecheck, 36개 단위 테스트, production build를 함께 검증합니다.
 

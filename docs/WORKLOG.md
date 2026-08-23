@@ -2,6 +2,36 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — 공개 HTTPS 배포와 외부 실행 검증
+
+### 완료한 변경
+
+- Cloudflare Vite plugin과 얇은 Worker asset adapter를 추가해 client와 hosting bundle을 한 번에 build하도록 구성
+- Sites project를 public access로 만들고 source commit `75b3e21`을 production version 1로 배포
+- 공개 URL 확정: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
+- hosting project 식별자만 `.openai/hosting.json`에 저장하고 배포 credential은 저장소와 bundle에 남기지 않음
+- 서버 API, DB, 계정, session 없이 브라우저 단독 플레이와 로컬 최고점만 유지
+
+### 검증
+
+- `pnpm check`: typecheck, 5 files의 36 tests, Worker/client production build 통과
+- 로컬 production Worker에서 root와 SPA fallback, hashed JavaScript asset 응답 확인
+- 공개 root HTML과 hashed JavaScript asset이 HTTP 200으로 응답함을 확인
+- 공개 브라우저에서 Ready 화면, 클릭 시작, 90초 타이머 진행, 마우스 이동과 클릭 `COMPACT` 확인
+- 공개 브라우저 console에는 Phaser 시작 정보 외 warning/error 없음
+- 로그인, 승인, 개발자 PC 실행 없이 공개 URL만으로 진입 가능
+
+### 알려진 배포 특성
+
+- 현재 게임은 client-side router가 없는 단일 root 페이지라 제출 URL에는 영향이 없지만, 공개 host에서 임의의 존재하지 않는 path는 404를 반환한다. route를 추가할 때 SPA fallback을 다시 설정하고 검증한다.
+- 공개 host의 asset cache header는 hosting provider가 제어한다. 현재 correctness에는 영향이 없으며 bundle 분할과 초기 로딩 최적화는 플레이 polish 이후에 판단한다.
+
+### 다음 행동
+
+1. 다른 PC 또는 휴대폰 네트워크에서 공개 링크를 한 번 더 수동 확인한다.
+2. 초반 난이도, COMPACT 보상, 타격감과 적 개성을 플레이 테스트로 조정한다.
+3. 썸네일과 3분 이하 플레이 영상을 준비한다.
+
 ## 2026-08-23 — 플레이 가능한 Phaser 1차 MVP 연결
 
 ### 완료한 변경

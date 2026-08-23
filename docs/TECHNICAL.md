@@ -13,6 +13,17 @@
 3. 공개 배포, QA, 제출 필수 자료 준비
 4. 시간이 남을 때만 작은 HTTP API와 DB를 추가해 글로벌 랭킹 연결
 
+### 현재 공개 배포
+
+- 플레이 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
+- 공개 HTTPS 정적 호스팅이 HTML, JavaScript, CSS를 전달한다.
+- `worker/index.ts`는 `ASSETS` binding에 요청을 넘기는 얇은 배포 adapter이며 게임 로직이나 사용자 데이터를 처리하지 않는다.
+- `.openai/hosting.json`에는 Sites project 식별자만 있고 배포 credential이나 secret은 저장하지 않는다.
+- 현재 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. 브라우저 `localStorage`에는 해당 브라우저의 최고점만 저장한다.
+- 따라서 제출 기간에 개발자 PC를 서버로 켜 두거나 공유기 port forwarding을 할 필요가 없다.
+
+production build는 `dist/client`의 정적 파일과 `dist/server`의 Worker bundle을 함께 만든다. `pnpm preview`는 같은 Worker/asset 경계를 로컬에서 확인하는 용도다.
+
 ## 2. 기술 스택
 
 - TypeScript: 게임 규칙과 데이터 계약의 오류를 일찍 발견
@@ -222,3 +233,4 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - 공개 HTTPS URL은 로그인과 설치를 요구하지 않는다.
 - production build의 source map과 환경 변수 노출을 확인한다.
 - 제출 전 시크릿 창과 다른 네트워크에서 링크를 직접 확인한다.
+- 현재 앱은 client-side router가 없는 단일 root 페이지다. 새 URL route를 추가할 때만 production host의 SPA fallback을 다시 검증한다.
