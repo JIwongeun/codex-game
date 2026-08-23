@@ -7,8 +7,8 @@
 - 날짜: 2026-08-24
 - 상태: 확정
 - 배경: source의 `_headers`와 Worker `X-Robots-Tag`는 있었지만 Sites production의 정적 asset이 Worker를 우회해 실제 root와 hashed asset 응답에는 CSP, `nosniff`, referrer, permissions와 robots header가 없었다. 현재 게임은 사용자 입력·API가 없어 즉시 악용 가능한 경로는 없지만 의도한 방어 계층과 production 동작이 달랐다.
-- 결정: Cloudflare asset 설정에 `run_worker_first: true`를 사용하고 Worker가 모든 asset 응답에 self-only script/font/image/connect CSP, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `nosniff`, no-referrer, 제한된 Permissions Policy와 `X-Robots-Tag`를 추가한다. runtime style attribute와 local Vite의 style element injection은 허용하고, 대회 iframe 호환성이 불명확하므로 `frame-ancestors`와 `X-Frame-Options`는 보류한다.
-- 결과: 게임 로직·사용자 데이터·API를 Worker에 추가하지 않고 응답 header만 강화한다. Cloudflare Vite plugin과 Wrangler를 각각 1.53.1·4.125.0으로 함께 갱신해 dev toolchain을 포함한 `pnpm audit` advisory를 0건으로 만든다.
+- 결정: Cloudflare asset 설정에 `run_worker_first: true`를 사용하고 Worker 경로에는 self-only script/font/image/connect CSP, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `nosniff`, no-referrer, 제한된 Permissions Policy와 `X-Robots-Tag`를 추가한다. Sites 정적 dispatch가 이 header를 노출하지 않는 경우에도 document가 CSP·no-referrer·robots policy를 직접 적용하도록 동일한 HTML meta fallback을 둔다. runtime style attribute와 local Vite의 style element injection은 허용하고, 대회 iframe 호환성이 불명확하므로 `frame-ancestors`와 `X-Frame-Options`는 보류한다.
+- 결과: 게임 로직·사용자 데이터·API를 Worker에 추가하지 않고 Worker header와 document meta 두 계층을 사용한다. Cloudflare Vite plugin과 Wrangler를 각각 1.53.1·4.125.0으로 함께 갱신해 dev toolchain을 포함한 `pnpm audit` advisory를 0건으로 만든다.
 
 ## D-034 — 최고 난이도는 유지하되 읽을 수 없는 동시 발동을 제거한다
 

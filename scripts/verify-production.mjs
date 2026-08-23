@@ -61,6 +61,9 @@ const publicOgUrl =
   "https://await-codex-context-overflow.jygjyg99.chatgpt.site/og.png";
 for (const requiredMetadata of [
   "await CODEX: CONTEXT//OVERFLOW",
+  'http-equiv="Content-Security-Policy"',
+  'name="referrer" content="no-referrer"',
+  "object-src 'none'",
   "noindex, nofollow, noarchive",
   publicOgUrl,
 ]) {
