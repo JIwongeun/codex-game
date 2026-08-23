@@ -222,6 +222,10 @@ export class SoundService {
       } else if (event.type === "pattern-warning") {
         this.playPatternWarning(event.kind);
       } else if (event.type === "pattern-burst") {
+        if (event.kind === "reasoning-xhigh") {
+          this.playReasoningAnswer();
+          continue;
+        }
         this.play({
           frequency: event.kind === "usage-limit" ? 92 : 150,
           endFrequency: event.kind === "usage-limit" ? 46 : 80,
@@ -370,12 +374,23 @@ export class SoundService {
 
     if (kind === "reasoning-xhigh") {
       this.play({
-        frequency: 170,
-        endFrequency: 680,
-        durationSeconds: 0.34,
-        gain: 0.018,
+        frequency: 150,
+        endFrequency: 420,
+        durationSeconds: 0.42,
+        gain: 0.014,
         wave: "triangle",
       });
+      for (let index = 0; index < 4; index += 1) {
+        const frequency = 920 - index * 120;
+        this.play({
+          frequency,
+          endFrequency: frequency * 0.96,
+          durationSeconds: 0.026,
+          gain: 0.007,
+          wave: "square",
+          delaySeconds: [0.04, 0.11, 0.2, 0.31][index] ?? 0,
+        });
+      }
       return;
     }
 
@@ -423,6 +438,24 @@ export class SoundService {
       durationSeconds: 0.2,
       gain: 0.025,
       wave: "square",
+    });
+  }
+
+  private playReasoningAnswer(): void {
+    this.play({
+      frequency: 1_480,
+      endFrequency: 820,
+      durationSeconds: 0.038,
+      gain: 0.022,
+      wave: "square",
+    });
+    this.play({
+      frequency: 310,
+      endFrequency: 138,
+      durationSeconds: 0.09,
+      gain: 0.018,
+      wave: "triangle",
+      delaySeconds: 0.012,
     });
   }
 

@@ -14,7 +14,6 @@ export type ProjectileKind =
   | "approval"
   | "context-token"
   | "retry"
-  | "reasoning"
   | "agent"
   | "finding"
   | "limit";
@@ -31,7 +30,7 @@ export type AttackPatternKind =
   | "review-fix-loop"
   | "usage-limit"
   | "wildcard-blackout";
-export type HitSource = ProjectileKind;
+export type HitSource = ProjectileKind | "reasoning";
 export type AttackSurface = "terminal" | "browser" | "codex";
 
 export type ToolCallLabel = string;
@@ -112,6 +111,22 @@ export interface RetryChainState {
   telegraphRemainingMs: number;
 }
 
+export interface ReasoningWaveState {
+  id: number;
+  center: Vec2;
+  safeAngle: number;
+  safeArc: number;
+  radius: number;
+  previousRadius: number;
+  maxRadius: number;
+  thickness: number;
+  speed: number;
+  collapseDurationMs: number;
+  phase: "thinking" | "active";
+  telegraphRemainingMs: number;
+  telegraphDurationMs: number;
+}
+
 export interface BlackoutState {
   id: number;
   position: Vec2;
@@ -167,6 +182,7 @@ export interface GameState {
   sequences: AttackSequenceState[];
   approvalGates: ApprovalGateState[];
   retryChains: RetryChainState[];
+  reasoningWaves: ReasoningWaveState[];
   blackouts: BlackoutState[];
   ending: EndingState | null;
   spawn: SpawnTimers;
@@ -189,7 +205,11 @@ export type GameEvent =
         | "reasoning-xhigh"
         | "parallel-agents";
     }
-  | { type: "pattern-burst"; kind: SequenceKind; position: Vec2 }
+  | {
+      type: "pattern-burst";
+      kind: SequenceKind | "reasoning-xhigh";
+      position: Vec2;
+    }
   | { type: "blackout-started"; position: Vec2 }
   | { type: "ending-started" }
   | { type: "player-hit"; source: HitSource }

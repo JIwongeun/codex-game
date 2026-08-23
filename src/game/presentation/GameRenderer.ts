@@ -11,6 +11,7 @@ import type {
   GameEvent,
   GameState,
   ProjectileState,
+  ReasoningWaveState,
   Vec2,
 } from "../core/model";
 import {
@@ -64,6 +65,10 @@ function seededUnit(value: number): number {
   return noise - Math.floor(noise);
 }
 
+function reasoningCandidateCount(progress: number): 8 | 4 | 2 | 1 {
+  return progress < 0.25 ? 8 : progress < 0.5 ? 4 : progress < 0.75 ? 2 : 1;
+}
+
 export class GameRenderer {
   private readonly scene: Phaser.Scene;
   private readonly background: Phaser.GameObjects.Graphics;
@@ -77,6 +82,7 @@ export class GameRenderer {
   private readonly sequenceLabels = new Map<number, RichLabelView>();
   private readonly approvalGateLabels = new Map<number, RichLabelView>();
   private readonly retryChainLabels = new Map<number, RichLabelView>();
+  private readonly reasoningWaveLabels = new Map<number, RichLabelView>();
   private readonly blackoutViews = new Map<number, BlackoutView>();
   private readonly particles: ParticleEffect[] = [];
   private hitFlashMs = 0;
@@ -105,6 +111,9 @@ export class GameRenderer {
           this.addBurst(event.position, 14, state.elapsedMs);
         }
       } else if (event.type === "pattern-burst") {
+        if (event.kind === "reasoning-xhigh") {
+          continue;
+        }
         this.addBurst(
           event.position,
           event.kind === "usage-limit" ? 36 : 24,
@@ -130,11 +139,13 @@ export class GameRenderer {
     this.drawProjectiles(state);
     this.drawApprovalGates(state);
     this.drawRetryChains(state);
+    this.drawReasoningWaves(state);
     this.syncProjectileLabels(state);
     this.syncHazardLabels(state);
     this.syncSequenceLabels(state);
     this.syncApprovalGateLabels(state);
     this.syncRetryChainLabels(state);
+    this.syncReasoningWaveLabels(state);
     this.drawBlackouts(state);
     this.syncBlackoutViews(state);
     this.drawPlayer(state);
@@ -155,6 +166,7 @@ export class GameRenderer {
     this.destroyRichLabelMap(this.sequenceLabels);
     this.destroyRichLabelMap(this.approvalGateLabels);
     this.destroyRichLabelMap(this.retryChainLabels);
+    this.destroyRichLabelMap(this.reasoningWaveLabels);
     this.destroyBlackoutViews();
     this.hitFlashMs = 0;
   }
@@ -321,9 +333,7 @@ export class GameRenderer {
               ? 24
               : projectile.kind === "finding" || projectile.kind === "limit"
                 ? 14
-                : projectile.kind === "reasoning"
-                  ? 28
-                  : 20;
+                : 20;
       const alpha = projectile.kind === "limit" ? 0.48 : 0.28;
       this.drawMotionRail(projectile, length, alpha);
     }
@@ -453,6 +463,128 @@ export class GameRenderer {
         Math.round(retry.position.y - retry.velocity.y * 7) - 1,
         3,
         3,
+      );
+    }
+  }
+
+  private drawReasoningWaves(state: GameState): void {
+    const tone = ATTACK_TONES.codex.value;
+
+    for (const wave of state.reasoningWaves) {
+      if (wave.phase === "thinking") {
+        this.drawReasoningBranches(wave, tone);
+      } else {
+        this.drawReasoningResponse(wave, tone);
+      }
+    }
+  }
+
+  private drawReasoningBranches(
+    wave: ReasoningWaveState,
+    tone: number,
+  ): void {
+    const progress = Phaser.Math.Clamp(
+      1 - wave.telegraphRemainingMs / wave.telegraphDurationMs,
+      0,
+      1,
+    );
+    const candidateCount = reasoningCandidateCount(progress);
+    const previewRadius = Math.min(54, Math.max(38, wave.maxRadius * 0.12));
+    const innerRadius = 8;
+
+    this.world.fillStyle(tone, 0.84);
+    this.world.fillRect(
+      Math.round(wave.center.x) - 2,
+      Math.round(wave.center.y) - 2,
+      4,
+      4,
+    );
+
+    for (let ringIndex = 0; ringIndex < 3; ringIndex += 1) {
+      const radius = previewRadius - ringIndex * 9;
+      this.strokeReasoningArc(
+        wave,
+        radius,
+        1,
+        tone,
+        0.2 + progress * 0.12 + ringIndex * 0.04,
+      );
+    }
+
+    this.world.lineStyle(1, tone, 0.3 + progress * 0.34);
+    const survivorIndices =
+      candidateCount === 8
+        ? [0, 1, 2, 3, 4, 5, 6, 7]
+        : candidateCount === 4
+          ? [0, 2, 4, 6]
+          : candidateCount === 2
+            ? [0, 4]
+            : [0];
+    for (const branchIndex of survivorIndices) {
+      const angle = wave.safeAngle + (Math.PI * 2 * branchIndex) / 8;
+      const branchEnd = previewRadius - (branchIndex % 2) * 4;
+      this.world.lineBetween(
+        wave.center.x + Math.cos(angle) * innerRadius,
+        wave.center.y + Math.sin(angle) * innerRadius,
+        wave.center.x + Math.cos(angle) * branchEnd,
+        wave.center.y + Math.sin(angle) * branchEnd,
+      );
+    }
+
+    this.drawReasoningGapTicks(wave, previewRadius, tone, 0.78);
+  }
+
+  private drawReasoningResponse(
+    wave: ReasoningWaveState,
+    tone: number,
+  ): void {
+    if (wave.radius <= 0) {
+      return;
+    }
+
+    const thickness = Math.min(16, Math.max(12, wave.thickness));
+    this.strokeReasoningArc(wave, wave.radius, thickness, tone, 0.14);
+    this.strokeReasoningArc(wave, wave.radius, 1, tone, 0.94);
+    this.drawReasoningGapTicks(wave, wave.radius, tone, 0.9);
+  }
+
+  private strokeReasoningArc(
+    wave: ReasoningWaveState,
+    radius: number,
+    width: number,
+    color: number,
+    alpha: number,
+  ): void {
+    if (radius <= 0) {
+      return;
+    }
+
+    const start = wave.safeAngle + wave.safeArc / 2;
+    const end = wave.safeAngle + Math.PI * 2 - wave.safeArc / 2;
+    this.world.lineStyle(width, color, alpha);
+    this.world.beginPath();
+    this.world.arc(wave.center.x, wave.center.y, radius, start, end, false);
+    this.world.strokePath();
+  }
+
+  private drawReasoningGapTicks(
+    wave: ReasoningWaveState,
+    radius: number,
+    color: number,
+    alpha: number,
+  ): void {
+    const innerRadius = Math.max(8, radius - 6);
+    const outerRadius = radius + 7;
+    this.world.lineStyle(1, color, alpha);
+    for (const angle of [
+      wave.safeAngle - wave.safeArc / 2,
+      wave.safeAngle + wave.safeArc / 2,
+    ]) {
+      this.world.lineBetween(
+        wave.center.x + Math.cos(angle) * innerRadius,
+        wave.center.y + Math.sin(angle) * innerRadius,
+        wave.center.x + Math.cos(angle) * outerRadius,
+        wave.center.y + Math.sin(angle) * outerRadius,
       );
     }
   }
@@ -742,6 +874,60 @@ export class GameRenderer {
     this.removeInactiveRichLabels(this.retryChainLabels, activeIds);
   }
 
+  private syncReasoningWaveLabels(state: GameState): void {
+    const activeIds = new Set<number>();
+
+    for (const wave of state.reasoningWaves) {
+      activeIds.add(wave.id);
+      let view = this.reasoningWaveLabels.get(wave.id);
+      if (!view) {
+        view = this.createRichLabel(5);
+        this.reasoningWaveLabels.set(wave.id, view);
+      }
+
+      const progress = Phaser.Math.Clamp(
+        1 - wave.telegraphRemainingMs / wave.telegraphDurationMs,
+        0,
+        1,
+      );
+      const candidateCount = reasoningCandidateCount(progress);
+      const status =
+        wave.phase === "active"
+          ? "[answer] final"
+          : candidateCount === 1
+            ? "[effort] xhigh · finalizing"
+            : `[effort] xhigh · ${candidateCount} paths`;
+      this.updateRichLabel(view, {
+        surface: "codex",
+        label: status,
+        fontFamily: FONTS.sans,
+        fontSize: 10,
+        fontStyle: wave.phase === "active" ? "600" : "500",
+        letterSpacing: 0.1,
+      });
+
+      const labelWidth =
+        status.length * (wave.phase === "active" ? 5.2 : 5.5);
+      const labelX = Phaser.Math.Clamp(
+        wave.center.x - labelWidth / 2,
+        10,
+        Math.max(10, state.arena.width - labelWidth - 10),
+      );
+      const labelY = Phaser.Math.Clamp(
+        wave.center.y + 64,
+        16,
+        Math.max(16, state.arena.height - 18),
+      );
+      view.container
+        .setPosition(Math.round(labelX), Math.round(labelY))
+        .setRotation(0)
+        .setAlpha(wave.phase === "active" ? 0.96 : 0.78 + progress * 0.16)
+        .setVisible(true);
+    }
+
+    this.removeInactiveRichLabels(this.reasoningWaveLabels, activeIds);
+  }
+
   private drawBlackouts(state: GameState): void {
     for (const blackout of state.blackouts) {
       this.blackoutLayer.fillStyle(COLORS.black, 1);
@@ -862,7 +1048,7 @@ export class GameRenderer {
   }
 
   private projectileFontSize(projectile: ProjectileState): number {
-    if (projectile.kind === "approval" || projectile.kind === "reasoning") {
+    if (projectile.kind === "approval") {
       return 11;
     }
     if (projectile.kind === "context-token") {

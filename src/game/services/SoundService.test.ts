@@ -160,6 +160,11 @@ describe("SoundService", () => {
       },
       { type: "pattern-warning", kind: "retry-loop" },
       { type: "pattern-warning", kind: "reasoning-xhigh" },
+      {
+        type: "pattern-burst",
+        kind: "reasoning-xhigh",
+        position: { x: 1, y: 1 },
+      },
       { type: "pattern-warning", kind: "parallel-agents" },
       { type: "pattern-warning", kind: "review-loop" },
       { type: "pattern-burst", kind: "review-loop", position: { x: 1, y: 1 } },
@@ -174,6 +179,32 @@ describe("SoundService", () => {
       sound.consume([event]);
       expect(context?.oscillators.length).toBeGreaterThan(before);
     }
+  });
+
+  it("separates xhigh branch pruning from the final answer snap", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    const context = FakeAudioContext.instances[0];
+    sound.consume([{ type: "pattern-warning", kind: "reasoning-xhigh" }]);
+    expect(context?.oscillators).toHaveLength(5);
+
+    sound.consume([
+      {
+        type: "pattern-burst",
+        kind: "reasoning-xhigh",
+        position: { x: 1, y: 1 },
+      },
+    ]);
+    expect(context?.oscillators).toHaveLength(7);
+    expect(
+      context?.oscillators
+        .slice(-2)
+        .map(
+          (oscillator) =>
+            oscillator.frequency.setValueAtTime.mock.calls[0]?.[0],
+        ),
+    ).toEqual([1_480, 310]);
   });
 
   it("layers notification-shaped cues onto error and delivery events", () => {

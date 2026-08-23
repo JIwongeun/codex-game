@@ -7,6 +7,7 @@ import type {
   AttackSequenceState,
   GameState,
   ProjectileState,
+  ReasoningWaveState,
   RetryChainState,
 } from "./model";
 import {
@@ -68,6 +69,28 @@ function retryChain(
     attempt: 1,
     totalAttempts: 3,
     telegraphRemainingMs: 0,
+    ...overrides,
+  };
+}
+
+function reasoningWave(
+  state: GameState,
+  overrides: Partial<ReasoningWaveState> = {},
+): ReasoningWaveState {
+  return {
+    id: 290,
+    center: { ...state.player.position },
+    safeAngle: 0,
+    safeArc: Math.PI / 2,
+    radius: 200,
+    previousRadius: 200,
+    maxRadius: 500,
+    thickness: GAMEPLAY.reasoningWaveThickness,
+    speed: 1_000,
+    collapseDurationMs: 500,
+    phase: "active",
+    telegraphRemainingMs: 0,
+    telegraphDurationMs: GAMEPLAY.reasoningTelegraphMs,
     ...overrides,
   };
 }
@@ -144,6 +167,7 @@ describe("survival simulation", () => {
     expect(first.sequences).toEqual([]);
     expect(first.approvalGates).toEqual([]);
     expect(first.retryChains).toEqual([]);
+    expect(first.reasoningWaves).toEqual([]);
     expect(first.blackouts).toEqual([]);
     expect(first.ending).toBeNull();
     expect(first).toEqual(second);
@@ -201,6 +225,23 @@ describe("survival simulation", () => {
     expect(spawned.velocity).toEqual(initialVelocity);
   });
 
+  it.each([5, 6, 9, 10])(
+    "keeps the baseline tool stream to one command at stage %i",
+    (stage) => {
+      const state = playingState(stage, 800, 600);
+      state.elapsedMs = GAMEPLAY.stageDurationMs * (stage - 1);
+      state.spawn.toolCallMs = 0;
+
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      expect(
+        state.projectiles.filter(
+          (candidate) => candidate.kind === "tool-call",
+        ),
+      ).toHaveLength(1);
+    },
+  );
+
   it("spawns approval as a sweeping gate with one deny gap", () => {
     const state = playingState(17, 800, 600);
     state.elapsedMs = GAMEPLAY.approvalFirstSpawnMs;
@@ -231,7 +272,7 @@ describe("survival simulation", () => {
     );
   });
 
-  it("holds xhigh reasoning, then fires at one immutable snapshot", () => {
+  it("snapshots one xhigh center and safe sector while thinking stays harmless", () => {
     const state = playingState(18, 800, 600);
     state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
     state.player.position = { x: 240, y: 410 };
@@ -239,20 +280,153 @@ describe("survival simulation", () => {
 
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
-    const spawned = state.projectiles.find(
-      (candidate) => candidate.kind === "reasoning",
-    );
+    const spawned = state.reasoningWaves[0];
     expect(spawned).toBeDefined();
     if (!spawned) {
-      throw new Error("expected an xhigh reasoning projectile");
+      throw new Error("expected an xhigh reasoning wave");
     }
 
-    expect(spawned.label).toBe("[effort] xhigh · thinking...");
+    expect(spawned.center).toEqual({ x: 240, y: 410 });
+    expect(spawned.phase).toBe("thinking");
+    expect(state.projectiles).toEqual([]);
     expect(spawned.telegraphRemainingMs).toBe(GAMEPLAY.reasoningTelegraphMs);
-    const initialVelocity = { ...spawned.velocity };
+    expect(spawned.safeArc).toBeCloseTo((85 * Math.PI) / 180, 2);
+    const initialSafeAngle = spawned.safeAngle;
     state.player.position = { x: 760, y: 40 };
+    stepGame(state, EMPTY_INPUT, GAMEPLAY.reasoningTelegraphMs / 2);
+    expect(state.phase).toBe("playing");
+    expect(spawned.center).toEqual({ x: 240, y: 410 });
+    expect(spawned.safeAngle).toBe(initialSafeAngle);
+  });
+
+  it("emits one answer event when xhigh thinking becomes an inward wave", () => {
+    const state = playingState(19, 800, 600);
+    const wave = reasoningWave(state, {
+      phase: "thinking",
+      radius: 500,
+      previousRadius: 500,
+      telegraphRemainingMs: 10,
+    });
+    state.reasoningWaves = [wave];
+
+    const activationEvents = stepGame(state, EMPTY_INPUT, 10);
+    expect(wave.phase).toBe("active");
+    expect(wave.radius).toBe(wave.maxRadius);
+    expect(activationEvents).toContainEqual({
+      type: "pattern-burst",
+      kind: "reasoning-xhigh",
+      position: wave.center,
+    });
+
+    const nextEvents = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(
+      nextEvents.filter(
+        (event) =>
+          event.type === "pattern-burst" && event.kind === "reasoning-xhigh",
+      ),
+    ).toHaveLength(0);
+    expect(wave.radius).toBeLessThan(wave.maxRadius);
+  });
+
+  it.each([
+    [375, 640],
+    [1_920, 1_080],
+  ])(
+    "keeps xhigh collapse duration stable in a %ix%i viewport",
+    (width, height) => {
+      const state = playingState(width + height, width, height);
+      state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
+      state.spawn.reasoningMs = 0;
+
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      const wave = state.reasoningWaves[0];
+      expect(wave).toBeDefined();
+      if (!wave) {
+        throw new Error("expected an xhigh reasoning wave");
+      }
+      expect((wave.maxRadius / wave.speed) * 1_000).toBeCloseTo(
+        wave.collapseDurationMs,
+      );
+      expect(wave.collapseDurationMs).toBeCloseTo(1_000, 0);
+    },
+  );
+
+  it("recomputes a thinking xhigh wave for the resized viewport", () => {
+    const state = playingState(23, 1_920, 1_080);
+    state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
+    state.spawn.reasoningMs = 0;
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
-    expect(spawned.velocity).toEqual(initialVelocity);
+
+    const wave = state.reasoningWaves[0];
+    expect(wave).toBeDefined();
+    if (!wave) {
+      throw new Error("expected an xhigh reasoning wave");
+    }
+    const previousSpeed = wave.speed;
+
+    resizeArena(state, 375, 640);
+
+    expect(wave.phase).toBe("thinking");
+    expect(wave.speed).not.toBe(previousSpeed);
+    expect((wave.maxRadius / wave.speed) * 1_000).toBeCloseTo(
+      wave.collapseDurationMs,
+    );
+  });
+
+  it("leaves the fixed xhigh safe sector harmless but hits the swept annulus", () => {
+    const safeState = playingState(20, 800, 600);
+    safeState.player.position = { x: 500, y: 300 };
+    safeState.reasoningWaves = [
+      reasoningWave(safeState, {
+        center: { x: 400, y: 300 },
+        radius: 110,
+        previousRadius: 110,
+      }),
+    ];
+    stepGame(safeState, EMPTY_INPUT, 20);
+    expect(safeState.phase).toBe("playing");
+
+    const dangerState = playingState(20, 800, 600);
+    dangerState.player.position = { x: 300, y: 300 };
+    dangerState.reasoningWaves = [
+      reasoningWave(dangerState, {
+        center: { x: 400, y: 300 },
+        radius: 110,
+        previousRadius: 110,
+      }),
+    ];
+    stepGame(dangerState, EMPTY_INPUT, 20);
+    expect(dangerState.phase).toBe("results");
+    expect(dangerState.lastHitSource).toBe("reasoning");
+  });
+
+  it("cannot tunnel through xhigh or survive its final collapse at center", () => {
+    const sweptState = playingState(21, 800, 600);
+    sweptState.player.position = { x: 400, y: 150 };
+    sweptState.reasoningWaves = [
+      reasoningWave(sweptState, {
+        center: { x: 400, y: 300 },
+        safeAngle: 0,
+        radius: 300,
+        previousRadius: 300,
+      }),
+    ];
+    stepGame(sweptState, EMPTY_INPUT, 200);
+    expect(sweptState.phase).toBe("results");
+    expect(sweptState.lastHitSource).toBe("reasoning");
+
+    const centerState = playingState(22, 800, 600);
+    centerState.reasoningWaves = [
+      reasoningWave(centerState, {
+        safeAngle: 0,
+        radius: 20,
+        previousRadius: 20,
+      }),
+    ];
+    stepGame(centerState, EMPTY_INPUT, 20);
+    expect(centerState.phase).toBe("results");
+    expect(centerState.lastHitSource).toBe("reasoning");
   });
 
   it("selects seeded parody labels with bounded label-sized hitboxes", () => {
@@ -346,6 +520,17 @@ describe("survival simulation", () => {
         origins: [{ x: 1_280, y: 700 }],
       }),
     ];
+    state.reasoningWaves = [
+      reasoningWave(state, {
+        center: { x: 1_200, y: 680 },
+        radius: 900,
+        previousRadius: 920,
+        maxRadius: 1_000,
+      }),
+    ];
+    const remainingCollapseMs =
+      (state.reasoningWaves[0]!.radius / state.reasoningWaves[0]!.speed) *
+      1_000;
 
     resizeArena(state, 375, 640);
 
@@ -361,6 +546,16 @@ describe("survival simulation", () => {
     );
     expect(state.sequences[0]!.position.x).toBeLessThanOrEqual(375 - 36);
     expect(state.sequences[0]!.origins[0]!.x).toBeLessThanOrEqual(375);
+    expect(state.reasoningWaves[0]!.center.x).toBeLessThanOrEqual(
+      375 - GAMEPLAY.playerRadius,
+    );
+    expect(state.reasoningWaves[0]!.radius).toBeLessThan(
+      state.reasoningWaves[0]!.maxRadius,
+    );
+    expect(
+      (state.reasoningWaves[0]!.radius / state.reasoningWaves[0]!.speed) *
+        1_000,
+    ).toBeCloseTo(remainingCollapseMs);
   });
 
   it("does not move without keyboard input", () => {
@@ -648,9 +843,8 @@ describe("survival simulation", () => {
       state.hazards.some((candidate) => candidate.kind === "compaction"),
     ).toBe(true);
     expect(state.retryChains).toHaveLength(1);
-    expect(
-      state.projectiles.some((candidate) => candidate.kind === "reasoning"),
-    ).toBe(true);
+    expect(state.reasoningWaves).toHaveLength(1);
+    expect(state.reasoningWaves[0]?.phase).toBe("thinking");
     expect(
       state.projectiles.some((candidate) => candidate.kind === "agent"),
     ).toBe(true);
@@ -750,6 +944,7 @@ describe("survival simulation", () => {
     state.elapsedMs = GAMEPLAY.endingAtMs - 10;
     state.projectiles = [projectile(state, { position: { x: 20, y: 20 } })];
     state.hazards = [hazard(state, { position: { x: 20, y: 20 } })];
+    state.reasoningWaves = [reasoningWave(state)];
 
     const startEvents = stepGame(state, EMPTY_INPUT, 20);
     expect(startEvents).toEqual([{ type: "ending-started" }]);
@@ -761,6 +956,7 @@ describe("survival simulation", () => {
     });
     expect(state.projectiles).toEqual([]);
     expect(state.hazards).toEqual([]);
+    expect(state.reasoningWaves).toEqual([]);
 
     const endEvents = stepGame(
       state,
@@ -930,6 +1126,7 @@ describe("survival simulation", () => {
     expect(restarted.projectiles).toEqual([]);
     expect(restarted.hazards).toEqual([]);
     expect(restarted.sequences).toEqual([]);
+    expect(restarted.reasoningWaves).toEqual([]);
   });
 
   it("keeps values and entity caps valid across seeded responsive runs", () => {
@@ -959,6 +1156,9 @@ describe("survival simulation", () => {
         expect(state.hazards.length).toBeLessThanOrEqual(GAMEPLAY.maxHazards);
         expect(state.sequences.length).toBeLessThanOrEqual(
           GAMEPLAY.maxSequences,
+        );
+        expect(state.reasoningWaves.length).toBeLessThanOrEqual(
+          GAMEPLAY.maxReasoningWaves,
         );
       }
     }
@@ -1001,6 +1201,12 @@ describe("survival simulation", () => {
         for (const retryState of state.retryChains) {
           retryState.telegraphRemainingMs = 1_000_000;
         }
+        for (const waveState of state.reasoningWaves) {
+          waveState.phase = "thinking";
+          waveState.telegraphRemainingMs = 1_000_000;
+          waveState.radius = waveState.maxRadius;
+          waveState.previousRadius = waveState.maxRadius;
+        }
 
         stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
@@ -1017,6 +1223,9 @@ describe("survival simulation", () => {
         );
         expect(state.retryChains.length).toBeLessThanOrEqual(
           GAMEPLAY.maxRetryChains,
+        );
+        expect(state.reasoningWaves.length).toBeLessThanOrEqual(
+          GAMEPLAY.maxReasoningWaves,
         );
         expect(state.blackouts.length).toBeLessThanOrEqual(
           GAMEPLAY.maxBlackouts,

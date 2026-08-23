@@ -7,6 +7,7 @@ import {
   circleOverlapsOrientedRectangle,
   directionBetween,
   normalize,
+  wrap,
 } from "./math";
 import type {
   ApprovalGateState,
@@ -22,6 +23,7 @@ import type {
   ProjectileKind,
   ProjectileState,
   RectangleHitbox,
+  ReasoningWaveState,
   RetryChainState,
   SequenceResultLabel,
   ToolCallLabel,
@@ -119,6 +121,7 @@ export function createGameState(
     sequences: [],
     approvalGates: [],
     retryChains: [],
+    reasoningWaves: [],
     blackouts: [],
     ending: null,
     spawn: {
@@ -202,6 +205,26 @@ export function resizeArena(
     retry.target = clampPointToArena(retry.target, state.arena, 0);
   }
 
+  for (const wave of state.reasoningWaves) {
+    const previousMaxRadius = wave.maxRadius;
+    wave.center = clampPointToArena(
+      wave.center,
+      state.arena,
+      GAMEPLAY.playerRadius,
+    );
+    wave.maxRadius = farthestCornerDistance(wave.center, state.arena);
+    if (wave.phase === "thinking") {
+      wave.radius = wave.maxRadius;
+      wave.previousRadius = wave.maxRadius;
+      wave.speed = wave.maxRadius / (wave.collapseDurationMs / 1_000);
+    } else if (previousMaxRadius > 0) {
+      const radiusScale = wave.maxRadius / previousMaxRadius;
+      wave.radius *= radiusScale;
+      wave.previousRadius *= radiusScale;
+      wave.speed *= radiusScale;
+    }
+  }
+
   for (const blackout of state.blackouts) {
     blackout.hitbox = {
       width: Math.min(blackout.hitbox.width, state.arena.width * 0.46),
@@ -283,6 +306,7 @@ export function stepGame(
   updateSequences(state, stepMs, events);
   updateApprovalGates(state, stepMs, stepSeconds);
   updateRetryChains(state, stepMs, stepSeconds);
+  updateReasoningWaves(state, stepMs, stepSeconds, events);
   updateBlackouts(state, stepMs);
   spawnScheduledAttacks(state, stepMs, events);
 
@@ -517,6 +541,47 @@ function updateRetryChains(
   state.retryChains = survivors;
 }
 
+function updateReasoningWaves(
+  state: GameState,
+  stepMs: number,
+  stepSeconds: number,
+  events: GameEvent[],
+): void {
+  const survivors: ReasoningWaveState[] = [];
+
+  for (const wave of state.reasoningWaves) {
+    if (wave.phase === "thinking") {
+      wave.telegraphRemainingMs = Math.max(
+        0,
+        wave.telegraphRemainingMs - stepMs,
+      );
+      if (wave.telegraphRemainingMs <= 0) {
+        wave.phase = "active";
+        wave.radius = wave.maxRadius;
+        wave.previousRadius = wave.maxRadius;
+        events.push({
+          type: "pattern-burst",
+          kind: "reasoning-xhigh",
+          position: { ...wave.center },
+        });
+      }
+      survivors.push(wave);
+      continue;
+    }
+
+    if (wave.radius <= 0) {
+      state.attacksDodged += 1;
+      continue;
+    }
+
+    wave.previousRadius = wave.radius;
+    wave.radius = Math.max(0, wave.radius - wave.speed * stepSeconds);
+    survivors.push(wave);
+  }
+
+  state.reasoningWaves = survivors;
+}
+
 function updateBlackouts(state: GameState, stepMs: number): void {
   state.blackouts = state.blackouts.filter((blackout) => {
     blackout.remainingMs -= stepMs;
@@ -541,11 +606,7 @@ function spawnScheduledAttacks(
   state.spawn.blackoutMs -= stepMs;
 
   if (state.spawn.toolCallMs <= 0) {
-    spawnToolCallVolley(
-      state,
-      difficulty.toolCallBurst,
-      difficulty.toolCallSpeed,
-    );
+    spawnToolCall(state, difficulty.toolCallSpeed);
     state.spawn.toolCallMs += difficulty.toolCallIntervalMs;
   }
 
@@ -605,7 +666,13 @@ function spawnScheduledAttacks(
   }
 
   if (difficulty.reasoningUnlocked && state.spawn.reasoningMs <= 0) {
-    if (spawnReasoningXhigh(state, difficulty.reasoningSpeed)) {
+    if (
+      spawnReasoningXhigh(
+        state,
+        difficulty.reasoningCollapseMs,
+        difficulty.reasoningSafeArc,
+      )
+    ) {
       events.push({ type: "pattern-warning", kind: "reasoning-xhigh" });
     }
     state.spawn.reasoningMs += difficulty.reasoningIntervalMs;
@@ -664,52 +731,42 @@ function spawnScheduledAttacks(
   }
 }
 
-function spawnToolCallVolley(
-  state: GameState,
-  count: number,
-  speed: number,
-): void {
-  const available = Math.min(
-    count,
-    GAMEPLAY.maxProjectiles - state.projectiles.length,
-  );
-  if (available <= 0) {
+function spawnToolCall(state: GameState, speed: number): void {
+  if (state.projectiles.length >= GAMEPLAY.maxProjectiles) {
     return;
   }
 
-  for (let index = 0; index < available; index += 1) {
-    const sourceEdge = Math.floor(randomBetween(state, 0, 4));
-    const targetEdge = sourceEdge ^ 1;
-    const sourceAlongSize =
-      sourceEdge < 2 ? state.arena.height : state.arena.width;
-    const targetAlongSize =
-      targetEdge < 2 ? state.arena.height : state.arena.width;
-    const position = pointOnEdge(
-      state.arena,
-      sourceEdge,
-      randomBetween(state, sourceAlongSize * 0.08, sourceAlongSize * 0.92),
-      20,
-    );
-    const target = pointOnEdge(
-      state.arena,
-      targetEdge,
-      randomBetween(state, targetAlongSize * 0.08, targetAlongSize * 0.92),
-      20,
-    );
-    const entry = randomToolCallEntry(state);
+  const sourceEdge = Math.floor(randomBetween(state, 0, 4));
+  const targetEdge = sourceEdge ^ 1;
+  const sourceAlongSize =
+    sourceEdge < 2 ? state.arena.height : state.arena.width;
+  const targetAlongSize =
+    targetEdge < 2 ? state.arena.height : state.arena.width;
+  const position = pointOnEdge(
+    state.arena,
+    sourceEdge,
+    randomBetween(state, sourceAlongSize * 0.08, sourceAlongSize * 0.92),
+    20,
+  );
+  const target = pointOnEdge(
+    state.arena,
+    targetEdge,
+    randomBetween(state, targetAlongSize * 0.08, targetAlongSize * 0.92),
+    20,
+  );
+  const entry = randomToolCallEntry(state);
 
-    addProjectile(
-      state,
-      "tool-call",
-      entry.surface,
-      entry.label,
-      position,
-      target,
-      toolCallHitbox(entry.label),
-      speed,
-      GAMEPLAY.toolCallTelegraphMs + index * 35,
-    );
-  }
+  addProjectile(
+    state,
+    "tool-call",
+    entry.surface,
+    entry.label,
+    position,
+    target,
+    toolCallHitbox(entry.label),
+    speed,
+    GAMEPLAY.toolCallTelegraphMs,
+  );
 }
 
 function spawnApprovalGate(state: GameState, speed: number): boolean {
@@ -793,31 +850,35 @@ function spawnRetryChain(
   return true;
 }
 
-function spawnReasoningXhigh(state: GameState, speed: number): boolean {
-  if (state.projectiles.length >= GAMEPLAY.maxProjectiles) {
+function spawnReasoningXhigh(
+  state: GameState,
+  collapseDurationMs: number,
+  safeArc: number,
+): boolean {
+  if (state.reasoningWaves.length >= GAMEPLAY.maxReasoningWaves) {
     return false;
   }
 
-  const edge = Math.floor(randomBetween(state, 0, 4));
-  const alongSize = edge < 2 ? state.arena.height : state.arena.width;
-  const position = pointOnEdge(
-    state.arena,
-    edge,
-    randomBetween(state, alongSize * 0.16, alongSize * 0.84),
-    24,
-  );
-  const label = "[effort] xhigh · thinking...";
-  addProjectile(
-    state,
-    "reasoning",
-    "codex",
-    label,
-    position,
-    { ...state.player.position },
-    { width: 154, height: 17 },
+  const center = { ...state.player.position };
+  const safeTarget = randomRectangleCenter(state, { width: 1, height: 1 });
+  const safeDirection = directionBetween(center, safeTarget);
+  const maxRadius = farthestCornerDistance(center, state.arena);
+  const speed = maxRadius / (collapseDurationMs / 1_000);
+  state.reasoningWaves.push({
+    id: takeEntityId(state),
+    center,
+    safeAngle: Math.atan2(safeDirection.y, safeDirection.x),
+    safeArc,
+    radius: maxRadius,
+    previousRadius: maxRadius,
+    maxRadius,
+    thickness: GAMEPLAY.reasoningWaveThickness,
     speed,
-    GAMEPLAY.reasoningTelegraphMs,
-  );
+    collapseDurationMs,
+    phase: "thinking",
+    telegraphRemainingMs: GAMEPLAY.reasoningTelegraphMs,
+    telegraphDurationMs: GAMEPLAY.reasoningTelegraphMs,
+  });
   return true;
 }
 
@@ -1284,6 +1345,19 @@ function clampRectangleCenter(
   };
 }
 
+function farthestCornerDistance(center: Vec2, arena: ArenaBounds): number {
+  return (
+    Math.max(
+      Math.hypot(center.x, center.y),
+      Math.hypot(arena.width - center.x, center.y),
+      Math.hypot(center.x, arena.height - center.y),
+      Math.hypot(arena.width - center.x, arena.height - center.y),
+    ) +
+    GAMEPLAY.reasoningWaveThickness / 2 +
+    GAMEPLAY.playerRadius
+  );
+}
+
 function randomRectangleCenter(
   state: GameState,
   hitbox: RectangleHitbox,
@@ -1317,6 +1391,12 @@ function findHitSource(state: GameState): HitSource | null {
       )
     ) {
       return projectile.kind;
+    }
+  }
+
+  for (const wave of state.reasoningWaves) {
+    if (reasoningWaveHitsPlayer(wave, state.player.position)) {
+      return "reasoning";
     }
   }
 
@@ -1373,6 +1453,45 @@ function findHitSource(state: GameState): HitSource | null {
   }
 
   return null;
+}
+
+function reasoningWaveHitsPlayer(
+  wave: ReasoningWaveState,
+  playerPosition: Vec2,
+): boolean {
+  if (wave.phase !== "active") {
+    return false;
+  }
+
+  const distance = Math.hypot(
+    playerPosition.x - wave.center.x,
+    playerPosition.y - wave.center.y,
+  );
+  const collisionPadding = wave.thickness / 2 + GAMEPLAY.playerRadius;
+  const sweptInnerRadius = Math.max(
+    0,
+    Math.min(wave.previousRadius, wave.radius) - collisionPadding,
+  );
+  const sweptOuterRadius =
+    Math.max(wave.previousRadius, wave.radius) + collisionPadding;
+  if (distance < sweptInnerRadius || distance > sweptOuterRadius) {
+    return false;
+  }
+
+  if (distance <= GAMEPLAY.playerRadius) {
+    return true;
+  }
+
+  const playerAngle = Math.atan2(
+    playerPosition.y - wave.center.y,
+    playerPosition.x - wave.center.x,
+  );
+  const angleFromSafeCenter = wrap(
+    playerAngle - wave.safeAngle,
+    -Math.PI,
+    Math.PI,
+  );
+  return Math.abs(angleFromSafeCenter) > wave.safeArc / 2;
 }
 
 function isApprovalGateInsideBounds(
@@ -1433,6 +1552,7 @@ function beginEnding(state: GameState, events: GameEvent[]): void {
   state.sequences = [];
   state.approvalGates = [];
   state.retryChains = [];
+  state.reasoningWaves = [];
   state.blackouts = [];
   state.ending = {
     elapsedMs: 0,

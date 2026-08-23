@@ -25,7 +25,6 @@ describe("survival rules", () => {
     expect(cap.progress).toBe(1);
     expect(start.stage).toBe(1);
     expect(cap.stage).toBe(10);
-    expect(cap.toolCallBurst).toBe(3);
     expect(start.compactionCount).toBe(1);
     expect(cap.compactionCount).toBe(3);
     expect(start.compactionSize).toBe(255);
@@ -39,6 +38,14 @@ describe("survival rules", () => {
     expect(cap.parallelAgentPairs).toBe(3);
     expect(cap.usageDrainCount).toBe(8);
     expect(cap.limitFragmentCount).toBe(20);
+    expect(
+      difficultyAt(GAMEPLAY.reasoningFirstSpawnMs).reasoningSafeArc,
+    ).toBeCloseTo((85 * Math.PI) / 180);
+    expect(cap.reasoningSafeArc).toBeCloseTo((68 * Math.PI) / 180);
+    expect(
+      difficultyAt(GAMEPLAY.reasoningFirstSpawnMs).reasoningCollapseMs,
+    ).toBeCloseTo(1_000);
+    expect(cap.reasoningCollapseMs).toBeCloseTo(700);
   });
 
   it("unlocks all eight Codex patterns across ten explicit stages", () => {
@@ -93,8 +100,8 @@ describe("survival rules", () => {
     expect(stageTen.toolCallIntervalMs).toBeLessThan(
       stageNineEnd.toolCallIntervalMs * 0.9,
     );
-    expect(stageTen.reasoningSpeed).toBeGreaterThan(
-      stageNineEnd.reasoningSpeed * 1.05,
+    expect(stageTen.reasoningCollapseMs).toBeLessThanOrEqual(
+      stageNineEnd.reasoningCollapseMs,
     );
   });
 

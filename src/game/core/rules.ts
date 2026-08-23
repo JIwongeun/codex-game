@@ -6,7 +6,6 @@ export interface Difficulty {
   stage: number;
   toolCallIntervalMs: number;
   toolCallSpeed: number;
-  toolCallBurst: number;
   approvalIntervalMs: number;
   approvalSpeed: number;
   compactionIntervalMs: number;
@@ -17,7 +16,8 @@ export interface Difficulty {
   retryLoopIntervalMs: number;
   retryLoopCount: number;
   reasoningIntervalMs: number;
-  reasoningSpeed: number;
+  reasoningCollapseMs: number;
+  reasoningSafeArc: number;
   parallelAgentsIntervalMs: number;
   parallelAgentPairs: number;
   parallelAgentSpeed: number;
@@ -65,6 +65,12 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     0,
     1,
   );
+  const reasoningProgress = clamp(
+    (safeElapsedMs - GAMEPLAY.reasoningFirstSpawnMs) /
+      (GAMEPLAY.difficultyRampMs - GAMEPLAY.reasoningFirstSpawnMs),
+    0,
+    1,
+  );
   const blackoutMaxActive =
     stage < 10 ? 1 : postStageTenMs >= 60_000 ? 4 : postStageTenMs >= 30_000 ? 3 : 2;
 
@@ -74,7 +80,6 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     toolCallIntervalMs:
       lerp(1_050, 380, progress) * stageTenIntervalMultiplier,
     toolCallSpeed: lerp(270, 570, progress) * stageTenSpeedMultiplier,
-    toolCallBurst: stage >= 9 ? 3 : stage >= 5 ? 2 : 1,
     approvalIntervalMs:
       lerp(6_200, 3_100, progress) * stageTenIntervalMultiplier,
     approvalSpeed: lerp(470, 740, progress) * stageTenSpeedMultiplier,
@@ -94,7 +99,12 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     retryLoopCount: stage >= 9 ? 5 : stage >= 6 ? 4 : 3,
     reasoningIntervalMs:
       lerp(11_500, 5_800, progress) * stageTenIntervalMultiplier,
-    reasoningSpeed: lerp(760, 1_080, progress) * stageTenSpeedMultiplier,
+    reasoningCollapseMs: lerp(1_000, 700, reasoningProgress),
+    reasoningSafeArc: lerp(
+      (85 * Math.PI) / 180,
+      (68 * Math.PI) / 180,
+      reasoningProgress,
+    ),
     parallelAgentsIntervalMs:
       lerp(9_500, 4_700, progress) * stageTenIntervalMultiplier,
     parallelAgentPairs: stage >= 10 ? 3 : stage >= 9 ? 2 : 1,
