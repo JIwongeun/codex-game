@@ -20,7 +20,8 @@
 ### 검증
 
 - `pnpm check`: TypeScript typecheck, Vitest 9 files의 52 tests, Worker/client production build 통과
-- production 배포와 사용자 플레이 확인은 다음 단계에서 진행
+- source commit `2796a00`을 Sites version 17로 public production에 배포하고 상태 `succeeded` 확인
+- 실제 공격 크기·속도·겹침의 체감은 사용자가 production에서 확인한 뒤 조정
 
 ## 2026-08-23 — surface syntax 공격과 edge-to-edge Start ambient
 
