@@ -402,7 +402,7 @@ describe("survival simulation", () => {
     expect(state.lastHitSource).toBe("approval");
   });
 
-  it("makes context max lethal only after its warning expires", () => {
+  it("makes context compaction lethal only after its warning expires", () => {
     const state = playingState();
     state.hazards = [hazard(state)];
 
@@ -584,6 +584,47 @@ describe("survival simulation", () => {
     },
   );
 
+  it.each([
+    ["review-loop", "finding", "ONE MORE ISSUE"],
+    ["usage-limit", "limit", "LIMIT REACHED"],
+  ] as const)(
+    "keeps the %s radial burst outside its snapshotted center",
+    (sequenceKind, projectileKind, label) => {
+      const state = playingState(31, 800, 600);
+      state.player.position = { x: 240, y: 180 };
+      state.sequences = [
+        sequence({
+          kind: sequenceKind,
+          label,
+          position: { ...state.player.position },
+          projectileCount: 12,
+        }),
+      ];
+
+      const events = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      expect(state.phase).toBe("playing");
+      expect(events).not.toContainEqual({
+        type: "player-hit",
+        source: projectileKind,
+      });
+      const burst = state.projectiles.filter(
+        (candidate) => candidate.kind === projectileKind,
+      );
+      expect(burst).toHaveLength(12);
+      expect(
+        Math.min(
+          ...burst.map((candidate) =>
+            Math.hypot(
+              candidate.position.x - state.player.position.x,
+              candidate.position.y - state.player.position.y,
+            ),
+          ),
+        ),
+      ).toBeGreaterThan(GAMEPLAY.playerRadius);
+    },
+  );
+
   it("freezes the simulation after results and restarts cleanly", () => {
     const state = playingState(1, 800, 500);
     state.projectiles = [projectile(state)];
@@ -635,6 +676,58 @@ describe("survival simulation", () => {
           GAMEPLAY.maxSequences,
         );
       }
+    }
+  });
+
+  it("sustains one minute of stage-ten maximum spawn pressure within every cap", () => {
+    for (let seed = 1; seed <= 8; seed += 1) {
+      const state = playingState(
+        seed,
+        seed % 2 === 0 ? 375 : 1_280,
+        seed % 2 === 0 ? 640 : 720,
+      );
+      state.elapsedMs = GAMEPLAY.difficultyRampMs;
+      state.spawn = {
+        toolCallMs: 0,
+        approvalMs: 0,
+        compactionMs: 0,
+        retryLoopMs: 0,
+        reasoningMs: 0,
+        parallelAgentsMs: 0,
+        reviewLoopMs: 0,
+        usageLimitMs: 0,
+      };
+
+      for (let tick = 0; tick < 3_600; tick += 1) {
+        for (const projectile of state.projectiles) {
+          projectile.telegraphRemainingMs = 1_000_000;
+        }
+        for (const hazardState of state.hazards) {
+          hazardState.phase = "telegraph";
+          hazardState.remainingMs = 1_000_000;
+        }
+        for (const sequenceState of state.sequences) {
+          sequenceState.remainingMs = 1_000_000;
+        }
+
+        stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+        expect(state.phase).toBe("playing");
+        expect(state.projectiles.length).toBeLessThanOrEqual(
+          GAMEPLAY.maxProjectiles,
+        );
+        expect(state.hazards.length).toBeLessThanOrEqual(GAMEPLAY.maxHazards);
+        expect(state.sequences.length).toBeLessThanOrEqual(
+          GAMEPLAY.maxSequences,
+        );
+      }
+
+      expect(state.elapsedMs).toBeGreaterThan(
+        GAMEPLAY.difficultyRampMs + 59_000,
+      );
+      expect(Number.isFinite(state.rngState)).toBe(true);
+      expect(Number.isFinite(state.nextEntityId)).toBe(true);
+      expect(Object.values(state.spawn).every(Number.isFinite)).toBe(true);
     }
   });
 });

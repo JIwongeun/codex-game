@@ -225,3 +225,13 @@
 - 배경: git branch·merge·race condition은 개발자에게 익숙하지만 Codex를 기다리는 게임의 고유한 경험은 아니었다. OpenAI 공식 문서와 community issue·discussion에서 context compaction 뒤 작업 상태 손실과 재탐색, 반복 approval, xhigh의 긴 대기와 높은 사용량, 반복 review마다 새 finding 발견, usage limit 급감·표시 불일치, parallel agent 대기가 반복 주제로 확인됐다.
 - 결정: 메인 패턴을 `TOOL CALL STREAM`, `APPROVAL REQUIRED`, `CONTEXT COMPACTION`, `RETRY LOOP`, `REASONING: XHIGH`, `PARALLEL AGENTS`, `REVIEW / FIX LOOP`, `USAGE LIMIT`의 여덟 개로 교체한다. Stage 1–8에서 하나씩 해금하고 Stage 9–10은 동시 수·속도·빈도·radial 탄 수를 높인다. git·npm·browser error는 Stage 1 tool-call phrase bank의 실제 작업 소재로 유지하되 독립 메인 패턴으로 승격하지 않는다.
 - 결과: core는 `tool-call`, `approval`, `retry`, `reasoning`, `agent`, `finding`, `limit` projectile, `compaction` hazard, `review-loop`·`usage-limit` sequence를 사용한다. approval과 reasoning은 생성 순간 snapshot 후 재조준하지 않고, compaction은 inward frame 뒤 `SUMMARY LOST` 영역이 되며, review와 usage는 각각 `ONE MORE ISSUE`와 `LIMIT REACHED` radial projectile을 만든다. 이 표현은 실제 사용자 session을 읽지 않는 fictional parody다.
+
+### D-028 조사 근거
+
+- [Compaction 이후 state 손실과 같은 파일 재탐색](https://github.com/openai/codex/issues/36712), [compaction 뒤 파일 재독해](https://github.com/openai/codex/issues/33498) → `CONTEXT COMPACTION`, `TOOL CALL STREAM`
+- [같은 command에서 반복되는 approval 요청](https://github.com/openai/codex/issues/5038) → `APPROVAL REQUIRED`
+- [xhigh의 긴 reasoning 시간과 usage 부담](https://github.com/openai/codex/discussions/9588) → `REASONING: XHIGH`
+- [review를 반복할 때마다 새 issue가 발견되는 경험](https://www.reddit.com/r/codex/comments/1vpp316/why_does_codex_keep_finding_new_issues_every_time/) → `REVIEW / FIX LOOP`
+- [usage가 빠르게 소진된다는 사용자 경험](https://www.reddit.com/r/codex/comments/1u7qdz8/codex_usage_limits_feel_way_too_aggressive_lately/) → `USAGE LIMIT`
+
+community 게시물의 표현을 그대로 복사하지 않고 반복되는 경험만 추출해 고정 문구와 추상 도형으로 재구성한다.

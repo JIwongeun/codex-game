@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — Stage 10 안정성·공정성 및 제출 자산 점검
+
+### 검증 보강
+
+- `REVIEW / FIX LOOP`와 `USAGE LIMIT`의 radial burst가 player snapshot 중심에서 생성되더라도 즉시 피격되지 않고 바깥쪽에서 시작하는 회귀 테스트 추가
+- 8개 seed와 375×640·1280×720 viewport에서 Stage 10의 모든 spawn timer를 동시에 활성화하고 1분간 최대 압력을 유지하는 soak test 추가
+- soak 동안 projectile, hazard, sequence 상한과 elapsed time, RNG, entity id, spawn timer의 finite 값을 검증
+- `pnpm check`에서 TypeScript typecheck, Vitest 9 files의 55 tests, Worker/client production build 통과
+
+### 제출 자산과 공개 정보
+
+- 마우스 cursor, 방향 화살표와 과거 공격을 보여주던 낡은 `public/og.png`를 현재 original mark, 12×12 black square, tool·context·usage 문법의 1672×941 preview로 교체
+- Phaser, Pretendard, development tool, generated image와 runtime 합성 음원의 출처를 `docs/LICENSES.md`에 기록
+- source와 production dependency 범위에서 제3자 app logo·외부 음원·stock image 사용 여부와 비밀값을 점검하고 발견되지 않은 항목을 제출 checklist에 반영
+- community 사례와 여덟 공격 패턴의 대응 근거를 D-028에 URL과 함께 기록
+
 ## 2026-08-23 — Codex community 경험 기반 메인 공격 재편
 
 ### 조사와 제품 결정
