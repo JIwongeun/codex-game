@@ -29,6 +29,14 @@ describe("attackTextTokens", () => {
       { text: "net::", role: "browserMeta" },
       { text: "ERR_FAILED", role: "browserError" },
     ]);
+    expect(attackTextTokens("browser", "429 Too Many Requests")[0]).toEqual({
+      text: "429",
+      role: "browserError",
+    });
+    expect(attackTextTokens("browser", "502 Bad Gateway")[0]).toEqual({
+      text: "502",
+      role: "browserError",
+    });
     expect(attackTextTokens("codex", "[context] 84% used")).toEqual([
       { text: "[context]", role: "codexToken" },
       { text: " ", role: "ink" },
@@ -43,5 +51,16 @@ describe("attackTextTokens", () => {
       { text: " ", role: "ink" },
       { text: "left", role: "ink" },
     ]);
+  });
+
+  it("recognizes compiler and filesystem error codes as terminal errors", () => {
+    expect(attackTextTokens("terminal", "TS2322: not assignable")[0]).toEqual({
+      text: "TS2322:",
+      role: "terminalError",
+    });
+    expect(attackTextTokens("terminal", "ENOENT: file not found")[0]).toEqual({
+      text: "ENOENT:",
+      role: "terminalError",
+    });
   });
 });

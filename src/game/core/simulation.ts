@@ -23,6 +23,7 @@ import type {
   ProjectileKind,
   ProjectileState,
   RectangleHitbox,
+  SequenceResultLabel,
   ToolCallLabel,
   Vec2,
 } from "./model";
@@ -36,17 +37,34 @@ const TOOL_CALL_ENTRIES: readonly {
 }[] = [
   { label: "+ one more change", surface: "codex" },
   { label: "$ pnpm test --run", surface: "terminal" },
+  { label: "$ pnpm check", surface: "terminal" },
   { label: "$ rg --files -g AGENTS.md", surface: "terminal" },
+  { label: "$ rg -n TODO src", surface: "terminal" },
+  { label: "$ git diff --check", surface: "terminal" },
   { label: "$ git diff --stat", surface: "terminal" },
   { label: "$ git status --short", surface: "terminal" },
   { label: "[tool] reading AGENTS.md", surface: "codex" },
+  { label: "[tool] reading docs again", surface: "codex" },
   { label: "[tool] rereading same file", surface: "codex" },
+  { label: "[tool] searching codebase", surface: "codex" },
+  { label: "[tool] waiting for output", surface: "codex" },
+  { label: "warning: CRLF incoming", surface: "terminal" },
   { label: "warning: tree is dirty", surface: "terminal" },
   { label: "error: command timed out", surface: "terminal" },
+  { label: "error: exit code 1", surface: "terminal" },
+  { label: "TS2322: not assignable", surface: "terminal" },
+  { label: "ENOENT: file not found", surface: "terminal" },
   { label: "codex: checking diff again", surface: "codex" },
   { label: "codex: fixing one last test", surface: "codex" },
+  { label: "codex: updating plan again", surface: "codex" },
+  { label: "codex: one last check", surface: "codex" },
   { label: "404 Not Found", surface: "browser" },
+  { label: "429 Too Many Requests", surface: "browser" },
+  { label: "502 Bad Gateway", surface: "browser" },
   { label: "ERR_CONNECTION_REFUSED", surface: "browser" },
+  { label: "ERR_NAME_NOT_RESOLVED", surface: "browser" },
+  { label: "ERR_TIMED_OUT", surface: "browser" },
+  { label: "PAGE_CRASHED", surface: "browser" },
   { label: "PAGE_UNRESPONSIVE", surface: "browser" },
   { label: "net::ERR_FAILED", surface: "browser" },
 ];
@@ -58,6 +76,14 @@ const APPROVAL_ENTRIES: readonly {
   { label: "[approval] run outside sandbox?", surface: "codex" },
   { label: "[approval] allow network?", surface: "codex" },
   { label: "[approval] approve session?", surface: "codex" },
+  { label: "[approval] still waiting...", surface: "codex" },
+  { label: "[approval] approve again?", surface: "codex" },
+  { label: "[approval] full access again?", surface: "codex" },
+];
+const USAGE_LIMIT_RESULTS: readonly SequenceResultLabel[] = [
+  "5H LIMIT REACHED",
+  "WEEKLY LIMIT REACHED",
+  "RESETS IN 4 DAYS",
 ];
 
 export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
@@ -311,12 +337,10 @@ function updateSequences(
 
     const projectileKind =
       sequence.kind === "review-loop" ? "finding" : "limit";
-    const label =
-      sequence.kind === "review-loop" ? "ONE MORE ISSUE" : "LIMIT REACHED";
     spawnRadialProjectiles(
       state,
       projectileKind,
-      label,
+      sequence.resultLabel,
       sequence.position,
       sequence.projectileCount,
       sequence.projectileSpeed,
@@ -697,6 +721,10 @@ function spawnSequence(
     durationMs,
     projectileCount,
     projectileSpeed,
+    resultLabel:
+      kind === "review-loop"
+        ? "ONE MORE ISSUE"
+        : randomUsageLimitResult(state),
   });
   return true;
 }
@@ -783,6 +811,11 @@ function randomApprovalEntry(
 ): (typeof APPROVAL_ENTRIES)[number] {
   const index = Math.floor(randomBetween(state, 0, APPROVAL_ENTRIES.length));
   return APPROVAL_ENTRIES[index] ?? APPROVAL_ENTRIES[0];
+}
+
+function randomUsageLimitResult(state: GameState): SequenceResultLabel {
+  const index = Math.floor(randomBetween(state, 0, USAGE_LIMIT_RESULTS.length));
+  return USAGE_LIMIT_RESULTS[index] ?? USAGE_LIMIT_RESULTS[0];
 }
 
 function toolCallHitbox(label: ToolCallLabel): RectangleHitbox {

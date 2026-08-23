@@ -233,5 +233,8 @@
 - [xhigh의 긴 reasoning 시간과 usage 부담](https://github.com/openai/codex/discussions/9588) → `REASONING: XHIGH`
 - [review를 반복할 때마다 새 issue가 발견되는 경험](https://www.reddit.com/r/codex/comments/1vpp316/why_does_codex_keep_finding_new_issues_every_time/) → `REVIEW / FIX LOOP`
 - [usage가 빠르게 소진된다는 사용자 경험](https://www.reddit.com/r/codex/comments/1u7qdz8/codex_usage_limits_feel_way_too_aggressive_lately/) → `USAGE LIMIT`
+- [approval prompt가 stuck되고 두 번째 요청이 첫 요청에 막히는 사례](https://github.com/openai/codex/issues/10760) → `APPROVAL REQUIRED`의 `still waiting`·`approve again` 문구
+- [remote compaction이 `context_length_exceeded`로 session을 멈추는 사례](https://github.com/openai/codex/issues/24388) → `CONTEXT COMPACTION`의 실패·상태 손실 개연성
+- [한두 요청만으로 5h usage가 급감한다는 2026년 6월 사용자 사례](https://www.reddit.com/r/codex/comments/1u08n13/usage_limit_hit_too_quick/)와 [5h·weekly 표시가 오락가락한다는 discussion](https://github.com/openai/codex/discussions/11406) → 세 종류의 usage burst 결말
 
 community 게시물의 표현을 그대로 복사하지 않고 반복되는 경험만 추출해 고정 문구와 추상 도형으로 재구성한다.

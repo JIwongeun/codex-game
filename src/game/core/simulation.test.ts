@@ -83,6 +83,7 @@ function sequence(
     durationMs: GAMEPLAY.reviewLoopConvergeMs,
     projectileCount: 8,
     projectileSpeed: 320,
+    resultLabel: "ONE MORE ISSUE",
     ...overrides,
   };
 }
@@ -257,15 +258,32 @@ describe("survival simulation", () => {
         "$ pnpm test --run",
         "$ rg --files -g AGENTS.md",
         "$ git diff --stat",
+        "$ git diff --check",
         "$ git status --short",
+        "$ pnpm check",
+        "$ rg -n TODO src",
         "[tool] reading AGENTS.md",
         "[tool] rereading same file",
+        "[tool] searching codebase",
+        "[tool] waiting for output",
+        "[tool] reading docs again",
         "warning: tree is dirty",
+        "warning: CRLF incoming",
         "error: command timed out",
+        "error: exit code 1",
+        "TS2322: not assignable",
+        "ENOENT: file not found",
         "codex: checking diff again",
         "codex: fixing one last test",
+        "codex: updating plan again",
+        "codex: one last check",
         "404 Not Found",
+        "429 Too Many Requests",
+        "502 Bad Gateway",
         "ERR_CONNECTION_REFUSED",
+        "ERR_NAME_NOT_RESOLVED",
+        "ERR_TIMED_OUT",
+        "PAGE_CRASHED",
         "PAGE_UNRESPONSIVE",
         "net::ERR_FAILED",
       ]),
@@ -276,6 +294,9 @@ describe("survival simulation", () => {
         "[approval] run outside sandbox?",
         "[approval] allow network?",
         "[approval] approve session?",
+        "[approval] still waiting...",
+        "[approval] approve again?",
+        "[approval] full access again?",
       ]),
     );
     expect(approvalSurfaces).toEqual(
@@ -284,6 +305,9 @@ describe("survival simulation", () => {
         ["[approval] run outside sandbox?", "codex"],
         ["[approval] allow network?", "codex"],
         ["[approval] approve session?", "codex"],
+        ["[approval] still waiting...", "codex"],
+        ["[approval] approve again?", "codex"],
+        ["[approval] full access again?", "codex"],
       ]),
     );
 
@@ -549,7 +573,7 @@ describe("survival simulation", () => {
 
   it.each([
     ["review-loop", "finding", "ONE MORE ISSUE", 8],
-    ["usage-limit", "limit", "LIMIT REACHED", 12],
+    ["usage-limit", "limit", "5H LIMIT REACHED", 12],
   ] as const)(
     "turns %s convergence into a radial %s burst",
     (sequenceKind, projectileKind, label, count) => {
@@ -562,6 +586,7 @@ describe("survival simulation", () => {
               ? "[review] fixing findings"
               : "[usage] limit draining",
           projectileCount: count,
+          resultLabel: label,
         }),
       ];
 
@@ -586,7 +611,7 @@ describe("survival simulation", () => {
 
   it.each([
     ["review-loop", "finding", "ONE MORE ISSUE"],
-    ["usage-limit", "limit", "LIMIT REACHED"],
+    ["usage-limit", "limit", "5H LIMIT REACHED"],
   ] as const)(
     "keeps the %s radial burst outside its snapshotted center",
     (sequenceKind, projectileKind, label) => {
@@ -598,6 +623,7 @@ describe("survival simulation", () => {
           label,
           position: { ...state.player.position },
           projectileCount: 12,
+          resultLabel: label,
         }),
       ];
 
@@ -624,6 +650,34 @@ describe("survival simulation", () => {
       ).toBeGreaterThan(GAMEPLAY.playerRadius);
     },
   );
+
+  it("varies usage-limit outcomes across seeded runs without changing the pattern", () => {
+    const resultLabels = new Set<string>();
+
+    for (let seed = 1; seed <= 512; seed += 1) {
+      const state = playingState(seed, 800, 600);
+      state.elapsedMs = GAMEPLAY.usageLimitFirstSpawnMs;
+      state.spawn.usageLimitMs = 0;
+
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      const usageSequence = state.sequences.find(
+        (candidate) => candidate.kind === "usage-limit",
+      );
+      expect(usageSequence).toBeDefined();
+      if (usageSequence) {
+        resultLabels.add(usageSequence.resultLabel);
+      }
+    }
+
+    expect(resultLabels).toEqual(
+      new Set([
+        "5H LIMIT REACHED",
+        "WEEKLY LIMIT REACHED",
+        "RESETS IN 4 DAYS",
+      ]),
+    );
+  });
 
   it("freezes the simulation after results and restarts cleanly", () => {
     const state = playingState(1, 800, 500);

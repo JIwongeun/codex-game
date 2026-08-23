@@ -61,10 +61,10 @@ function terminalTokens(label: string): AttackTextToken[] {
     if (/^--?[a-z][\w-]*(?:=.*)?$/i.test(text)) {
       return token(text, "terminalParameter");
     }
-    if (/^warning:?$/i.test(text)) {
+    if (/^warning$/i.test(normalized)) {
       return token(text, "terminalWarning");
     }
-    if (/^(error:?|failed|bug!|ts\d+)$/i.test(text)) {
+    if (/^(error|failed|bug!|ts\d+|enoent)$/i.test(normalized)) {
       return token(text, "terminalError");
     }
     return token(text, "ink");
@@ -83,7 +83,7 @@ function browserTokens(label: string): AttackTextToken[] {
     if (/^\s+$/.test(text)) {
       return token(text, "ink");
     }
-    if (/^(404|ERR_[A-Z_]+|PAGE_[A-Z_]+)$/i.test(text)) {
+    if (/^([45]\d{2}|ERR_[A-Z_]+|PAGE_[A-Z_]+)$/i.test(text)) {
       return token(text, "browserError");
     }
     if (/^\//.test(text)) {

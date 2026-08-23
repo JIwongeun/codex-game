@@ -34,18 +34,35 @@ export type AttackSurface = "terminal" | "browser" | "codex";
 
 export type ToolCallLabel =
   | "+ one more change"
+  | "$ pnpm check"
   | "$ pnpm test --run"
   | "$ rg --files -g AGENTS.md"
+  | "$ rg -n TODO src"
+  | "$ git diff --check"
   | "$ git diff --stat"
   | "$ git status --short"
   | "[tool] reading AGENTS.md"
+  | "[tool] reading docs again"
   | "[tool] rereading same file"
+  | "[tool] searching codebase"
+  | "[tool] waiting for output"
+  | "warning: CRLF incoming"
   | "warning: tree is dirty"
   | "error: command timed out"
+  | "error: exit code 1"
+  | "TS2322: not assignable"
+  | "ENOENT: file not found"
   | "codex: checking diff again"
   | "codex: fixing one last test"
+  | "codex: updating plan again"
+  | "codex: one last check"
   | "404 Not Found"
+  | "429 Too Many Requests"
+  | "502 Bad Gateway"
   | "ERR_CONNECTION_REFUSED"
+  | "ERR_NAME_NOT_RESOLVED"
+  | "ERR_TIMED_OUT"
+  | "PAGE_CRASHED"
   | "PAGE_UNRESPONSIVE"
   | "net::ERR_FAILED";
 
@@ -53,7 +70,16 @@ export type ApprovalLabel =
   | "[approval] allow full access?"
   | "[approval] run outside sandbox?"
   | "[approval] allow network?"
-  | "[approval] approve session?";
+  | "[approval] approve session?"
+  | "[approval] still waiting..."
+  | "[approval] approve again?"
+  | "[approval] full access again?";
+
+export type SequenceResultLabel =
+  | "ONE MORE ISSUE"
+  | "5H LIMIT REACHED"
+  | "WEEKLY LIMIT REACHED"
+  | "RESETS IN 4 DAYS";
 
 export type ProjectileLabel = ToolCallLabel | ApprovalLabel | string;
 export type HazardLabel = "CONTEXT COMPACTED";
@@ -101,6 +127,7 @@ export interface AttackSequenceState {
   durationMs: number;
   projectileCount: number;
   projectileSpeed: number;
+  resultLabel: SequenceResultLabel;
 }
 
 export interface SpawnTimers {

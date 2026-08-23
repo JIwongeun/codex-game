@@ -67,10 +67,10 @@
 5. Stage 5 `REASONING: XHIGH` — 긴 thinking 예고 뒤 snapshot으로 발사되는 단발 초고속 응답
 6. Stage 6 `PARALLEL AGENTS` — 여러 agent가 반대편에서 같은 snapshot을 동시에 교차
 7. Stage 7 `REVIEW / FIX LOOP` — 여러 finding을 고친 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산
-8. Stage 8 `USAGE LIMIT` — 5h·weekly usage가 한 지점으로 소모된 뒤 `LIMIT REACHED`가 12–20방향으로 발산
+8. Stage 8 `USAGE LIMIT` — 5h·weekly usage가 한 지점으로 소모된 뒤 `5H LIMIT REACHED`, `WEEKLY LIMIT REACHED`, `RESETS IN 4 DAYS` 중 하나가 12–20방향으로 발산
 9. Stage 9–10 — 앞 패턴의 동시 수, 속도, 빈도와 조합 밀도를 최고치까지 상승
 
-각 용어는 label뿐 아니라 이동과 결과로 의미를 전달한다. 고정 phrase bank에는 일반 개발 문구와 `context left`, `retrying tool`, `reading AGENTS.md`, `approval required` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
+각 용어는 label뿐 아니라 이동과 결과로 의미를 전달한다. 고정 phrase bank에는 실제 작업에서 반복되는 terminal·browser 오류와 `rereading same file`, `waiting for output`, `still waiting`, `approve again` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
 
 예고 단계는 항상 무해하고, 활성화 단계만 피격을 발생시킨다. 공격 개체와 범위 수에는 명시적 상한을 둔다.
 

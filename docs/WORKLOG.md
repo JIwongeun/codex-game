@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — 최신 Codex community 경험을 attack feed에 보강
+
+### 조사와 공격 문구
+
+- openai/codex issue의 stuck approval·두 번째 approval blocking, remote compaction `context_length_exceeded`와 2026년 6–7월 r/codex의 5h·weekly usage 급감·reset 대기 사례를 기존 8개 패턴과 재대조
+- 새 판정 kind를 늘리지 않고 `TOOL CALL STREAM` phrase bank를 terminal·browser·Codex 32개 문구로 확장해 짧은 판에서도 같은 로그 반복을 줄임
+- `APPROVAL REQUIRED`에 `still waiting`, `approve again`, `full access again`을 추가해 stationary telegraph 뒤 돌진하는 기존 행동과 실제 반복 승인 경험을 연결
+- `USAGE LIMIT` sequence가 seed 기반으로 `5H LIMIT REACHED`, `WEEKLY LIMIT REACHED`, `RESETS IN 4 DAYS` 중 하나를 선택하고 같은 문구를 radial burst 전체에 유지하도록 변경
+- `TS2322`, `ENOENT`, HTTP 429·502를 terminal·browser surface의 실제 error token 색으로 분리
+
+### 검증
+
+- expanded phrase bank의 모든 문구·surface·hitbox 범위를 512개 seed에서 확인
+- usage-limit 세 결말이 seed에 따라 모두 선택되며 기존 수렴·분할 pattern과 결정성을 유지하는 회귀 테스트 추가
+- terminal compiler·filesystem error와 browser 4xx·5xx syntax token 회귀 테스트 추가
+
 ## 2026-08-24 — first-load font fallback과 favicon production gate
 
 ### boot 안정성

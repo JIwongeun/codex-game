@@ -105,7 +105,7 @@
 | Stage 5 | `REASONING: XHIGH` | `[effort] xhigh · thinking...` | 일반 조준보다 두 배 이상 오래 멈춰 있다가 snapshot을 향해 단발 초고속으로 이동한다. 기다림과 갑작스러운 응답이 한 행동이다. |
 | Stage 6 | `PARALLEL AGENTS` | `[agent 1] working`, `[agent 2] working` | 같은 snapshot을 향해 화면 반대편 agent 두 개가 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
 | Stage 7 | `REVIEW / FIX LOOP` | 여러 `[review] Pn finding` → `[fix] ... reviewing again` → `ONE MORE ISSUE` | 네 finding이 한 지점으로 모이고, 수정 완료 순간 8–16개 새 issue가 원형 발산한다. 반복 review마다 새 문제를 찾는 경험을 행동으로 만든다. |
-| Stage 8 | `USAGE LIMIT` | 여러 `[usage] -N%` → `[usage] N% left` → `LIMIT REACHED` | 4–8개 usage 감소가 player snapshot으로 수렴하고, 소진 순간 12–20개 limit 탄이 원형 발산한다. |
+| Stage 8 | `USAGE LIMIT` | 여러 `[usage] -N%` → `[usage] N% left` → `5H LIMIT REACHED`·`WEEKLY LIMIT REACHED`·`RESETS IN 4 DAYS` | 4–8개 usage 감소가 player snapshot으로 수렴하고, seed로 정해진 실제 limit 결말이 12–20개 탄으로 원형 발산한다. |
 
 `TOOL CALL`, `APPROVAL`, `RETRY`, `REASONING`, `AGENT`, `FINDING`, `LIMIT`은 각각 별도 projectile kind와 회전 사각 hitbox를 가진다. `COMPACTION`은 warning/active를 갖는 area hazard다. `REVIEW LOOP`와 `USAGE LIMIT`은 수렴 완료 시 projectile을 생성하는 sequence state다.
 
@@ -122,7 +122,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 | 5 | 48–59.99초 | `REASONING: XHIGH` 해금, tool call 2연사 가능 |
 | 6 | 60–71.99초 | `PARALLEL AGENTS` 1 pair 해금, retry 4회 |
 | 7 | 72–83.99초 | `REVIEW / FIX LOOP` 4개 수렴·8방향 발산 해금 |
-| 8 | 84–95.99초 | `USAGE LIMIT` 4개 수렴·12방향 발산, compaction 2개 조합 |
+| 8 | 84–95.99초 | `USAGE LIMIT` 4개 수렴·12방향 발산, 세 limit 결말 중 하나 선택, compaction 2개 조합 |
 | 9 | 96–107.99초 | tool call 3연사, retry 5회, review 12방향, usage 6개·16방향 |
 | 10 | 108초 이후 | compaction 3개, agent 3 pair, review 16방향, usage 8개·20방향과 최대 속도·최저 간격 |
 
