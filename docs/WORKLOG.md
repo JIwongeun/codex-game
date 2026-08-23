@@ -18,7 +18,9 @@
 - 음악 step 중복 차단, stage별 132→168 BPM curve, 시간 진행 뒤 다음 step, pause disconnect와 resume 재시작을 SoundService unit test에 추가
 - Stage 2–8의 모든 특수 공격 warning·activation·burst event가 oscillator cue를 생성하는 회귀 테스트 추가
 - `pnpm check` 통과: typecheck, 12개 test file의 69개 test, production build, production verifier 완료
-- production 반영과 공개 URL 응답 확인은 별도로 진행
+- Sites version 24 production deployment 성공: `https://await-codex-context-overflow.jygjyg99.chatgpt.site/`
+- 공개 root, `index-CKkseEsJ.js`, `index-BUNNbISK.css`가 모두 HTTP 200으로 응답
+- 최근 worker log에는 application exception이나 failed outcome은 없었고, 브라우저 기본 `/favicon.ico` 요청 1건이 404로 기록됨
 
 ## 2026-08-24 — Start ambient 대비와 terminal prompt 간격 조정
 
