@@ -20,6 +20,7 @@
 ### 사용자 확인 대기
 
 - 사용자가 열린 local development 화면에서 cursor 크기·hotspot 감각과 pause blur 강도를 직접 확인한 뒤 production 배포 여부를 결정한다.
+- 검증된 source commit `d2fc8c0`을 Sites production에 반영하지 않은 배포 대기 version 5로 저장했다. 현재 live URL은 이전 version 4이며 owner-only 접근 정책도 그대로다.
 
 ## 2026-08-23 — native cursor·전체 viewport·공격 UI 재설계
 
