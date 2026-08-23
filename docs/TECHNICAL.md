@@ -217,9 +217,9 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - TypeScript typecheck
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
-- 완전 랜덤 `log`, snapshot `review`, 일점 `context-max`, 반복 `retry`, 교차 `race`, `fork`·`merge` 수렴과 radial 분할 테스트
+- 완전 랜덤 `tool-call`, snapshot `approval`, 일점 `compaction`, 반복 `retry`, 장시간 예고 `reasoning`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
 - 회전한 text hitbox 충돌, 12초 단위 Stage 1–10 경계와 Stage 10 상한 테스트
-- `log` 경로가 player 위치에 독립적이고 `review`가 예고 중 재조준하지 않는 회귀 테스트
+- `tool-call` 경로가 player 위치에 독립적이고 `approval`·`reasoning`이 예고 중 재조준하지 않는 회귀 테스트
 - 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트
 - production build
 
@@ -233,7 +233,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - 랭킹을 구현한 경우의 API 연결 실패
 - 재시작 후 이전 게임 객체와 입력 listener가 남지 않는지
 
-개발 서버에서 `?qaElapsedSeconds=84`를 붙이면 시작한 run을 Stage 8로 설정하고 7개 패턴 timer를 앞당겨 조합 공격을 빠르게 확인할 수 있다. 이 분기는 `import.meta.env.DEV`로 제한되어 production build에는 적용되지 않는다.
+개발 서버에서 `?qaElapsedSeconds=84`를 붙이면 시작한 run을 Stage 8로 설정하고 8개 패턴 timer를 앞당겨 조합 공격을 빠르게 확인할 수 있다. 이 분기는 `import.meta.env.DEV`로 제한되어 production build에는 적용되지 않는다.
 
 ## 10. 배포 원칙
 

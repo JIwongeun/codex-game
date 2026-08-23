@@ -51,7 +51,7 @@
 - OpenAI 로고, 상표, 캐릭터를 복제하지 않는다. 개발 도구의 구조적 인상만 사용한다.
 - 시작 화면의 game mark는 black square·white context loop·violet core로 만든 original symbol을 사용하며 OpenAI knot나 Codex 제품 logo를 모사하지 않는다.
 - 색은 각 작업 surface 안에서 의미에만 연결하며 장식용 무작위 색을 만들지 않는다. terminal은 ANSI식 의미색, browser는 page/error 계열, Codex는 tool/review/context violet 계열을 사용한다.
-- 기본 `log`에는 예고선과 motion rail을 표시하지 않는다. 그 외 projectile 예고선은 112px, motion rail은 28px를 넘지 않는다. player는 내부 glyph나 inset이 없는 12×12 검은 정사각형이며 blink·방향 notch·화살표·corner mark를 추가하지 않는다.
+- 기본 `tool-call`에는 예고선과 motion rail을 표시하지 않는다. 그 외 projectile 예고선은 112px, motion rail은 28px를 넘지 않는다. player는 내부 glyph나 inset이 없는 12×12 검은 정사각형이며 blink·방향 notch·화살표·corner mark를 추가하지 않는다.
 - 공격 문구 전체에 entity별 단색을 칠하지 않는다. terminal은 Codex terminal의 command·parameter·quoted string·output syntax를, browser와 Codex는 각 surface의 error code·path·tool token·본문 문법을 문장 내부 token 단위로 표현한다.
 - 발표 문구는 사용자가 요청할 때만 작성한다.
 
@@ -74,7 +74,7 @@
 - `services/`: local best와 sound.
 - `scenes/`: 위 모듈을 연결하고 lifecycle과 event만 조정한다.
 
-기본 `log` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `review`만 생성 순간 player 위치를 snapshot하고 이후 재조준하지 않는다. 범위 공격은 warning 중 무해하고 active 단계에서만 치명적이어야 한다.
+기본 `tool-call` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `approval`과 `reasoning`은 생성 순간 player 위치를 snapshot하고 이후 재조준하지 않는다. 범위 공격은 warning 중 무해하고 active 단계에서만 치명적이어야 한다.
 
 ## 범위 제한
 
@@ -107,8 +107,8 @@ pnpm check
 - Ready → Playing → Results → Retry
 - WASD·방향키 이동과 대각선 속도 정규화
 - viewport resize 중 player와 hazard 경계 유효성
-- `log` 경로가 player 위치와 무관함
-- `review`가 snapshot 조준 뒤 재조준하지 않음
+- `tool-call` 경로가 player 위치와 무관함
+- `approval`과 `reasoning`이 snapshot 조준 뒤 재조준하지 않음
 - 범위 공격 warning 무해·active 치명
 - blur/hidden pause와 held-key reset
 - 개발 전용 `?qaElapsedSeconds=84` Stage 8 조합 공격 확인

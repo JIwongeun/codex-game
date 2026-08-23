@@ -36,5 +36,12 @@ describe("attackTextTokens", () => {
       { text: " ", role: "ink" },
       { text: "used", role: "ink" },
     ]);
+    expect(attackTextTokens("codex", "[usage] 12% left")).toEqual([
+      { text: "[usage]", role: "codexToken" },
+      { text: " ", role: "ink" },
+      { text: "12%", role: "codexToken" },
+      { text: " ", role: "ink" },
+      { text: "left", role: "ink" },
+    ]);
   });
 });

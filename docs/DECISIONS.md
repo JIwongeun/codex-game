@@ -157,7 +157,7 @@
 ## D-020 — 공격의 행동을 개발 용어의 의미와 결합하고 Stage 1–10으로 확장한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, 수치만 플레이 테스트로 조정 가능
+- 상태: 대체됨 — D-028이 generic git 중심 메인 패턴을 Codex 경험 중심으로 교체
 - 배경: 네 개의 작은 task chip·modal·band는 화면에서 일반 UI block처럼 보였고, 공격 이름을 다른 용어로 바꿔도 움직임이 성립해 개발 패러디의 개연성이 약했다. 긴 `merge-conflict` band는 `context-max` 영역 회피와 역할도 겹쳤다.
 - 결정: 투사체 block을 제거하고 명령어·상태 문구 자체를 진행 방향에 맞춰 회전시킨다. collision도 같은 방향의 oriented rectangle을 사용한다. 공격은 `LOG STREAM`, snapshot `REVIEW REQUEST`, 일점 `CONTEXT MAX`, 반복 `RETRY LOOP`, 분할 `FORK BOMB`, 교차 `RACE CONDITION`, 수렴 후 발산하는 `MERGE → BUG!`의 일곱 행동 패턴으로 나눈다. 기존 `merge-conflict` band는 제거한다. 12초 단위 Stage 1–10에서 Stage 7까지 패턴을 해금하고 Stage 8–10은 동시 수·속도·빈도·radial 탄 수를 올린다. Stage 10은 108초부터 최고 난이도에 고정한다.
 - 결과: `log`, `review`, `retry`, `branch`, `race`, `bug` projectile, `context-max` hazard, `fork-bomb`·`merge-bug` convergence sequence가 core state에서 분리된다. `RETRY`는 같은 snapshot을 시간차 반복하고, `READ()`와 `WRITE()`는 반대편에서 교차하며, `git branch --all`과 `git merge`는 각각 `BRANCH`와 `BUG!` radial projectile을 만든다. 상단 중앙 공격명 announcement는 제거하고 실제 공격 표현만으로 판독하게 한다.
@@ -217,3 +217,11 @@
 - 배경: player 내부의 white inset과 violet core는 작은 크기에서 불필요한 glyph처럼 보였다. 공격 label도 문장 전체가 command blue·error red처럼 한 색을 가져 Codex terminal, browser error, Codex tool surface의 실제 문법과 달랐다. Start 배경 문구는 짧은 drift만 반복해 플레이 중 edge-to-edge 공격 움직임을 미리 보여주지 못했다.
 - 결정: player는 판정을 바꾸지 않고 내부 요소 없는 12×12 black square 하나만 그린다. 한 projectile label은 surface별 syntax token으로 나눠 같은 회전 Container 안에 배치한다. Terminal은 Codex terminal의 executable gold, quoted string blue, parameter gray, 일반 output black을 기준으로 하고 Browser는 error code·path·본문, Codex는 tool token·진행 수치·본문을 각각 분리한다. Start ambient도 같은 tokenizer, font, surface glyph를 사용하고 무작위 edge에서 반대 edge까지 34–56초 동안 직선 이동한다.
 - 결과: 색은 공격 entity의 종류가 아니라 문장 내부 정보 구조를 설명한다. projectile의 core label·surface·hitbox·이동·충돌은 유지되며 presentation만 token Text Container로 바뀐다. Start ambient는 simulation과 충돌에 참여하지 않지만 실제 공격의 방향성과 문법을 낮은 대비로 선행 학습시킨다.
+
+## D-028 — 실제 Codex 사용자 경험을 여덟 개 메인 공격으로 만든다
+
+- 날짜: 2026-08-23
+- 상태: 확정, 수치와 문구 bank는 플레이 테스트로 조정 가능
+- 배경: git branch·merge·race condition은 개발자에게 익숙하지만 Codex를 기다리는 게임의 고유한 경험은 아니었다. OpenAI 공식 문서와 community issue·discussion에서 context compaction 뒤 작업 상태 손실과 재탐색, 반복 approval, xhigh의 긴 대기와 높은 사용량, 반복 review마다 새 finding 발견, usage limit 급감·표시 불일치, parallel agent 대기가 반복 주제로 확인됐다.
+- 결정: 메인 패턴을 `TOOL CALL STREAM`, `APPROVAL REQUIRED`, `CONTEXT COMPACTION`, `RETRY LOOP`, `REASONING: XHIGH`, `PARALLEL AGENTS`, `REVIEW / FIX LOOP`, `USAGE LIMIT`의 여덟 개로 교체한다. Stage 1–8에서 하나씩 해금하고 Stage 9–10은 동시 수·속도·빈도·radial 탄 수를 높인다. git·npm·browser error는 Stage 1 tool-call phrase bank의 실제 작업 소재로 유지하되 독립 메인 패턴으로 승격하지 않는다.
+- 결과: core는 `tool-call`, `approval`, `retry`, `reasoning`, `agent`, `finding`, `limit` projectile, `compaction` hazard, `review-loop`·`usage-limit` sequence를 사용한다. approval과 reasoning은 생성 순간 snapshot 후 재조준하지 않고, compaction은 inward frame 뒤 `SUMMARY LOST` 영역이 되며, review와 usage는 각각 `ONE MORE ISSUE`와 `LIMIT REACHED` radial projectile을 만든다. 이 표현은 실제 사용자 session을 읽지 않는 fictional parody다.

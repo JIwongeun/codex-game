@@ -18,11 +18,12 @@ export interface AmbientPath {
 }
 
 const AMBIENT_SIGNALS: readonly AmbientSignal[] = [
-  { label: '$ git commit -m "fix"', surface: "terminal" },
-  { label: "$ pnpm test --watch", surface: "terminal" },
-  { label: "[context] 84% used", surface: "codex" },
-  { label: "[review] changes requested", surface: "codex" },
-  { label: "codex: reading AGENTS.md", surface: "codex" },
+  { label: "$ rg --files -g AGENTS.md", surface: "terminal" },
+  { label: "$ pnpm test --run", surface: "terminal" },
+  { label: "[context] compacting 84%", surface: "codex" },
+  { label: "[approval] allow full access?", surface: "codex" },
+  { label: "[effort] xhigh · thinking...", surface: "codex" },
+  { label: "[usage] 12% left", surface: "codex" },
   { label: "404 Not Found", surface: "browser" },
   { label: "ERR_CONNECTION_REFUSED", surface: "browser" },
   { label: "net::ERR_FAILED", surface: "browser" },
@@ -77,13 +78,14 @@ function pointOnViewportEdge(
 }
 
 const HIT_SOURCE_LABEL: Record<HitSource, string> = {
-  log: "ONE MORE CHANGE",
-  review: "REVIEW REQUEST",
-  "context-max": "CONTEXT MAX",
+  "tool-call": "TOOL CALL",
+  approval: "APPROVAL REQUIRED",
+  compaction: "CONTEXT COMPACTION",
   retry: "RETRY LOOP",
-  branch: "BRANCH",
-  race: "RACE CONDITION",
-  bug: "MERGE BUG",
+  reasoning: "XHIGH REASONING",
+  agent: "PARALLEL AGENT",
+  finding: "ONE MORE ISSUE",
+  limit: "USAGE LIMIT",
 };
 
 export interface StartScreenView {

@@ -2,6 +2,26 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — Codex community 경험 기반 메인 공격 재편
+
+### 조사와 제품 결정
+
+- OpenAI 공식 문서에서 reasoning effort와 long-running workflow의 context compaction 개념을 확인
+- openai/codex issue와 r/codex의 반복 사례에서 compaction 뒤 task state 손실·같은 파일 재탐색, approval 재요청, xhigh 장기 대기, review/fix 반복, usage 급감과 limit 표시 불일치, parallel agent 대기를 공격 소재로 선정
+- generic git branch·merge·race pattern은 메인 공격에서 내리고 tool-call phrase bank의 보조 소재로 유지
+
+### 구현
+
+- projectile을 `tool-call`, `approval`, `retry`, `reasoning`, `agent`, `finding`, `limit`으로, area hazard를 `compaction`으로, convergence sequence를 `review-loop`, `usage-limit`으로 재구성
+- Stage 1–8에서 여덟 pattern을 순차 해금하고 Stage 9–10에서 tool call burst, retry 수, compaction 수, parallel pair, radial projectile 수를 올리도록 difficulty curve 변경
+- `REASONING: XHIGH`는 2.1초 thinking 예고 뒤 초고속 snapshot 발사, `REVIEW / FIX LOOP`는 `ONE MORE ISSUE`, `USAGE LIMIT`은 `LIMIT REACHED` 원형 발산으로 구현
+- Start ambient와 game-over hit source도 새 Codex vocabulary에 맞춰 동기화
+
+### 검증
+
+- `pnpm check`: TypeScript typecheck, Vitest 9 files의 52 tests, Worker/client production build 통과
+- production 배포와 사용자 플레이 확인은 다음 단계에서 진행
+
 ## 2026-08-23 — surface syntax 공격과 edge-to-edge Start ambient
 
 ### 플레이어와 공격 표현

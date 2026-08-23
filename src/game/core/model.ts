@@ -10,52 +10,53 @@ export interface ArenaBounds {
 
 export type GamePhase = "ready" | "playing" | "results";
 export type ProjectileKind =
-  | "log"
-  | "review"
+  | "tool-call"
+  | "approval"
   | "retry"
-  | "branch"
-  | "race"
-  | "bug";
-export type HazardKind = "context-max";
+  | "reasoning"
+  | "agent"
+  | "finding"
+  | "limit";
+export type HazardKind = "compaction";
 export type HazardPhase = "telegraph" | "active";
-export type SequenceKind = "fork-bomb" | "merge-bug";
+export type SequenceKind = "review-loop" | "usage-limit";
 export type AttackPatternKind =
-  | "log-stream"
-  | "review-request"
-  | "context-max"
+  | "tool-stream"
+  | "approval-required"
+  | "context-compaction"
   | "retry-loop"
-  | "fork-bomb"
-  | "race-condition"
-  | "merge-bug";
+  | "reasoning-xhigh"
+  | "parallel-agents"
+  | "review-fix-loop"
+  | "usage-limit";
 export type HitSource = ProjectileKind | HazardKind;
 export type AttackSurface = "terminal" | "browser" | "codex";
 
-export type LogLabel =
+export type ToolCallLabel =
   | "+ one more change"
-  | "$ pnpm test --watch"
-  | "codex: retrying tool"
+  | "$ pnpm test --run"
+  | "$ rg --files -g AGENTS.md"
+  | "$ git diff --stat"
+  | "$ git status --short"
+  | "[tool] reading AGENTS.md"
+  | "[tool] rereading same file"
   | "warning: tree is dirty"
-  | '$ git commit -m "fix"'
-  | "error: CI failed"
-  | "error TS2322"
-  | "[context] 12% left"
-  | "$ cat AGENTS.md"
-  | "codex: inspecting..."
-  | "fixing one last test..."
-  | "git: rebase required"
+  | "error: command timed out"
+  | "codex: checking diff again"
+  | "codex: fixing one last test"
   | "404 Not Found"
   | "ERR_CONNECTION_REFUSED"
   | "PAGE_UNRESPONSIVE"
   | "net::ERR_FAILED";
 
-export type ReviewLabel =
-  | "[review] approval required"
-  | "[review] changes requested"
-  | "git: needs rebase"
-  | "run command? [y/N]";
+export type ApprovalLabel =
+  | "[approval] allow full access?"
+  | "[approval] run outside sandbox?"
+  | "[approval] allow network?"
+  | "[approval] approve session?";
 
-export type ProjectileLabel = LogLabel | ReviewLabel | string;
-export type HazardLabel = "CONTEXT MAX!";
+export type ProjectileLabel = ToolCallLabel | ApprovalLabel | string;
+export type HazardLabel = "CONTEXT COMPACTED";
 
 export interface RectangleHitbox {
   width: number;
@@ -103,13 +104,14 @@ export interface AttackSequenceState {
 }
 
 export interface SpawnTimers {
-  logMs: number;
-  reviewMs: number;
-  contextMaxMs: number;
+  toolCallMs: number;
+  approvalMs: number;
+  compactionMs: number;
   retryLoopMs: number;
-  forkBombMs: number;
-  raceConditionMs: number;
-  mergeBugMs: number;
+  reasoningMs: number;
+  parallelAgentsMs: number;
+  reviewLoopMs: number;
+  usageLimitMs: number;
 }
 
 export interface GameState {
@@ -138,7 +140,14 @@ export type GameEvent =
   | { type: "run-started" }
   | { type: "hazard-warning"; kind: HazardKind }
   | { type: "hazard-activated"; kind: HazardKind }
-  | { type: "pattern-warning"; kind: SequenceKind | "retry-loop" | "race-condition" }
+  | {
+      type: "pattern-warning";
+      kind:
+        | SequenceKind
+        | "retry-loop"
+        | "reasoning-xhigh"
+        | "parallel-agents";
+    }
   | { type: "pattern-burst"; kind: SequenceKind; position: Vec2 }
   | { type: "player-hit"; source: HitSource }
   | { type: "run-ended"; finalScore: number; source: HitSource };

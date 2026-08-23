@@ -9,46 +9,53 @@ describe("survival rules", () => {
     const middle = difficultyAt(GAMEPLAY.difficultyRampMs / 2);
     const cap = difficultyAt(GAMEPLAY.difficultyRampMs * 2);
 
-    expect(start.logSpeed).toBeLessThan(middle.logSpeed);
-    expect(middle.logSpeed).toBeLessThan(cap.logSpeed);
-    expect(start.logIntervalMs).toBeGreaterThan(middle.logIntervalMs);
-    expect(middle.logIntervalMs).toBeGreaterThan(cap.logIntervalMs);
-    expect(start.contextMaxIntervalMs).toBeGreaterThan(
-      middle.contextMaxIntervalMs,
+    expect(start.toolCallSpeed).toBeLessThan(middle.toolCallSpeed);
+    expect(middle.toolCallSpeed).toBeLessThan(cap.toolCallSpeed);
+    expect(start.toolCallIntervalMs).toBeGreaterThan(middle.toolCallIntervalMs);
+    expect(middle.toolCallIntervalMs).toBeGreaterThan(cap.toolCallIntervalMs);
+    expect(start.compactionIntervalMs).toBeGreaterThan(
+      middle.compactionIntervalMs,
     );
-    expect(middle.contextMaxIntervalMs).toBeGreaterThan(
-      cap.contextMaxIntervalMs,
+    expect(middle.compactionIntervalMs).toBeGreaterThan(
+      cap.compactionIntervalMs,
     );
-    expect(start.mergeBugIntervalMs).toBeGreaterThan(cap.mergeBugIntervalMs);
+    expect(start.usageLimitIntervalMs).toBeGreaterThan(
+      cap.usageLimitIntervalMs,
+    );
     expect(cap.progress).toBe(1);
     expect(start.stage).toBe(1);
     expect(cap.stage).toBe(10);
-    expect(cap.logBurst).toBe(3);
-    expect(start.contextMaxCount).toBe(1);
-    expect(cap.contextMaxCount).toBe(3);
-    expect(start.racePairCount).toBe(1);
-    expect(cap.racePairCount).toBe(3);
-    expect(cap.mergeIncomingCount).toBe(8);
-    expect(cap.bugFragmentCount).toBe(20);
+    expect(cap.toolCallBurst).toBe(3);
+    expect(start.compactionCount).toBe(1);
+    expect(cap.compactionCount).toBe(3);
+    expect(start.parallelAgentPairs).toBe(1);
+    expect(cap.parallelAgentPairs).toBe(3);
+    expect(cap.usageDrainCount).toBe(8);
+    expect(cap.limitFragmentCount).toBe(20);
   });
 
-  it("unlocks all seven semantic patterns across ten explicit stages", () => {
-    expect(difficultyAt(0).reviewUnlocked).toBe(false);
-    expect(difficultyAt(GAMEPLAY.reviewFirstSpawnMs).reviewUnlocked).toBe(true);
+  it("unlocks all eight Codex patterns across ten explicit stages", () => {
+    expect(difficultyAt(0).approvalUnlocked).toBe(false);
+    expect(difficultyAt(GAMEPLAY.approvalFirstSpawnMs).approvalUnlocked).toBe(
+      true,
+    );
     expect(
-      difficultyAt(GAMEPLAY.contextMaxFirstSpawnMs).contextMaxUnlocked,
+      difficultyAt(GAMEPLAY.compactionFirstSpawnMs).compactionUnlocked,
     ).toBe(true);
     expect(
       difficultyAt(GAMEPLAY.retryLoopFirstSpawnMs).retryLoopUnlocked,
     ).toBe(true);
     expect(
-      difficultyAt(GAMEPLAY.forkBombFirstSpawnMs).forkBombUnlocked,
+      difficultyAt(GAMEPLAY.reasoningFirstSpawnMs).reasoningUnlocked,
     ).toBe(true);
     expect(
-      difficultyAt(GAMEPLAY.raceConditionFirstSpawnMs).raceConditionUnlocked,
+      difficultyAt(GAMEPLAY.parallelAgentsFirstSpawnMs).parallelAgentsUnlocked,
     ).toBe(true);
     expect(
-      difficultyAt(GAMEPLAY.mergeBugFirstSpawnMs).mergeBugUnlocked,
+      difficultyAt(GAMEPLAY.reviewLoopFirstSpawnMs).reviewLoopUnlocked,
+    ).toBe(true);
+    expect(
+      difficultyAt(GAMEPLAY.usageLimitFirstSpawnMs).usageLimitUnlocked,
     ).toBe(true);
     expect(difficultyAt(GAMEPLAY.difficultyRampMs).stage).toBe(10);
   });

@@ -20,13 +20,14 @@ function playingState(seed = 1, width = 1280, height = 720): GameState {
   const state = createGameState(seed, width, height);
   startRun(state);
   state.spawn = {
-    logMs: 1_000_000,
-    reviewMs: 1_000_000,
-    contextMaxMs: 1_000_000,
+    toolCallMs: 1_000_000,
+    approvalMs: 1_000_000,
+    compactionMs: 1_000_000,
     retryLoopMs: 1_000_000,
-    forkBombMs: 1_000_000,
-    raceConditionMs: 1_000_000,
-    mergeBugMs: 1_000_000,
+    reasoningMs: 1_000_000,
+    parallelAgentsMs: 1_000_000,
+    reviewLoopMs: 1_000_000,
+    usageLimitMs: 1_000_000,
   };
   return state;
 }
@@ -37,14 +38,14 @@ function projectile(
 ): ProjectileState {
   return {
     id: 100,
-    kind: "log",
+    kind: "tool-call",
     surface: "terminal",
     label: "error: CI failed",
     position: { ...state.player.position },
     velocity: { x: 1, y: 0 },
     hitbox: {
-      width: GAMEPLAY.logHitboxMinWidth,
-      height: GAMEPLAY.logHitboxHeight,
+      width: GAMEPLAY.toolCallHitboxMinWidth,
+      height: GAMEPLAY.toolCallHitboxHeight,
     },
     speed: 0,
     ageMs: 0,
@@ -59,8 +60,8 @@ function hazard(
 ): AreaHazardState {
   return {
     id: 200,
-    kind: "context-max",
-    label: "CONTEXT MAX!",
+    kind: "compaction",
+    label: "CONTEXT COMPACTED",
     position: { ...state.player.position },
     hitbox: { width: 180, height: 180 },
     phase: "telegraph",
@@ -74,12 +75,12 @@ function sequence(
 ): AttackSequenceState {
   return {
     id: 300,
-    kind: "fork-bomb",
-    label: "$ git branch --all",
+    kind: "review-loop",
+    label: "[review] fixing findings",
     position: { x: 160, y: 140 },
     origins: [{ x: 0, y: 140 }],
     remainingMs: FIXED_STEP_MS,
-    durationMs: GAMEPLAY.forkBombConvergeMs,
+    durationMs: GAMEPLAY.reviewLoopConvergeMs,
     projectileCount: 8,
     projectileSpeed: 320,
     ...overrides,
@@ -122,13 +123,13 @@ describe("survival simulation", () => {
     expect(first).toEqual(second);
   });
 
-  it("spawns log paths independently from the player position", () => {
+  it("spawns tool-call paths independently from the player position", () => {
     const first = playingState(9, 800, 600);
     const second = playingState(9, 800, 600);
     first.player.position = { x: 100, y: 120 };
     second.player.position = { x: 700, y: 480 };
-    first.spawn.logMs = 0;
-    second.spawn.logMs = 0;
+    first.spawn.toolCallMs = 0;
+    second.spawn.toolCallMs = 0;
 
     stepGame(first, EMPTY_INPUT, FIXED_STEP_MS);
     stepGame(second, EMPTY_INPUT, FIXED_STEP_MS);
@@ -137,9 +138,9 @@ describe("survival simulation", () => {
     expect(first.rngState).toBe(second.rngState);
 
     const spawned = first.projectiles[0];
-    expect(spawned?.kind).toBe("log");
+    expect(spawned?.kind).toBe("tool-call");
     if (!spawned) {
-      throw new Error("expected a log projectile");
+      throw new Error("expected a tool-call projectile");
     }
 
     const crossesViewport =
@@ -155,20 +156,20 @@ describe("survival simulation", () => {
     expect(spawned.velocity).toEqual(initialVelocity);
   });
 
-  it("locks a review path to the spawn-time player snapshot", () => {
+  it("locks an approval path to the spawn-time player snapshot", () => {
     const state = playingState(17, 800, 600);
-    state.elapsedMs = GAMEPLAY.reviewFirstSpawnMs;
+    state.elapsedMs = GAMEPLAY.approvalFirstSpawnMs;
     state.player.position = { x: 190, y: 430 };
-    state.spawn.reviewMs = 0;
+    state.spawn.approvalMs = 0;
 
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
     const spawned = state.projectiles.find(
-      (candidate) => candidate.kind === "review",
+      (candidate) => candidate.kind === "approval",
     );
     expect(spawned).toBeDefined();
     if (!spawned) {
-      throw new Error("expected a review projectile");
+      throw new Error("expected an approval projectile");
     }
 
     const snapshotDirection = {
@@ -185,91 +186,114 @@ describe("survival simulation", () => {
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(spawned.velocity).toEqual(initialVelocity);
     expect(spawned.hitbox.width).toBeGreaterThanOrEqual(
-      GAMEPLAY.reviewHitboxMinWidth,
+      GAMEPLAY.approvalHitboxMinWidth,
     );
     expect(spawned.hitbox.width).toBeLessThanOrEqual(
-      GAMEPLAY.reviewHitboxMaxWidth,
+      GAMEPLAY.approvalHitboxMaxWidth,
     );
   });
 
+  it("holds xhigh reasoning, then fires at one immutable snapshot", () => {
+    const state = playingState(18, 800, 600);
+    state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
+    state.player.position = { x: 240, y: 410 };
+    state.spawn.reasoningMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    const spawned = state.projectiles.find(
+      (candidate) => candidate.kind === "reasoning",
+    );
+    expect(spawned).toBeDefined();
+    if (!spawned) {
+      throw new Error("expected an xhigh reasoning projectile");
+    }
+
+    expect(spawned.label).toBe("[effort] xhigh · thinking...");
+    expect(spawned.telegraphRemainingMs).toBe(GAMEPLAY.reasoningTelegraphMs);
+    const initialVelocity = { ...spawned.velocity };
+    state.player.position = { x: 760, y: 40 };
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(spawned.velocity).toEqual(initialVelocity);
+  });
+
   it("selects seeded parody labels with bounded label-sized hitboxes", () => {
-    const logLabels = new Set<string>();
-    const reviewLabels = new Set<string>();
-    const reviewSurfaces = new Map<string, string>();
+    const toolCallLabels = new Set<string>();
+    const approvalLabels = new Set<string>();
+    const approvalSurfaces = new Map<string, string>();
 
     for (let seed = 1; seed <= 512; seed += 1) {
       const state = playingState(seed, 800, 600);
-      state.elapsedMs = GAMEPLAY.reviewFirstSpawnMs;
-      state.spawn.logMs = 0;
-      state.spawn.reviewMs = 0;
+      state.elapsedMs = GAMEPLAY.approvalFirstSpawnMs;
+      state.spawn.toolCallMs = 0;
+      state.spawn.approvalMs = 0;
       stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
       for (const candidate of state.projectiles) {
-        if (candidate.kind === "log") {
-          logLabels.add(candidate.label);
+        if (candidate.kind === "tool-call") {
+          toolCallLabels.add(candidate.label);
           expect(candidate.hitbox.width).toBeGreaterThanOrEqual(
-            GAMEPLAY.logHitboxMinWidth,
+            GAMEPLAY.toolCallHitboxMinWidth,
           );
           expect(candidate.hitbox.width).toBeLessThanOrEqual(
-            GAMEPLAY.logHitboxMaxWidth,
+            GAMEPLAY.toolCallHitboxMaxWidth,
           );
         } else {
-          reviewLabels.add(candidate.label);
-          reviewSurfaces.set(candidate.label, candidate.surface);
+          approvalLabels.add(candidate.label);
+          approvalSurfaces.set(candidate.label, candidate.surface);
           expect(candidate.hitbox.width).toBeGreaterThanOrEqual(
-            GAMEPLAY.reviewHitboxMinWidth,
+            GAMEPLAY.approvalHitboxMinWidth,
           );
           expect(candidate.hitbox.width).toBeLessThanOrEqual(
-            GAMEPLAY.reviewHitboxMaxWidth,
+            GAMEPLAY.approvalHitboxMaxWidth,
           );
         }
       }
     }
 
-    expect(logLabels).toEqual(
+    expect(toolCallLabels).toEqual(
       new Set([
         "+ one more change",
-        "$ pnpm test --watch",
-        "codex: retrying tool",
+        "$ pnpm test --run",
+        "$ rg --files -g AGENTS.md",
+        "$ git diff --stat",
+        "$ git status --short",
+        "[tool] reading AGENTS.md",
+        "[tool] rereading same file",
         "warning: tree is dirty",
-        '$ git commit -m "fix"',
-        "error: CI failed",
-        "error TS2322",
-        "[context] 12% left",
-        "$ cat AGENTS.md",
-        "codex: inspecting...",
-        "fixing one last test...",
-        "git: rebase required",
+        "error: command timed out",
+        "codex: checking diff again",
+        "codex: fixing one last test",
         "404 Not Found",
         "ERR_CONNECTION_REFUSED",
         "PAGE_UNRESPONSIVE",
         "net::ERR_FAILED",
       ]),
     );
-    expect(reviewLabels).toEqual(
+    expect(approvalLabels).toEqual(
       new Set([
-        "[review] approval required",
-        "[review] changes requested",
-        "git: needs rebase",
-        "run command? [y/N]",
+        "[approval] allow full access?",
+        "[approval] run outside sandbox?",
+        "[approval] allow network?",
+        "[approval] approve session?",
       ]),
     );
-    expect(reviewSurfaces).toEqual(
+    expect(approvalSurfaces).toEqual(
       new Map([
-        ["[review] approval required", "codex"],
-        ["[review] changes requested", "codex"],
-        ["git: needs rebase", "terminal"],
-        ["run command? [y/N]", "codex"],
+        ["[approval] allow full access?", "codex"],
+        ["[approval] run outside sandbox?", "codex"],
+        ["[approval] allow network?", "codex"],
+        ["[approval] approve session?", "codex"],
       ]),
     );
 
     const surfaces = new Set<string>();
     for (let seed = 1; seed <= 512; seed += 1) {
       const state = playingState(seed, 800, 600);
-      state.spawn.logMs = 0;
+      state.spawn.toolCallMs = 0;
       stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
       for (const candidate of state.projectiles) {
-        if (candidate.kind === "log") {
+        if (candidate.kind === "tool-call") {
           surfaces.add(candidate.surface);
         }
       }
@@ -347,25 +371,25 @@ describe("survival simulation", () => {
     const events = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
     expect(state.phase).toBe("results");
-    expect(state.lastHitSource).toBe("log");
-    expect(events).toContainEqual({ type: "player-hit", source: "log" });
+    expect(state.lastHitSource).toBe("tool-call");
+    expect(events).toContainEqual({ type: "player-hit", source: "tool-call" });
     expect(events.at(-1)).toEqual({
       type: "run-ended",
       finalScore: state.score,
-      source: "log",
+      source: "tool-call",
     });
   });
 
-  it("keeps a review harmless while telegraphing, then makes it lethal", () => {
+  it("keeps an approval harmless while telegraphing, then makes it lethal", () => {
     const state = playingState();
     state.projectiles = [
       projectile(state, {
-        kind: "review",
+        kind: "approval",
         surface: "codex",
-        label: "[review] approval required",
+        label: "[approval] allow full access?",
         hitbox: {
-          width: GAMEPLAY.reviewHitboxMinWidth,
-          height: GAMEPLAY.reviewHitboxHeight,
+          width: GAMEPLAY.approvalHitboxMinWidth,
+          height: GAMEPLAY.approvalHitboxHeight,
         },
         telegraphRemainingMs: FIXED_STEP_MS * 2,
       }),
@@ -375,7 +399,7 @@ describe("survival simulation", () => {
     expect(state.phase).toBe("playing");
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(state.phase).toBe("results");
-    expect(state.lastHitSource).toBe("review");
+    expect(state.lastHitSource).toBe("approval");
   });
 
   it("makes context max lethal only after its warning expires", () => {
@@ -388,10 +412,10 @@ describe("survival simulation", () => {
 
     expect(events).toContainEqual({
       type: "hazard-activated",
-      kind: "context-max",
+      kind: "compaction",
     });
     expect(state.phase).toBe("results");
-    expect(state.lastHitSource).toBe("context-max");
+    expect(state.lastHitSource).toBe("compaction");
   });
 
   it("matches projectile collision to its rotated text silhouette", () => {
@@ -413,17 +437,18 @@ describe("survival simulation", () => {
     expect(state.phase).toBe("results");
   });
 
-  it("spawns all seven semantic attack patterns at stage ten", () => {
+  it("spawns all eight Codex attack patterns at stage ten", () => {
     const state = playingState(77, 900, 600);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
     state.spawn = {
-      logMs: 0,
-      reviewMs: 0,
-      contextMaxMs: 0,
+      toolCallMs: 0,
+      approvalMs: 0,
+      compactionMs: 0,
       retryLoopMs: 0,
-      forkBombMs: 0,
-      raceConditionMs: 0,
-      mergeBugMs: 0,
+      reasoningMs: 0,
+      parallelAgentsMs: 0,
+      reviewLoopMs: 0,
+      usageLimitMs: 0,
     };
 
     const events = stepGame(
@@ -432,35 +457,36 @@ describe("survival simulation", () => {
       FIXED_STEP_MS,
     );
 
-    expect(state.projectiles.some((candidate) => candidate.kind === "log")).toBe(
-      true,
-    );
     expect(
-      state.projectiles.some((candidate) => candidate.kind === "review"),
+      state.projectiles.some((candidate) => candidate.kind === "tool-call"),
     ).toBe(true);
-    expect(state.hazards.some((candidate) => candidate.kind === "context-max")).toBe(
-      true,
-    );
+    expect(
+      state.projectiles.some((candidate) => candidate.kind === "approval"),
+    ).toBe(true);
+    expect(
+      state.hazards.some((candidate) => candidate.kind === "compaction"),
+    ).toBe(true);
     expect(
       state.projectiles.some((candidate) => candidate.kind === "retry"),
     ).toBe(true);
     expect(
-      state.projectiles.some((candidate) => candidate.kind === "race"),
+      state.projectiles.some((candidate) => candidate.kind === "reasoning"),
+    ).toBe(true);
+    expect(
+      state.projectiles.some((candidate) => candidate.kind === "agent"),
     ).toBe(true);
     expect(state.sequences.map((candidate) => candidate.kind).sort()).toEqual([
-      "fork-bomb",
-      "merge-bug",
+      "review-loop",
+      "usage-limit",
     ]);
     expect(
-      state.sequences.find((candidate) => candidate.kind === "merge-bug")
+      state.sequences.find((candidate) => candidate.kind === "usage-limit")
         ?.origins,
     ).toHaveLength(8);
     expect(events.filter((event) => event.type === "hazard-warning")).toHaveLength(
       3,
     );
-    expect(events.filter((event) => event.type === "pattern-warning")).toHaveLength(
-      4,
-    );
+    expect(events.filter((event) => event.type === "pattern-warning")).toHaveLength(5);
     expect(
       state.projectiles.every((candidate) => candidate.telegraphRemainingMs > 0),
     ).toBe(true);
@@ -478,9 +504,9 @@ describe("survival simulation", () => {
       (candidate) => candidate.kind === "retry",
     );
     expect(retries.map((candidate) => candidate.label)).toEqual([
-      "retry 1/3",
-      "retry 2/3",
-      "retry 3/3",
+      "[tool] retry 1/3",
+      "[tool] retry 2/3",
+      "[tool] retry 3/3",
     ]);
     expect(retries[0]!.telegraphRemainingMs).toBeLessThan(
       retries[1]!.telegraphRemainingMs,
@@ -497,33 +523,33 @@ describe("survival simulation", () => {
     }
   });
 
-  it("makes READ and WRITE race toward the same snapshot from opposite sides", () => {
+  it("makes parallel agents cross the same snapshot from opposite sides", () => {
     const state = playingState(16, 800, 600);
-    state.elapsedMs = GAMEPLAY.raceConditionFirstSpawnMs;
+    state.elapsedMs = GAMEPLAY.parallelAgentsFirstSpawnMs;
     state.player.position = { x: 360, y: 280 };
-    state.spawn.raceConditionMs = 0;
+    state.spawn.parallelAgentsMs = 0;
 
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
-    const race = state.projectiles.filter(
-      (candidate) => candidate.kind === "race",
+    const agents = state.projectiles.filter(
+      (candidate) => candidate.kind === "agent",
     );
-    expect(race.map((candidate) => candidate.label)).toEqual([
-      "read()",
-      "write()",
+    expect(agents.map((candidate) => candidate.label)).toEqual([
+      "[agent 1] working",
+      "[agent 2] working",
     ]);
     expect(
-      race[0]!.velocity.x * race[1]!.velocity.x +
-        race[0]!.velocity.y * race[1]!.velocity.y,
+      agents[0]!.velocity.x * agents[1]!.velocity.x +
+        agents[0]!.velocity.y * agents[1]!.velocity.y,
     ).toBeCloseTo(-1);
-    expect(race[0]!.telegraphRemainingMs).toBe(
-      race[1]!.telegraphRemainingMs,
+    expect(agents[0]!.telegraphRemainingMs).toBe(
+      agents[1]!.telegraphRemainingMs,
     );
   });
 
   it.each([
-    ["fork-bomb", "branch", "branch", 8],
-    ["merge-bug", "bug", "BUG!", 12],
+    ["review-loop", "finding", "ONE MORE ISSUE", 8],
+    ["usage-limit", "limit", "LIMIT REACHED", 12],
   ] as const)(
     "turns %s convergence into a radial %s burst",
     (sequenceKind, projectileKind, label, count) => {
@@ -532,9 +558,9 @@ describe("survival simulation", () => {
         sequence({
           kind: sequenceKind,
           label:
-            sequenceKind === "fork-bomb"
-              ? "$ git branch --all"
-              : "$ git merge",
+            sequenceKind === "review-loop"
+              ? "[review] fixing findings"
+              : "[usage] limit draining",
           projectileCount: count,
         }),
       ];

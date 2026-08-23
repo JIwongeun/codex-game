@@ -26,7 +26,7 @@
 
 ## 3. 핵심 경험
 
-플레이어는 Canvas가 직접 그리는 glyph 없는 hard-edge 검은 정사각형이다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 회전 명령어, snapshot review, context 점 폭발, retry·race·branch·merge 수렴 패턴을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
+플레이어는 Canvas가 직접 그리는 glyph 없는 hard-edge 검은 정사각형이다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 tool call과 approval, context compaction, retry, xhigh reasoning, parallel agents, review/fix와 usage limit 패턴을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
 
 핵심 감정은 다음 세 단계다.
 
@@ -60,14 +60,15 @@
 
 난이도는 12초 단위 Stage 1–10으로 표시한다. 속도와 생성 간격은 108초까지 연속 상승하고, 해금·동시 수·분할 수는 stage 경계에서 증가한 뒤 Stage 10 상한에 고정된다.
 
-1. Stage 1 `LOG STREAM` — player 좌표와 무관하며 방향선도 없는 terminal·browser·Codex 로그 탄막
-2. Stage 2 `REVIEW REQUEST` — 생성 순간 player 위치를 snapshot한 고정 조준
-3. Stage 3 `CONTEXT MAX` — 지정 지점이 `0% → MAX`로 차오른 뒤 일점 영역 활성화
+1. Stage 1 `TOOL CALL STREAM` — player 좌표와 무관하며 방향선도 없는 terminal·browser·Codex 작업 탄막
+2. Stage 2 `APPROVAL REQUIRED` — full access·sandbox·network 승인이 생성 순간 player 위치를 snapshot해 고정 조준
+3. Stage 3 `CONTEXT COMPACTION` — 지정 지점의 context frame이 안으로 압축된 뒤 `SUMMARY LOST` 영역 활성화
 4. Stage 4 `RETRY LOOP` — 같은 snapshot을 향한 3–5회 시간차 반복
-5. Stage 5 `FORK BOMB` — `git branch --all` 수렴 후 8–16개 `BRANCH`로 원형 분할
-6. Stage 6 `RACE CONDITION` — `READ()`와 `WRITE()`가 반대편에서 같은 지점을 교차
-7. Stage 7 `MERGE → BUG!` — 4–8개 변경이 `git merge`로 수렴한 뒤 12–20개 `BUG!`로 발산
-8. Stage 8–10 — 앞 패턴의 동시 수, 속도, 빈도와 조합 밀도를 최고치까지 상승
+5. Stage 5 `REASONING: XHIGH` — 긴 thinking 예고 뒤 snapshot으로 발사되는 단발 초고속 응답
+6. Stage 6 `PARALLEL AGENTS` — 여러 agent가 반대편에서 같은 snapshot을 동시에 교차
+7. Stage 7 `REVIEW / FIX LOOP` — 여러 finding을 고친 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산
+8. Stage 8 `USAGE LIMIT` — 5h·weekly usage가 한 지점으로 소모된 뒤 `LIMIT REACHED`가 12–20방향으로 발산
+9. Stage 9–10 — 앞 패턴의 동시 수, 속도, 빈도와 조합 밀도를 최고치까지 상승
 
 각 용어는 label뿐 아니라 이동과 결과로 의미를 전달한다. 고정 phrase bank에는 일반 개발 문구와 `context left`, `retrying tool`, `reading AGENTS.md`, `approval required` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
 
@@ -104,7 +105,7 @@
 - Start ↔ Game 두 화면. 내부에서는 `ready | playing | results` phase로 최초 시작과 마지막 run 정보를 구분하지만 `ready`와 `results`는 같은 Start 화면을 사용
 - 정적인 정사각형 agent node의 WASD·방향키 8방향 이동
 - 한 번 피격 시 종료와 생존 시간 기록
-- 의미가 다른 공격 패턴 7종과 수렴·분할 sequence
+- 실제 Codex 사용자 경험에서 가져온 공격 패턴 8종과 수렴·분할 sequence
 - 12초 단위 Stage 1–10 난이도 상승과 공격 상한
 - 브라우저 로컬 최고 생존 기록
 - 음소거 가능한 기본 효과음
@@ -146,4 +147,4 @@
 - 범위 공격 예고 시간, 크기, 활성 시간
 - 난이도 단계 해제 시점과 최대 개체 수
 
-7개 공격의 의미와 Stage 1–10 경계는 유지하고 속도·간격·크기·탄 수만 실제 플레이 결과에 따라 조정한다.
+8개 공격의 의미와 Stage 1–10 경계는 유지하고 속도·간격·크기·탄 수만 실제 플레이 결과에 따라 조정한다.

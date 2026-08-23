@@ -14,51 +14,50 @@ import type {
   AttackSurface,
   AttackSequenceState,
   ArenaBounds,
+  ApprovalLabel,
   GameEvent,
   GameState,
   HitSource,
   InputIntent,
-  LogLabel,
   ProjectileLabel,
   ProjectileKind,
   ProjectileState,
   RectangleHitbox,
-  ReviewLabel,
+  ToolCallLabel,
   Vec2,
 } from "./model";
 import { nextRandom, normalizeSeed } from "./random";
 import { difficultyAt } from "./rules";
 
 const PLAYER_START_DIRECTION: Vec2 = { x: 1, y: 0 };
-const LOG_ENTRIES: readonly {
-  label: LogLabel;
+const TOOL_CALL_ENTRIES: readonly {
+  label: ToolCallLabel;
   surface: AttackSurface;
 }[] = [
   { label: "+ one more change", surface: "codex" },
-  { label: "$ pnpm test --watch", surface: "terminal" },
-  { label: "codex: retrying tool", surface: "codex" },
+  { label: "$ pnpm test --run", surface: "terminal" },
+  { label: "$ rg --files -g AGENTS.md", surface: "terminal" },
+  { label: "$ git diff --stat", surface: "terminal" },
+  { label: "$ git status --short", surface: "terminal" },
+  { label: "[tool] reading AGENTS.md", surface: "codex" },
+  { label: "[tool] rereading same file", surface: "codex" },
   { label: "warning: tree is dirty", surface: "terminal" },
-  { label: '$ git commit -m "fix"', surface: "terminal" },
-  { label: "error: CI failed", surface: "terminal" },
-  { label: "error TS2322", surface: "terminal" },
-  { label: "[context] 12% left", surface: "codex" },
-  { label: "$ cat AGENTS.md", surface: "terminal" },
-  { label: "codex: inspecting...", surface: "codex" },
-  { label: "fixing one last test...", surface: "codex" },
-  { label: "git: rebase required", surface: "terminal" },
+  { label: "error: command timed out", surface: "terminal" },
+  { label: "codex: checking diff again", surface: "codex" },
+  { label: "codex: fixing one last test", surface: "codex" },
   { label: "404 Not Found", surface: "browser" },
   { label: "ERR_CONNECTION_REFUSED", surface: "browser" },
   { label: "PAGE_UNRESPONSIVE", surface: "browser" },
   { label: "net::ERR_FAILED", surface: "browser" },
 ];
-const REVIEW_ENTRIES: readonly {
-  label: ReviewLabel;
-  surface: AttackSurface;
+const APPROVAL_ENTRIES: readonly {
+  label: ApprovalLabel;
+  surface: "codex";
 }[] = [
-  { label: "[review] approval required", surface: "codex" },
-  { label: "[review] changes requested", surface: "codex" },
-  { label: "git: needs rebase", surface: "terminal" },
-  { label: "run command? [y/N]", surface: "codex" },
+  { label: "[approval] allow full access?", surface: "codex" },
+  { label: "[approval] run outside sandbox?", surface: "codex" },
+  { label: "[approval] allow network?", surface: "codex" },
+  { label: "[approval] approve session?", surface: "codex" },
 ];
 
 export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
@@ -90,13 +89,14 @@ export function createGameState(
     hazards: [],
     sequences: [],
     spawn: {
-      logMs: GAMEPLAY.logFirstSpawnMs,
-      reviewMs: GAMEPLAY.reviewFirstSpawnMs,
-      contextMaxMs: GAMEPLAY.contextMaxFirstSpawnMs,
+      toolCallMs: GAMEPLAY.toolCallFirstSpawnMs,
+      approvalMs: GAMEPLAY.approvalFirstSpawnMs,
+      compactionMs: GAMEPLAY.compactionFirstSpawnMs,
       retryLoopMs: GAMEPLAY.retryLoopFirstSpawnMs,
-      forkBombMs: GAMEPLAY.forkBombFirstSpawnMs,
-      raceConditionMs: GAMEPLAY.raceConditionFirstSpawnMs,
-      mergeBugMs: GAMEPLAY.mergeBugFirstSpawnMs,
+      reasoningMs: GAMEPLAY.reasoningFirstSpawnMs,
+      parallelAgentsMs: GAMEPLAY.parallelAgentsFirstSpawnMs,
+      reviewLoopMs: GAMEPLAY.reviewLoopFirstSpawnMs,
+      usageLimitMs: GAMEPLAY.usageLimitFirstSpawnMs,
     },
   };
 }
@@ -284,7 +284,7 @@ function updateHazards(
 
     if (hazard.phase === "telegraph") {
       hazard.phase = "active";
-      hazard.remainingMs = GAMEPLAY.contextMaxActiveMs;
+      hazard.remainingMs = GAMEPLAY.compactionActiveMs;
       survivors.push(hazard);
       events.push({ type: "hazard-activated", kind: hazard.kind });
     } else {
@@ -309,8 +309,10 @@ function updateSequences(
       continue;
     }
 
-    const projectileKind = sequence.kind === "fork-bomb" ? "branch" : "bug";
-    const label = sequence.kind === "fork-bomb" ? "branch" : "BUG!";
+    const projectileKind =
+      sequence.kind === "review-loop" ? "finding" : "limit";
+    const label =
+      sequence.kind === "review-loop" ? "ONE MORE ISSUE" : "LIMIT REACHED";
     spawnRadialProjectiles(
       state,
       projectileKind,
@@ -335,27 +337,32 @@ function spawnScheduledAttacks(
   events: GameEvent[],
 ): void {
   const difficulty = difficultyAt(state.elapsedMs);
-  state.spawn.logMs -= stepMs;
-  state.spawn.reviewMs -= stepMs;
-  state.spawn.contextMaxMs -= stepMs;
+  state.spawn.toolCallMs -= stepMs;
+  state.spawn.approvalMs -= stepMs;
+  state.spawn.compactionMs -= stepMs;
   state.spawn.retryLoopMs -= stepMs;
-  state.spawn.forkBombMs -= stepMs;
-  state.spawn.raceConditionMs -= stepMs;
-  state.spawn.mergeBugMs -= stepMs;
+  state.spawn.reasoningMs -= stepMs;
+  state.spawn.parallelAgentsMs -= stepMs;
+  state.spawn.reviewLoopMs -= stepMs;
+  state.spawn.usageLimitMs -= stepMs;
 
-  if (state.spawn.logMs <= 0) {
-    spawnLogVolley(state, difficulty.logBurst, difficulty.logSpeed);
-    state.spawn.logMs += difficulty.logIntervalMs;
+  if (state.spawn.toolCallMs <= 0) {
+    spawnToolCallVolley(
+      state,
+      difficulty.toolCallBurst,
+      difficulty.toolCallSpeed,
+    );
+    state.spawn.toolCallMs += difficulty.toolCallIntervalMs;
   }
 
-  if (difficulty.reviewUnlocked && state.spawn.reviewMs <= 0) {
-    spawnReview(state, difficulty.reviewSpeed);
-    state.spawn.reviewMs += difficulty.reviewIntervalMs;
+  if (difficulty.approvalUnlocked && state.spawn.approvalMs <= 0) {
+    spawnApproval(state, difficulty.approvalSpeed);
+    state.spawn.approvalMs += difficulty.approvalIntervalMs;
   }
 
-  if (difficulty.contextMaxUnlocked && state.spawn.contextMaxMs <= 0) {
+  if (difficulty.compactionUnlocked && state.spawn.compactionMs <= 0) {
     const available = Math.min(
-      difficulty.contextMaxCount,
+      difficulty.compactionCount,
       GAMEPLAY.maxHazards - state.hazards.length,
     );
     for (let index = 0; index < available; index += 1) {
@@ -364,69 +371,80 @@ function spawnScheduledAttacks(
           ? state.player.position
           : randomRectangleCenter(
               state,
-              squareHitbox(difficulty.contextMaxSize, state.arena),
+              squareHitbox(difficulty.compactionSize, state.arena),
             );
-      if (spawnContextMax(state, difficulty.contextMaxSize, target)) {
-        events.push({ type: "hazard-warning", kind: "context-max" });
+      if (spawnCompaction(state, difficulty.compactionSize, target)) {
+        events.push({ type: "hazard-warning", kind: "compaction" });
       }
     }
-    state.spawn.contextMaxMs += difficulty.contextMaxIntervalMs;
+    state.spawn.compactionMs += difficulty.compactionIntervalMs;
   }
 
   if (difficulty.retryLoopUnlocked && state.spawn.retryLoopMs <= 0) {
     spawnRetryLoop(
       state,
       difficulty.retryLoopCount,
-      difficulty.reviewSpeed * 0.94,
+      difficulty.approvalSpeed * 0.94,
     );
     events.push({ type: "pattern-warning", kind: "retry-loop" });
     state.spawn.retryLoopMs += difficulty.retryLoopIntervalMs;
   }
 
-  if (difficulty.forkBombUnlocked && state.spawn.forkBombMs <= 0) {
-    if (
-      spawnSequence(
-        state,
-        "fork-bomb",
-        difficulty.forkFragmentCount,
-        difficulty.forkFragmentSpeed,
-      )
-    ) {
-      events.push({ type: "pattern-warning", kind: "fork-bomb" });
+  if (difficulty.reasoningUnlocked && state.spawn.reasoningMs <= 0) {
+    if (spawnReasoningXhigh(state, difficulty.reasoningSpeed)) {
+      events.push({ type: "pattern-warning", kind: "reasoning-xhigh" });
     }
-    state.spawn.forkBombMs += difficulty.forkBombIntervalMs;
+    state.spawn.reasoningMs += difficulty.reasoningIntervalMs;
   }
 
   if (
-    difficulty.raceConditionUnlocked &&
-    state.spawn.raceConditionMs <= 0
+    difficulty.parallelAgentsUnlocked &&
+    state.spawn.parallelAgentsMs <= 0
   ) {
-    spawnRaceCondition(
+    spawnParallelAgents(
       state,
-      difficulty.racePairCount,
-      difficulty.raceSpeed,
+      difficulty.parallelAgentPairs,
+      difficulty.parallelAgentSpeed,
     );
-    events.push({ type: "pattern-warning", kind: "race-condition" });
-    state.spawn.raceConditionMs += difficulty.raceConditionIntervalMs;
+    events.push({ type: "pattern-warning", kind: "parallel-agents" });
+    state.spawn.parallelAgentsMs += difficulty.parallelAgentsIntervalMs;
   }
 
-  if (difficulty.mergeBugUnlocked && state.spawn.mergeBugMs <= 0) {
+  if (difficulty.reviewLoopUnlocked && state.spawn.reviewLoopMs <= 0) {
     if (
       spawnSequence(
         state,
-        "merge-bug",
-        difficulty.bugFragmentCount,
-        difficulty.bugFragmentSpeed,
-        difficulty.mergeIncomingCount,
+        "review-loop",
+        difficulty.reviewFindingCount,
+        difficulty.reviewFindingSpeed,
       )
     ) {
-      events.push({ type: "pattern-warning", kind: "merge-bug" });
+      events.push({ type: "pattern-warning", kind: "review-loop" });
     }
-    state.spawn.mergeBugMs += difficulty.mergeBugIntervalMs;
+    state.spawn.reviewLoopMs += difficulty.reviewLoopIntervalMs;
+  }
+
+  if (difficulty.usageLimitUnlocked && state.spawn.usageLimitMs <= 0) {
+    if (
+      spawnSequence(
+        state,
+        "usage-limit",
+        difficulty.limitFragmentCount,
+        difficulty.limitFragmentSpeed,
+        difficulty.usageDrainCount,
+      )
+    ) {
+      events.push({ type: "pattern-warning", kind: "usage-limit" });
+    }
+    state.spawn.usageLimitMs += difficulty.usageLimitIntervalMs;
   }
 }
 
-function spawnLogVolley(state: GameState, count: number, speed: number): void {
+function spawnToolCallVolley(
+  state: GameState,
+  count: number,
+  speed: number,
+): void {
   const available = Math.min(
     count,
     GAMEPLAY.maxProjectiles - state.projectiles.length,
@@ -454,23 +472,23 @@ function spawnLogVolley(state: GameState, count: number, speed: number): void {
       randomBetween(state, targetAlongSize * 0.08, targetAlongSize * 0.92),
       20,
     );
-    const entry = randomLogEntry(state);
+    const entry = randomToolCallEntry(state);
 
     addProjectile(
       state,
-      "log",
+      "tool-call",
       entry.surface,
       entry.label,
       position,
       target,
-      logHitbox(entry.label),
+      toolCallHitbox(entry.label),
       speed,
-      GAMEPLAY.logTelegraphMs + index * 35,
+      GAMEPLAY.toolCallTelegraphMs + index * 35,
     );
   }
 }
 
-function spawnReview(state: GameState, speed: number): boolean {
+function spawnApproval(state: GameState, speed: number): boolean {
   if (state.projectiles.length >= GAMEPLAY.maxProjectiles) {
     return false;
   }
@@ -484,11 +502,11 @@ function spawnReview(state: GameState, speed: number): boolean {
     18,
   );
   const target = { ...state.player.position };
-  const entry = randomReviewEntry(state);
+  const entry = randomApprovalEntry(state);
 
   addProjectile(
     state,
-    "review",
+    "approval",
     entry.surface,
     entry.label,
     position,
@@ -496,13 +514,13 @@ function spawnReview(state: GameState, speed: number): boolean {
     {
       width: labelHitboxWidth(
         entry.label,
-        GAMEPLAY.reviewHitboxMinWidth,
-        GAMEPLAY.reviewHitboxMaxWidth,
+        GAMEPLAY.approvalHitboxMinWidth,
+        GAMEPLAY.approvalHitboxMaxWidth,
       ),
-      height: GAMEPLAY.reviewHitboxHeight,
+      height: GAMEPLAY.approvalHitboxHeight,
     },
     speed,
-    GAMEPLAY.reviewTelegraphMs,
+    GAMEPLAY.approvalTelegraphMs,
   );
   return true;
 }
@@ -522,7 +540,7 @@ function spawnRetryLoop(state: GameState, count: number, speed: number): void {
   const target = { ...state.player.position };
 
   for (let index = 0; index < available; index += 1) {
-    const label = `retry ${index + 1}/${available}`;
+    const label = `[tool] retry ${index + 1}/${available}`;
     const offset = (index - (available - 1) / 2) * 24;
     const position = pointOnEdge(
       state.arena,
@@ -544,7 +562,35 @@ function spawnRetryLoop(state: GameState, count: number, speed: number): void {
   }
 }
 
-function spawnRaceCondition(
+function spawnReasoningXhigh(state: GameState, speed: number): boolean {
+  if (state.projectiles.length >= GAMEPLAY.maxProjectiles) {
+    return false;
+  }
+
+  const edge = Math.floor(randomBetween(state, 0, 4));
+  const alongSize = edge < 2 ? state.arena.height : state.arena.width;
+  const position = pointOnEdge(
+    state.arena,
+    edge,
+    randomBetween(state, alongSize * 0.16, alongSize * 0.84),
+    24,
+  );
+  const label = "[effort] xhigh · thinking...";
+  addProjectile(
+    state,
+    "reasoning",
+    "codex",
+    label,
+    position,
+    { ...state.player.position },
+    { width: 154, height: 17 },
+    speed,
+    GAMEPLAY.reasoningTelegraphMs,
+  );
+  return true;
+}
+
+function spawnParallelAgents(
   state: GameState,
   pairCount: number,
   speed: number,
@@ -579,23 +625,23 @@ function spawnRaceCondition(
 
     addProjectile(
       state,
-      "race",
-      "terminal",
-      "read()",
+      "agent",
+      "codex",
+      `[agent ${index * 2 + 1}] working`,
       positions[0]!,
       pairTarget,
-      { width: 48, height: 15 },
+      { width: 92, height: 15 },
       speed,
       760 + index * 100,
     );
     addProjectile(
       state,
-      "race",
-      "terminal",
-      "write()",
+      "agent",
+      "codex",
+      `[agent ${index * 2 + 2}] working`,
       positions[1]!,
       pairTarget,
-      { width: 54, height: 15 },
+      { width: 92, height: 15 },
       speed,
       760 + index * 100,
     );
@@ -604,7 +650,7 @@ function spawnRaceCondition(
 
 function spawnSequence(
   state: GameState,
-  kind: "fork-bomb" | "merge-bug",
+  kind: "review-loop" | "usage-limit",
   projectileCount: number,
   projectileSpeed: number,
   mergeIncomingCount = 4,
@@ -614,17 +660,15 @@ function spawnSequence(
   }
 
   const position =
-    kind === "fork-bomb"
+    kind === "review-loop"
       ? randomRectangleCenter(state, { width: 220, height: 220 })
       : clampPointToArena(state.player.position, state.arena, 90);
-  const originCount = kind === "fork-bomb" ? 1 : mergeIncomingCount;
+  const originCount = kind === "review-loop" ? 4 : mergeIncomingCount;
   const origins: Vec2[] = [];
 
   for (let index = 0; index < originCount; index += 1) {
     const edge =
-      kind === "fork-bomb"
-        ? Math.floor(randomBetween(state, 0, 4))
-        : index % 4;
+      index % 4;
     const alongSize = edge < 2 ? state.arena.height : state.arena.width;
     origins.push(
       pointOnEdge(
@@ -637,13 +681,16 @@ function spawnSequence(
   }
 
   const durationMs =
-    kind === "fork-bomb"
-      ? GAMEPLAY.forkBombConvergeMs
-      : GAMEPLAY.mergeBugConvergeMs;
+    kind === "review-loop"
+      ? GAMEPLAY.reviewLoopConvergeMs
+      : GAMEPLAY.usageLimitConvergeMs;
   state.sequences.push({
     id: takeEntityId(state),
     kind,
-    label: kind === "fork-bomb" ? "$ git branch --all" : "$ git merge",
+    label:
+      kind === "review-loop"
+        ? "[review] fixing findings"
+        : "[usage] limit draining",
     position,
     origins,
     remainingMs: durationMs,
@@ -656,7 +703,7 @@ function spawnSequence(
 
 function spawnRadialProjectiles(
   state: GameState,
-  kind: "branch" | "bug",
+  kind: "finding" | "limit",
   label: string,
   center: Vec2,
   count: number,
@@ -685,12 +732,12 @@ function spawnRadialProjectiles(
     addProjectile(
       state,
       kind,
-      "terminal",
+      "codex",
       label,
       position,
       target,
       {
-        width: kind === "branch" ? GAMEPLAY.fragmentHitboxWidth : 40,
+        width: kind === "finding" ? 86 : 78,
         height: GAMEPLAY.fragmentHitboxHeight,
       },
       speed,
@@ -724,24 +771,28 @@ function addProjectile(
   });
 }
 
-function randomLogEntry(state: GameState): (typeof LOG_ENTRIES)[number] {
-  const index = Math.floor(randomBetween(state, 0, LOG_ENTRIES.length));
-  return LOG_ENTRIES[index] ?? LOG_ENTRIES[0];
+function randomToolCallEntry(
+  state: GameState,
+): (typeof TOOL_CALL_ENTRIES)[number] {
+  const index = Math.floor(randomBetween(state, 0, TOOL_CALL_ENTRIES.length));
+  return TOOL_CALL_ENTRIES[index] ?? TOOL_CALL_ENTRIES[0];
 }
 
-function randomReviewEntry(state: GameState): (typeof REVIEW_ENTRIES)[number] {
-  const index = Math.floor(randomBetween(state, 0, REVIEW_ENTRIES.length));
-  return REVIEW_ENTRIES[index] ?? REVIEW_ENTRIES[0];
+function randomApprovalEntry(
+  state: GameState,
+): (typeof APPROVAL_ENTRIES)[number] {
+  const index = Math.floor(randomBetween(state, 0, APPROVAL_ENTRIES.length));
+  return APPROVAL_ENTRIES[index] ?? APPROVAL_ENTRIES[0];
 }
 
-function logHitbox(label: LogLabel): RectangleHitbox {
+function toolCallHitbox(label: ToolCallLabel): RectangleHitbox {
   return {
     width: labelHitboxWidth(
       label,
-      GAMEPLAY.logHitboxMinWidth,
-      GAMEPLAY.logHitboxMaxWidth,
+      GAMEPLAY.toolCallHitboxMinWidth,
+      GAMEPLAY.toolCallHitboxMaxWidth,
     ),
-    height: GAMEPLAY.logHitboxHeight,
+    height: GAMEPLAY.toolCallHitboxHeight,
   };
 }
 
@@ -771,7 +822,7 @@ function pointOnEdge(
   return { x: along, y: arena.height + margin };
 }
 
-function spawnContextMax(
+function spawnCompaction(
   state: GameState,
   requestedSize: number,
   target: Vec2,
@@ -789,12 +840,12 @@ function spawnContextMax(
 
   state.hazards.push({
     id: takeEntityId(state),
-    kind: "context-max",
-    label: "CONTEXT MAX!",
+    kind: "compaction",
+    label: "CONTEXT COMPACTED",
     position,
     hitbox,
     phase: "telegraph",
-    remainingMs: GAMEPLAY.contextMaxTelegraphMs,
+    remainingMs: GAMEPLAY.compactionTelegraphMs,
   });
   return true;
 }

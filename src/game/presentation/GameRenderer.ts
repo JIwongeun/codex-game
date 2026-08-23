@@ -70,7 +70,7 @@ export class GameRenderer {
       } else if (event.type === "pattern-burst") {
         this.addBurst(
           event.position,
-          event.kind === "merge-bug" ? 36 : 24,
+          event.kind === "usage-limit" ? 36 : 24,
           state.elapsedMs,
         );
       } else if (event.type === "player-hit") {
@@ -119,17 +119,17 @@ export class GameRenderer {
 
   private drawHazards(state: GameState): void {
     for (const hazard of state.hazards) {
-      this.drawContextMax(hazard);
+      this.drawCompaction(hazard);
     }
   }
 
-  private drawContextMax(hazard: AreaHazardState): void {
+  private drawCompaction(hazard: AreaHazardState): void {
     const { x, y, width, height } = this.hazardRect(hazard);
     const active = hazard.phase === "active";
     const progress = active
       ? 1
       : Phaser.Math.Clamp(
-          1 - hazard.remainingMs / GAMEPLAY.contextMaxTelegraphMs,
+          1 - hazard.remainingMs / GAMEPLAY.compactionTelegraphMs,
           0,
           1,
         );
@@ -158,19 +158,21 @@ export class GameRenderer {
       );
       this.world.fillRect(x, y + height * progress - 1, width, 1);
 
-      const segments = 12;
-      const segmentWidth = width / segments;
-      for (let index = 0; index < segments; index += 1) {
-        const filled = index / segments <= progress;
-        this.world.fillStyle(
+      for (let index = 0; index < 5; index += 1) {
+        const inset = 8 + index * 9 + progress * 7;
+        if (width - inset * 2 <= 0 || height - inset * 2 <= 0) {
+          break;
+        }
+        this.world.lineStyle(
+          1,
           ATTACK_TONES.codex.value,
-          filled ? 0.58 : 0.1,
+          0.08 + progress * 0.12,
         );
-        this.world.fillRect(
-          x + index * segmentWidth + 1,
-          y + height - 9,
-          Math.max(1, segmentWidth - 2),
-          3,
+        this.world.strokeRect(
+          x + inset,
+          y + inset,
+          width - inset * 2,
+          height - inset * 2,
         );
       }
       return;
@@ -182,7 +184,7 @@ export class GameRenderer {
 
   private drawProjectiles(state: GameState): void {
     for (const projectile of state.projectiles) {
-      if (projectile.kind === "log") {
+      if (projectile.kind === "tool-call") {
         continue;
       }
       if (projectile.telegraphRemainingMs > 0) {
@@ -204,14 +206,16 @@ export class GameRenderer {
       }
 
       const length =
-        projectile.kind === "review" || projectile.kind === "race"
+        projectile.kind === "approval" || projectile.kind === "agent"
           ? 28
           : projectile.kind === "retry"
             ? 24
-            : projectile.kind === "bug" || projectile.kind === "branch"
+            : projectile.kind === "finding" || projectile.kind === "limit"
               ? 14
+              : projectile.kind === "reasoning"
+                ? 28
               : 20;
-      const alpha = projectile.kind === "bug" ? 0.48 : 0.28;
+      const alpha = projectile.kind === "limit" ? 0.48 : 0.28;
       this.drawMotionRail(projectile, length, alpha);
     }
 
@@ -228,10 +232,7 @@ export class GameRenderer {
         1,
       );
       for (const origin of sequence.origins) {
-        const tone =
-          sequence.kind === "fork-bomb"
-            ? ATTACK_TONES.terminalSuccess
-            : ATTACK_TONES.terminalError;
+        const tone = ATTACK_TONES.codex;
         const position = {
           x: Phaser.Math.Linear(origin.x, sequence.position.x, progress),
           y: Phaser.Math.Linear(origin.y, sequence.position.y, progress),
@@ -247,10 +248,7 @@ export class GameRenderer {
       }
 
       const pulse = 8 + Math.floor(progress * 7);
-      const tone =
-        sequence.kind === "fork-bomb"
-          ? ATTACK_TONES.terminalSuccess
-          : ATTACK_TONES.terminalError;
+      const tone = ATTACK_TONES.codex;
       this.world.lineStyle(1, tone.value, 0.52 + progress * 0.32);
       this.world.lineBetween(
         sequence.position.x - pulse,
@@ -333,16 +331,16 @@ export class GameRenderer {
 
       const active = hazard.phase === "active";
       const progress =
-        hazard.kind === "context-max" && !active
+        hazard.kind === "compaction" && !active
           ? Phaser.Math.Clamp(
-              1 - hazard.remainingMs / GAMEPLAY.contextMaxTelegraphMs,
+              1 - hazard.remainingMs / GAMEPLAY.compactionTelegraphMs,
               0,
               1,
             )
           : 1;
       const text = active
-        ? "[context] MAX"
-        : `[context] ${Math.round(progress * 100)}%`;
+        ? "[context] SUMMARY LOST"
+        : `[context] compacting ${Math.round(progress * 100)}%`;
 
       this.updateRichLabel(view, {
         surface: "codex",
@@ -386,14 +384,14 @@ export class GameRenderer {
           y: Phaser.Math.Linear(origin.y, sequence.position.y, progress),
         };
         this.updateRichLabel(view, {
-          surface: "terminal",
+          surface: "codex",
           label:
-            sequence.kind === "fork-bomb"
-              ? sequence.label
-              : `change +${index + 1}`,
-          fontFamily: FONTS.mono,
-          fontSize: sequence.kind === "fork-bomb" ? 10 : 9,
-          fontStyle: "normal",
+            sequence.kind === "review-loop"
+              ? `[review] P${index + 1} finding`
+              : `[usage] -${8 + (index % 4) * 3}%`,
+          fontFamily: FONTS.sans,
+          fontSize: 10,
+          fontStyle: "500",
         });
         view.container
           .setPosition(Math.round(position.x), Math.round(position.y))
@@ -414,12 +412,12 @@ export class GameRenderer {
         this.sequenceLabels.set(coreId, coreView);
       }
       this.updateRichLabel(coreView, {
-        surface: "terminal",
+        surface: "codex",
         label:
-          sequence.kind === "fork-bomb"
-            ? `fork: ${Math.round(progress * 100)}%`
-            : `$ git merge ${Math.round(progress * 100)}%`,
-        fontFamily: FONTS.mono,
+          sequence.kind === "review-loop"
+            ? `[fix] ${Math.round(progress * 100)}% — reviewing again`
+            : `[usage] ${Math.max(0, 100 - Math.round(progress * 100))}% left`,
+        fontFamily: FONTS.sans,
         fontSize: 10,
         fontStyle: "normal",
       });
@@ -477,16 +475,16 @@ export class GameRenderer {
   }
 
   private projectileFontSize(projectile: ProjectileState): number {
-    if (projectile.kind === "review") {
+    if (projectile.kind === "approval" || projectile.kind === "reasoning") {
       return 11;
     }
-    if (projectile.kind === "retry" || projectile.kind === "race") {
+    if (projectile.kind === "retry" || projectile.kind === "agent") {
       return 10;
     }
-    if (projectile.kind === "bug") {
+    if (projectile.kind === "limit") {
       return 11;
     }
-    if (projectile.kind === "branch") {
+    if (projectile.kind === "finding") {
       return 10;
     }
     return projectile.surface === "browser" ? 10 : 11;
@@ -568,7 +566,7 @@ export class GameRenderer {
       return ATTACK_TONES.browserAccent;
     }
     if (
-      projectile.kind === "bug" ||
+      projectile.kind === "limit" ||
       label.includes("error") ||
       label.includes("failed") ||
       label.includes("ts2322") ||
@@ -585,7 +583,7 @@ export class GameRenderer {
       return ATTACK_TONES.terminalWarning;
     }
     if (
-      projectile.kind === "branch" ||
+      projectile.kind === "finding" ||
       label.startsWith("+") ||
       label.startsWith("read")
     ) {

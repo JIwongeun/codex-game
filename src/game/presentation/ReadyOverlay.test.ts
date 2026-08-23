@@ -36,12 +36,12 @@ describe("startScreenView", () => {
 
     state.phase = "results";
     state.elapsedMs = 12_340;
-    state.lastHitSource = "race";
+    state.lastHitSource = "agent";
 
     expect(startScreenView(state, 18_900)).toEqual({
       visible: true,
       best: "00:18.90",
-      lastRun: "00:12.34 / RACE CONDITION",
+      lastRun: "00:12.34 / PARALLEL AGENT",
       actionSuffix: "TO START NEW RUN",
     });
   });

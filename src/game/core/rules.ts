@@ -4,32 +4,35 @@ import { clamp } from "./math";
 export interface Difficulty {
   progress: number;
   stage: number;
-  logIntervalMs: number;
-  logSpeed: number;
-  logBurst: number;
-  reviewIntervalMs: number;
-  reviewSpeed: number;
-  contextMaxIntervalMs: number;
-  contextMaxCount: number;
-  contextMaxSize: number;
+  toolCallIntervalMs: number;
+  toolCallSpeed: number;
+  toolCallBurst: number;
+  approvalIntervalMs: number;
+  approvalSpeed: number;
+  compactionIntervalMs: number;
+  compactionCount: number;
+  compactionSize: number;
   retryLoopIntervalMs: number;
   retryLoopCount: number;
-  forkBombIntervalMs: number;
-  forkFragmentCount: number;
-  forkFragmentSpeed: number;
-  raceConditionIntervalMs: number;
-  racePairCount: number;
-  raceSpeed: number;
-  mergeBugIntervalMs: number;
-  mergeIncomingCount: number;
-  bugFragmentCount: number;
-  bugFragmentSpeed: number;
-  reviewUnlocked: boolean;
-  contextMaxUnlocked: boolean;
+  reasoningIntervalMs: number;
+  reasoningSpeed: number;
+  parallelAgentsIntervalMs: number;
+  parallelAgentPairs: number;
+  parallelAgentSpeed: number;
+  reviewLoopIntervalMs: number;
+  reviewFindingCount: number;
+  reviewFindingSpeed: number;
+  usageLimitIntervalMs: number;
+  usageDrainCount: number;
+  limitFragmentCount: number;
+  limitFragmentSpeed: number;
+  approvalUnlocked: boolean;
+  compactionUnlocked: boolean;
   retryLoopUnlocked: boolean;
-  forkBombUnlocked: boolean;
-  raceConditionUnlocked: boolean;
-  mergeBugUnlocked: boolean;
+  reasoningUnlocked: boolean;
+  parallelAgentsUnlocked: boolean;
+  reviewLoopUnlocked: boolean;
+  usageLimitUnlocked: boolean;
 }
 
 function lerp(start: number, end: number, amount: number): number {
@@ -47,33 +50,36 @@ export function difficultyAt(elapsedMs: number): Difficulty {
   return {
     progress,
     stage,
-    logIntervalMs: lerp(1_050, 380, progress),
-    logSpeed: lerp(270, 570, progress),
-    logBurst: stage >= 9 ? 3 : stage >= 5 ? 2 : 1,
-    reviewIntervalMs: lerp(6_200, 3_100, progress),
-    reviewSpeed: lerp(470, 740, progress),
-    contextMaxIntervalMs: lerp(8_000, 4_000, progress),
-    contextMaxCount: stage >= 10 ? 3 : stage >= 8 ? 2 : 1,
-    contextMaxSize: lerp(210, 320, progress),
+    toolCallIntervalMs: lerp(1_050, 380, progress),
+    toolCallSpeed: lerp(270, 570, progress),
+    toolCallBurst: stage >= 9 ? 3 : stage >= 5 ? 2 : 1,
+    approvalIntervalMs: lerp(6_200, 3_100, progress),
+    approvalSpeed: lerp(470, 740, progress),
+    compactionIntervalMs: lerp(8_400, 4_200, progress),
+    compactionCount: stage >= 10 ? 3 : stage >= 8 ? 2 : 1,
+    compactionSize: lerp(170, 250, progress),
     retryLoopIntervalMs: lerp(9_800, 4_800, progress),
     retryLoopCount: stage >= 9 ? 5 : stage >= 6 ? 4 : 3,
-    forkBombIntervalMs: lerp(10_500, 5_200, progress),
-    forkFragmentCount: stage >= 10 ? 16 : stage >= 8 ? 12 : 8,
-    forkFragmentSpeed: lerp(260, 500, progress),
-    raceConditionIntervalMs: lerp(9_500, 4_600, progress),
-    racePairCount: stage >= 10 ? 3 : stage >= 8 ? 2 : 1,
-    raceSpeed: lerp(420, 760, progress),
-    mergeBugIntervalMs: lerp(12_000, 5_800, progress),
-    mergeIncomingCount: stage >= 10 ? 8 : stage >= 9 ? 6 : 4,
-    bugFragmentCount: stage >= 10 ? 20 : stage >= 9 ? 16 : 12,
-    bugFragmentSpeed: lerp(280, 540, progress),
-    reviewUnlocked: safeElapsedMs >= GAMEPLAY.reviewFirstSpawnMs,
-    contextMaxUnlocked: safeElapsedMs >= GAMEPLAY.contextMaxFirstSpawnMs,
+    reasoningIntervalMs: lerp(11_500, 5_800, progress),
+    reasoningSpeed: lerp(760, 1_080, progress),
+    parallelAgentsIntervalMs: lerp(9_500, 4_700, progress),
+    parallelAgentPairs: stage >= 10 ? 3 : stage >= 9 ? 2 : 1,
+    parallelAgentSpeed: lerp(420, 760, progress),
+    reviewLoopIntervalMs: lerp(10_800, 5_400, progress),
+    reviewFindingCount: stage >= 10 ? 16 : stage >= 9 ? 12 : 8,
+    reviewFindingSpeed: lerp(260, 500, progress),
+    usageLimitIntervalMs: lerp(12_500, 6_000, progress),
+    usageDrainCount: stage >= 10 ? 8 : stage >= 9 ? 6 : 4,
+    limitFragmentCount: stage >= 10 ? 20 : stage >= 9 ? 16 : 12,
+    limitFragmentSpeed: lerp(280, 540, progress),
+    approvalUnlocked: safeElapsedMs >= GAMEPLAY.approvalFirstSpawnMs,
+    compactionUnlocked: safeElapsedMs >= GAMEPLAY.compactionFirstSpawnMs,
     retryLoopUnlocked: safeElapsedMs >= GAMEPLAY.retryLoopFirstSpawnMs,
-    forkBombUnlocked: safeElapsedMs >= GAMEPLAY.forkBombFirstSpawnMs,
-    raceConditionUnlocked:
-      safeElapsedMs >= GAMEPLAY.raceConditionFirstSpawnMs,
-    mergeBugUnlocked: safeElapsedMs >= GAMEPLAY.mergeBugFirstSpawnMs,
+    reasoningUnlocked: safeElapsedMs >= GAMEPLAY.reasoningFirstSpawnMs,
+    parallelAgentsUnlocked:
+      safeElapsedMs >= GAMEPLAY.parallelAgentsFirstSpawnMs,
+    reviewLoopUnlocked: safeElapsedMs >= GAMEPLAY.reviewLoopFirstSpawnMs,
+    usageLimitUnlocked: safeElapsedMs >= GAMEPLAY.usageLimitFirstSpawnMs,
   };
 }
 

@@ -13,18 +13,23 @@ describe("game requirements", () => {
   });
 
   it("keeps the player hitbox smaller than rectangular attack silhouettes", () => {
-    expect(GAMEPLAY.playerRadius * 2).toBeLessThan(GAMEPLAY.logHitboxHeight);
     expect(GAMEPLAY.playerRadius * 2).toBeLessThan(
-      GAMEPLAY.reviewHitboxHeight,
+      GAMEPLAY.toolCallHitboxHeight,
     );
-    expect(GAMEPLAY.maxProjectiles).toBe(48);
+    expect(GAMEPLAY.playerRadius * 2).toBeLessThan(
+      GAMEPLAY.approvalHitboxHeight,
+    );
+    expect(GAMEPLAY.maxProjectiles).toBe(56);
     expect(GAMEPLAY.playerSpeed).toBeGreaterThan(0);
   });
 
   it("telegraphs every projectile family before it becomes lethal", () => {
-    expect(GAMEPLAY.logTelegraphMs).toBeGreaterThan(0);
-    expect(GAMEPLAY.reviewTelegraphMs).toBeGreaterThan(
-      GAMEPLAY.logTelegraphMs,
+    expect(GAMEPLAY.toolCallTelegraphMs).toBeGreaterThan(0);
+    expect(GAMEPLAY.approvalTelegraphMs).toBeGreaterThan(
+      GAMEPLAY.toolCallTelegraphMs,
+    );
+    expect(GAMEPLAY.reasoningTelegraphMs).toBeGreaterThan(
+      GAMEPLAY.approvalTelegraphMs,
     );
   });
 });

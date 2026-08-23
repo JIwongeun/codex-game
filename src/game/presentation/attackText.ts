@@ -14,6 +14,7 @@ const TERMINAL_EXECUTABLES = new Set([
   "npm",
   "npx",
   "pnpm",
+  "rg",
   "yarn",
 ]);
 
