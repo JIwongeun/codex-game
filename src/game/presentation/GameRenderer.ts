@@ -158,88 +158,18 @@ export class GameRenderer {
 
     if (!active) {
       const compression = Phaser.Math.Easing.Cubic.In(progress);
-      const strainProgress = Phaser.Math.Clamp((progress - 0.72) / 0.28, 0, 1);
-      const strain = Math.sin(progress * 74) * strainProgress;
-      const startWidth = width * 0.74;
-      const startHeight = height * 0.34;
-      const frameWidth = Math.max(
-        15,
-        Phaser.Math.Linear(startWidth, 15, compression) * (1 + strain * 0.04),
-      );
-      const frameHeight = Math.max(
-        7,
-        Phaser.Math.Linear(startHeight, 7, compression) * (1 - strain * 0.08),
+      const startSize = Math.min(width, height) * 0.74;
+      const frameSize = Math.max(
+        8,
+        Phaser.Math.Linear(startSize, 8, compression),
       );
 
-      for (let index = 0; index < 3; index += 1) {
-        const inset = index * 5;
-        this.world.lineStyle(
-          1,
-          index === 0 ? tone : COLORS.muted,
-          index === 0 ? 0.34 + progress * 0.42 : 0.12 + progress * 0.16,
-        );
-        this.world.strokeRect(
-          centerX - frameWidth / 2 + inset,
-          centerY - frameHeight / 2 + inset * 0.45,
-          Math.max(3, frameWidth - inset * 2),
-          Math.max(2, frameHeight - inset * 0.9),
-        );
-      }
-
-      for (let index = 0; index < 9; index += 1) {
-        const lane = (index + 1) / 10;
-        const startX = centerX + ((index % 4) - 1.5) * startWidth * 0.12;
-        const startY = centerY - startHeight / 2 + startHeight * lane;
-        const lineCenterX = Phaser.Math.Linear(
-          startX,
-          centerX + ((index % 3) - 1) * 2,
-          compression,
-        );
-        const lineY = Phaser.Math.Linear(
-          startY,
-          centerY + (index - 4) * 0.55,
-          compression,
-        );
-        const lineWidth = Phaser.Math.Linear(
-          startWidth * (0.1 + (index % 4) * 0.028),
-          2 + (index % 2),
-          compression,
-        );
-        this.world.fillStyle(
-          index % 4 === 0 ? tone : COLORS.muted,
-          0.18 + progress * 0.3,
-        );
-        this.world.fillRect(
-          Math.round(lineCenterX - lineWidth / 2),
-          Math.round(lineY),
-          Math.max(2, Math.round(lineWidth)),
-          index % 4 === 0 ? 2 : 1,
-        );
-      }
-
-      if (strainProgress > 0) {
-        for (let index = 0; index < 4; index += 1) {
-          const side = index % 2 === 0 ? -1 : 1;
-          const vertical = index < 2 ? -1 : 1;
-          const startX = centerX + side * frameWidth * 0.47;
-          const startY = centerY + vertical * frameHeight * 0.44;
-          this.world.lineStyle(1, COLORS.ink, strainProgress * 0.48);
-          this.world.lineBetween(
-            startX,
-            startY,
-            startX + side * (4 + strainProgress * 9),
-            startY + vertical * (2 + (index % 2) * 3),
-          );
-        }
-      }
-
-      const coreSize = 2 + Math.round(progress * 4);
-      this.world.fillStyle(tone, 0.52 + progress * 0.4);
-      this.world.fillRect(
-        Math.round(centerX - coreSize / 2),
-        Math.round(centerY - coreSize / 2),
-        coreSize,
-        coreSize,
+      this.world.lineStyle(1, tone, 0.34 + progress * 0.56);
+      this.world.strokeRect(
+        centerX - frameSize / 2,
+        centerY - frameSize / 2,
+        frameSize,
+        frameSize,
       );
       return;
     }
