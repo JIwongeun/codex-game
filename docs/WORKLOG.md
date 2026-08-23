@@ -21,6 +21,7 @@
 
 - 검증된 source commit `d2fc8c0`을 Sites version 5로 저장하고 owner-only production에 배포했다.
 - 배포 성공 후 live URL의 latest version이 5이며 access mode `custom`, owner 1명, group 0개, 외부 방문자 0명으로 유지됨을 확인했다.
+- owner-only live root가 HTTP 200으로 응답하고 배포된 hashed CSS·JavaScript에 PNG cursor, `(1, 1)` hotspot, pause blur, 중앙 재개 문구가 포함됐음을 인증된 production 요청으로 확인했다.
 - 사용자가 production 화면에서 cursor 크기·hotspot 감각과 pause blur 강도를 직접 확인한 뒤 필요한 시각 조정을 반영한다.
 
 ## 2026-08-23 — native cursor·전체 viewport·공격 UI 재설계
