@@ -15,7 +15,13 @@
 ### 검증
 
 - terminal·browser·Codex surface가 seeded phrase bank에서 모두 생성되는 회귀 테스트 추가
-- 사용자 요청에 따라 자동 browser 시각 판정은 하지 않고 typecheck·simulation tests·production build 뒤 실제 플레이 확인 예정
+- `pnpm check`: typecheck, Vitest 6 files의 46 tests, Worker/client production build 통과
+- 사용자 요청에 따라 자동 browser 시각 판정은 하지 않고 실제 플레이 확인을 사용자에게 넘김
+
+### production 반영
+
+- 검증된 source commit `2a76d0e`를 Sites version 11로 기존 owner-only production URL에 배포
+- 배포 완료 뒤 access mode `custom`, owner 1명, group 0개, 외부 방문자 0명을 다시 확인
 
 ## 2026-08-23 — terminal-scale 공격 표현과 block caret player 재설계
 
