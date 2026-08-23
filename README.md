@@ -15,7 +15,7 @@ Codex가 작업하는 동안 `>_` task node를 움직여 개발·vibe coding의 
 - 이동: `WASD` 또는 방향키
 - 시작·재시작·pause 해제: 클릭 또는 Space
 - 음소거: `M`
-- 목표: 랜덤 task log, snapshot review modal, `CONTEXT MAX`, `MERGE CONFLICT`를 피하며 오래 생존
+- 목표: 회전 task log, snapshot review, `CONTEXT MAX`, retry·fork·race·merge→`BUG!` 패턴을 피하며 오래 생존
 - 한 판: 시간 제한 없이 한 번 피격될 때까지
 - pause: 다른 탭으로 이동하면 simulation과 타이머가 멈추고 held movement key가 초기화됩니다.
 
@@ -62,4 +62,4 @@ pnpm check      # typecheck + test + build
 
 판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 기본 `log` 경로는 player 위치에 독립적이고, `review`는 생성 순간 위치만 snapshot합니다. projectile·hazard는 보이는 문자 block과 일치하는 rectangle hitbox를 사용합니다.
 
-개발 서버에서 `?qaElapsedSeconds=45`를 붙이면 네 공격이 모두 해금된 후반 난이도를 바로 확인할 수 있습니다. 이 옵션은 production build에서는 무시됩니다.
+개발 서버에서 `?qaElapsedSeconds=84`를 붙이면 7개 공격이 모두 해금된 Stage 8 조합 난이도를 바로 확인할 수 있습니다. 이 옵션은 production build에서는 무시됩니다.

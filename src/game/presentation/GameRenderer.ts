@@ -17,6 +17,13 @@ interface ParticleEffect extends Vec2 {
   size: number;
 }
 
+function directionBetweenPoints(from: Vec2, to: Vec2): Vec2 {
+  const deltaX = to.x - from.x;
+  const deltaY = to.y - from.y;
+  const magnitude = Math.hypot(deltaX, deltaY) || 1;
+  return { x: deltaX / magnitude, y: deltaY / magnitude };
+}
+
 export class GameRenderer {
   private readonly scene: Phaser.Scene;
   private readonly background: Phaser.GameObjects.Graphics;
@@ -25,8 +32,8 @@ export class GameRenderer {
   private readonly effectsLayer: Phaser.GameObjects.Graphics;
   private readonly projectileLabels = new Map<number, Phaser.GameObjects.Text>();
   private readonly hazardLabels = new Map<number, Phaser.GameObjects.Text>();
+  private readonly sequenceLabels = new Map<number, Phaser.GameObjects.Text>();
   private readonly particles: ParticleEffect[] = [];
-  private readonly projectileTrails = new Map<number, Vec2[]>();
   private hitFlashMs = 0;
 
   constructor(scene: Phaser.Scene) {
@@ -41,6 +48,12 @@ export class GameRenderer {
     for (const event of events) {
       if (event.type === "hazard-activated") {
         this.addBurst(state.player.position, 7, state.elapsedMs);
+      } else if (event.type === "pattern-burst") {
+        this.addBurst(
+          event.position,
+          event.kind === "merge-bug" ? 36 : 24,
+          state.elapsedMs,
+        );
       } else if (event.type === "player-hit") {
         this.hitFlashMs = 180;
         this.addBurst(state.player.position, 22, state.elapsedMs);
@@ -50,32 +63,32 @@ export class GameRenderer {
 
   render(state: GameState, frameDeltaMs: number): void {
     this.advanceEffects(frameDeltaMs);
-    this.updateProjectileTrails(state);
     this.drawBackground(state);
     this.world.clear();
     this.playerLayer.clear();
     this.effectsLayer.clear();
 
     this.drawHazards(state);
-    this.drawProjectileTrails(state);
+    this.drawSequences(state);
     this.drawProjectiles(state);
     this.syncProjectileLabels(state);
     this.syncHazardLabels(state);
+    this.syncSequenceLabels(state);
     this.drawPlayer(state);
     this.drawEffects();
 
     if (this.hitFlashMs > 0) {
       const strength = this.hitFlashMs / 180;
-      this.effectsLayer.fillStyle(COLORS.black, 0.08 * strength);
+      this.effectsLayer.fillStyle(COLORS.black, 0.14 * strength);
       this.effectsLayer.fillRect(0, 0, state.arena.width, state.arena.height);
     }
   }
 
   resetEffects(): void {
     this.particles.length = 0;
-    this.projectileTrails.clear();
     this.destroyTextMap(this.projectileLabels);
     this.destroyTextMap(this.hazardLabels);
+    this.destroyTextMap(this.sequenceLabels);
     this.hitFlashMs = 0;
   }
 
@@ -87,11 +100,7 @@ export class GameRenderer {
 
   private drawHazards(state: GameState): void {
     for (const hazard of state.hazards) {
-      if (hazard.kind === "context-max") {
-        this.drawContextMax(hazard);
-      } else {
-        this.drawMergeConflict(hazard);
-      }
+      this.drawContextMax(hazard);
     }
   }
 
@@ -106,14 +115,18 @@ export class GameRenderer {
           1,
         );
 
-    this.world.fillStyle(active ? COLORS.black : COLORS.soft, active ? 0.96 : 0.72);
+    this.world.fillStyle(
+      COLORS.black,
+      active ? 0.98 : 0.025 + progress * 0.035,
+    );
     this.world.fillRect(x, y, width, height);
 
     if (!active) {
-      const fillHeight = Math.max(2, Math.round(height * progress));
-      this.world.fillStyle(COLORS.black, 0.06 + progress * 0.1);
-      this.world.fillRect(x, y + height - fillHeight, width, fillHeight);
-      this.drawDashedRect(x, y, width, height, COLORS.ink, 0.72, 9, 6);
+      this.drawCornerBrackets(x, y, width, height, COLORS.black, 1, 24);
+      this.world.fillStyle(COLORS.black, 0.9);
+      this.world.fillRect(x, y - 4, width * progress, 4);
+      this.world.fillStyle(COLORS.black, 0.2 + progress * 0.55);
+      this.world.fillRect(x, y + height * progress - 1, width, 2);
 
       const segments = 12;
       const segmentWidth = width / segments;
@@ -122,183 +135,120 @@ export class GameRenderer {
         this.world.fillStyle(COLORS.black, filled ? 0.72 : 0.14);
         this.world.fillRect(
           x + index * segmentWidth + 1,
-          y + height - 4,
+          y + height - 9,
           Math.max(1, segmentWidth - 2),
-          2,
+          3,
         );
       }
       return;
     }
 
-    this.world.lineStyle(2, COLORS.black, 1);
-    this.world.strokeRect(x, y, width, height);
+    this.drawCornerBrackets(x, y, width, height, COLORS.surface, 0.95, 28);
     this.drawHatchRect(x, y, width, height, 13, COLORS.surface, 0.2);
-  }
-
-  private drawMergeConflict(hazard: AreaHazardState): void {
-    const { x, y, width, height } = this.hazardRect(hazard);
-    const active = hazard.phase === "active";
-    const warningProgress = active
-      ? 1
-      : Phaser.Math.Clamp(
-          1 - hazard.remainingMs / GAMEPLAY.mergeConflictTelegraphMs,
-          0,
-          1,
-        );
-
-    this.world.fillStyle(active ? COLORS.black : COLORS.soft, active ? 0.94 : 0.58);
-    this.world.fillRect(x, y, width, height);
-
-    if (active) {
-      this.world.lineStyle(2, COLORS.black, 1);
-      this.world.strokeRect(x, y, width, height);
-      this.drawHatchRect(x, y, width, height, 18, COLORS.surface, 0.18);
-    } else {
-      this.drawDashedRect(
-        x,
-        y,
-        width,
-        height,
-        COLORS.ink,
-        0.45 + warningProgress * 0.45,
-        12,
-        8,
-      );
-      this.drawConflictTicks(hazard, warningProgress);
-    }
-  }
-
-  private drawConflictTicks(
-    hazard: AreaHazardState,
-    progress: number,
-  ): void {
-    const { x, y, width, height } = this.hazardRect(hazard);
-    const color = COLORS.ink;
-    this.world.lineStyle(1, color, 0.16 + progress * 0.28);
-
-    if (hazard.axis === "horizontal") {
-      for (let offset = 20; offset < width; offset += 46) {
-        const centerX = x + offset;
-        this.world.lineBetween(centerX - 6, y + 8, centerX, y + height / 2);
-        this.world.lineBetween(centerX, y + height / 2, centerX + 6, y + height - 8);
-      }
-    } else {
-      for (let offset = 20; offset < height; offset += 46) {
-        const centerY = y + offset;
-        this.world.lineBetween(x + 8, centerY - 6, x + width / 2, centerY);
-        this.world.lineBetween(x + width / 2, centerY, x + width - 8, centerY + 6);
-      }
-    }
-  }
-
-  private drawProjectileTrails(state: GameState): void {
-    for (const projectile of state.projectiles) {
-      if (projectile.telegraphRemainingMs > 0) {
-        continue;
-      }
-
-      const trail = this.projectileTrails.get(projectile.id) ?? [];
-      for (let index = 0; index < trail.length; index += 1) {
-        const point = trail[index];
-        if (!point) {
-          continue;
-        }
-        const alpha = ((index + 1) / (trail.length + 1)) * 0.12;
-        const width = projectile.hitbox.width;
-        const height = projectile.hitbox.height;
-        this.world.lineStyle(1, COLORS.ink, alpha);
-        this.world.strokeRect(
-          Math.round(point.x - width / 2),
-          Math.round(point.y - height / 2),
-          width,
-          height,
-        );
-      }
-    }
   }
 
   private drawProjectiles(state: GameState): void {
     for (const projectile of state.projectiles) {
-      if (projectile.kind === "review") {
-        this.drawReview(projectile, state);
-      } else {
-        this.drawLog(projectile, state);
+      if (projectile.telegraphRemainingMs > 0) {
+        const progress = Phaser.Math.Clamp(
+          1 - projectile.telegraphRemainingMs / 1_300,
+          0,
+          1,
+        );
+        this.drawDottedRay(
+          projectile.position,
+          projectile.velocity,
+          Math.hypot(state.arena.width, state.arena.height) * 1.3,
+          COLORS.black,
+          0.28 + progress * 0.54,
+          projectile.kind === "log" ? 24 : 18,
+        );
+        continue;
       }
+
+      const length =
+        projectile.kind === "review" || projectile.kind === "race"
+          ? 96
+          : projectile.kind === "retry"
+            ? 76
+            : projectile.kind === "bug" || projectile.kind === "branch"
+              ? 34
+              : 54;
+      const alpha = projectile.kind === "bug" ? 0.8 : 0.54;
+      this.drawMotionRail(projectile, length, alpha);
     }
   }
 
-  private drawLog(projectile: ProjectileState, state: GameState): void {
-    const telegraphing = projectile.telegraphRemainingMs > 0;
-    const x = Math.round(projectile.position.x - projectile.hitbox.width / 2);
-    const y = Math.round(projectile.position.y - projectile.hitbox.height / 2);
+  private drawSequences(state: GameState): void {
+    for (const sequence of state.sequences) {
+      const progress = Phaser.Math.Clamp(
+        1 - sequence.remainingMs / sequence.durationMs,
+        0,
+        1,
+      );
+      for (const origin of sequence.origins) {
+        this.world.lineStyle(1, COLORS.black, 0.16 + progress * 0.34);
+        this.world.lineBetween(
+          origin.x,
+          origin.y,
+          sequence.position.x,
+          sequence.position.y,
+        );
+      }
 
-    if (telegraphing) {
-      const progress = 1 - projectile.telegraphRemainingMs / GAMEPLAY.logTelegraphMs;
-      this.drawDottedRay(
-        projectile.position,
-        projectile.velocity,
-        Math.hypot(state.arena.width, state.arena.height) * 1.2,
-        COLORS.ink,
-        0.18 + Math.max(0, progress) * 0.28,
-        28,
+      const pulse = 10 + Math.floor(progress * 18);
+      this.world.lineStyle(2, COLORS.black, 0.6 + progress * 0.4);
+      this.world.lineBetween(
+        sequence.position.x - pulse,
+        sequence.position.y,
+        sequence.position.x - 5,
+        sequence.position.y,
+      );
+      this.world.lineBetween(
+        sequence.position.x + 5,
+        sequence.position.y,
+        sequence.position.x + pulse,
+        sequence.position.y,
+      );
+      this.world.lineBetween(
+        sequence.position.x,
+        sequence.position.y - pulse,
+        sequence.position.x,
+        sequence.position.y - 5,
+      );
+      this.world.lineBetween(
+        sequence.position.x,
+        sequence.position.y + 5,
+        sequence.position.x,
+        sequence.position.y + pulse,
       );
     }
-
-    this.world.fillStyle(COLORS.surface, telegraphing ? 0.72 : 1);
-    this.world.fillRect(x, y, projectile.hitbox.width, projectile.hitbox.height);
-    this.world.lineStyle(1, COLORS.ink, telegraphing ? 0.48 : 0.92);
-    this.world.strokeRect(x, y, projectile.hitbox.width, projectile.hitbox.height);
-    this.world.fillStyle(COLORS.black, telegraphing ? 0.5 : 1);
-    this.world.fillRect(x + 4, y + projectile.hitbox.height / 2 - 2, 4, 4);
-  }
-
-  private drawReview(projectile: ProjectileState, state: GameState): void {
-    const telegraphing = projectile.telegraphRemainingMs > 0;
-    const { width, height } = projectile.hitbox;
-    const x = Math.round(projectile.position.x - width / 2);
-    const y = Math.round(projectile.position.y - height / 2);
-
-    if (telegraphing) {
-      const progress = 1 - projectile.telegraphRemainingMs / GAMEPLAY.reviewTelegraphMs;
-      this.drawDottedRay(
-        projectile.position,
-        projectile.velocity,
-        Math.hypot(state.arena.width, state.arena.height) * 1.3,
-        COLORS.black,
-        0.24 + progress * 0.44,
-        20,
-      );
-      this.drawDashedRect(x - 3, y - 3, width + 6, height + 6, COLORS.ink, 0.7, 7, 5);
-    }
-
-    this.world.fillStyle(telegraphing ? COLORS.surface : COLORS.black, 1);
-    this.world.fillRect(x, y, width, height);
-    this.world.lineStyle(telegraphing ? 1 : 2, COLORS.black, 1);
-    this.world.strokeRect(x, y, width, height);
-
-    const choiceY = y + height - 8;
-    this.world.lineStyle(1, telegraphing ? COLORS.border : COLORS.surface, 0.78);
-    this.world.strokeRect(x + 6, choiceY - 4, Math.max(18, width * 0.36), 6);
-    this.world.strokeRect(
-      x + width - Math.max(18, width * 0.26) - 6,
-      choiceY - 4,
-      Math.max(18, width * 0.26),
-      6,
-    );
   }
 
   private drawPlayer(state: GameState): void {
     const x = Math.round(state.player.position.x);
     const y = Math.round(state.player.position.y);
 
+    const blink = Math.floor(state.elapsedMs / 180) % 2 === 0;
+    const notchX = Math.round(x + state.player.direction.x * 20);
+    const notchY = Math.round(y + state.player.direction.y * 20);
+
     this.playerLayer.fillStyle(COLORS.surface, 1);
-    this.playerLayer.fillRect(x - 11, y - 8, 22, 16);
+    this.playerLayer.fillRect(x - 17, y - 14, 34, 28);
     this.playerLayer.fillStyle(COLORS.black, 1);
-    this.playerLayer.fillRect(x - 10, y - 7, 20, 14);
-    this.playerLayer.lineStyle(2, COLORS.surface, 1);
-    this.playerLayer.lineBetween(x - 5, y - 4, x - 1, y);
-    this.playerLayer.lineBetween(x - 1, y, x - 5, y + 4);
-    this.playerLayer.lineBetween(x + 2, y + 4, x + 7, y + 4);
+    this.playerLayer.fillRect(x - 15, y - 12, 30, 24);
+    this.playerLayer.lineStyle(3, COLORS.surface, 1);
+    this.playerLayer.lineBetween(x - 8, y - 6, x - 2, y);
+    this.playerLayer.lineBetween(x - 2, y, x - 8, y + 6);
+    this.playerLayer.lineBetween(x + 2, y + 6, x + (blink ? 10 : 7), y + 6);
+    this.playerLayer.fillStyle(COLORS.black, 1);
+    this.playerLayer.fillRect(notchX - 2, notchY - 2, 4, 4);
+
+    this.playerLayer.lineStyle(2, COLORS.black, 0.72);
+    this.playerLayer.lineBetween(x - 21, y - 16, x - 14, y - 16);
+    this.playerLayer.lineBetween(x - 21, y - 16, x - 21, y - 9);
+    this.playerLayer.lineBetween(x + 21, y + 16, x + 14, y + 16);
+    this.playerLayer.lineBetween(x + 21, y + 16, x + 21, y + 9);
   }
 
   private syncProjectileLabels(state: GameState): void {
@@ -308,28 +258,34 @@ export class GameRenderer {
       activeIds.add(projectile.id);
       let label = this.projectileLabels.get(projectile.id);
       if (!label) {
+        const fontSize = this.projectileFontSize(projectile);
         label = this.scene.add
           .text(0, 0, projectile.label, {
             color: TEXT_COLORS.ink,
             fontFamily: FONTS.sans,
-            fontSize: projectile.kind === "review" ? "8px" : "8px",
-            fontStyle: "650",
+            fontSize: `${fontSize}px`,
+            fontStyle:
+              projectile.kind === "review" || projectile.kind === "bug"
+                ? "820"
+                : "720",
+            stroke: TEXT_COLORS.surface,
+            strokeThickness: fontSize >= 19 ? 6 : 4,
           })
           .setOrigin(0.5)
           .setDepth(6);
         this.projectileLabels.set(projectile.id, label);
       }
 
-      const reviewActive =
-        projectile.kind === "review" && projectile.telegraphRemainingMs <= 0;
       label
         .setText(projectile.label)
         .setPosition(
-          Math.round(projectile.position.x + (projectile.kind === "log" ? 4 : 0)),
-          Math.round(projectile.position.y + (projectile.kind === "review" ? -5 : 0)),
+          Math.round(projectile.position.x),
+          Math.round(projectile.position.y),
         )
-        .setColor(reviewActive ? TEXT_COLORS.surface : TEXT_COLORS.ink)
-        .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.62 : 1)
+        .setRotation(this.readableProjectileRotation(projectile.velocity))
+        .setColor(TEXT_COLORS.ink)
+        .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.52 : 1)
+        .setScale(projectile.telegraphRemainingMs > 0 ? 0.94 : 1)
         .setVisible(true);
     }
 
@@ -347,8 +303,8 @@ export class GameRenderer {
           .text(0, 0, "", {
             color: TEXT_COLORS.ink,
             fontFamily: FONTS.sans,
-            fontSize: "10px",
-            fontStyle: "700",
+            fontSize: "18px",
+            fontStyle: "800",
           })
           .setOrigin(0.5)
           .setDepth(3);
@@ -364,29 +320,160 @@ export class GameRenderer {
               1,
             )
           : 1;
-      const text =
-        hazard.kind === "context-max"
-          ? active
-            ? "SIM CONTEXT  MAX!"
-            : `SIM CONTEXT  ${Math.round(progress * 100)}%`
-          : active
-            ? "<<<<<<<  MERGE CONFLICT  >>>>>>>"
-            : "<<<<<<< YOU   =======   AGENT >>>>>>>";
+      const text = active
+        ? "CONTEXT // MAX"
+        : `CONTEXT // ${Math.round(progress * 100)}%`;
 
       label
         .setText(text)
         .setPosition(Math.round(hazard.position.x), Math.round(hazard.position.y))
-        .setRotation(
-          hazard.kind === "merge-conflict" && hazard.axis === "vertical"
-            ? -Math.PI / 2
-            : 0,
-        )
+        .setRotation(0)
         .setColor(active ? TEXT_COLORS.surface : TEXT_COLORS.ink)
-        .setAlpha(active ? 1 : 0.78)
+        .setFontSize(22)
+        .setAlpha(active ? 1 : 0.9)
         .setVisible(true);
     }
 
     this.removeInactiveText(this.hazardLabels, activeIds);
+  }
+
+  private syncSequenceLabels(state: GameState): void {
+    const activeIds = new Set<number>();
+
+    for (const sequence of state.sequences) {
+      const progress = Phaser.Math.Clamp(
+        1 - sequence.remainingMs / sequence.durationMs,
+        0,
+        1,
+      );
+      for (let index = 0; index < sequence.origins.length; index += 1) {
+        const origin = sequence.origins[index]!;
+        const id = sequence.id * 100 + index;
+        activeIds.add(id);
+        let label = this.sequenceLabels.get(id);
+        if (!label) {
+          label = this.scene.add
+            .text(0, 0, "", {
+              color: TEXT_COLORS.ink,
+              fontFamily: FONTS.sans,
+              fontSize: sequence.kind === "fork-bomb" ? "18px" : "15px",
+              fontStyle: "780",
+              stroke: TEXT_COLORS.surface,
+              strokeThickness: 5,
+            })
+            .setOrigin(0.5)
+            .setDepth(5);
+          this.sequenceLabels.set(id, label);
+        }
+
+        const position = {
+          x: Phaser.Math.Linear(origin.x, sequence.position.x, progress),
+          y: Phaser.Math.Linear(origin.y, sequence.position.y, progress),
+        };
+        label
+          .setText(
+            sequence.kind === "fork-bomb"
+              ? sequence.label
+              : `change +${index + 1}`,
+          )
+          .setPosition(Math.round(position.x), Math.round(position.y))
+          .setRotation(
+            this.readableProjectileRotation(
+              directionBetweenPoints(origin, sequence.position),
+            ),
+          )
+          .setAlpha(0.72 + progress * 0.28)
+          .setVisible(true);
+      }
+
+      const coreId = sequence.id * 100 + 99;
+      activeIds.add(coreId);
+      let coreLabel = this.sequenceLabels.get(coreId);
+      if (!coreLabel) {
+        coreLabel = this.scene.add
+          .text(0, 0, "", {
+            color: TEXT_COLORS.ink,
+            fontFamily: FONTS.sans,
+            fontSize: "17px",
+            fontStyle: "820",
+            stroke: TEXT_COLORS.surface,
+            strokeThickness: 5,
+          })
+          .setOrigin(0.5)
+          .setDepth(5);
+        this.sequenceLabels.set(coreId, coreLabel);
+      }
+      coreLabel
+        .setText(
+          sequence.kind === "fork-bomb"
+            ? `FORK ${Math.round(progress * 100)}%`
+            : `git merge // ${Math.round(progress * 100)}%`,
+        )
+        .setPosition(sequence.position.x, sequence.position.y + 34)
+        .setVisible(true);
+    }
+
+    this.removeInactiveText(this.sequenceLabels, activeIds);
+  }
+
+  private projectileFontSize(projectile: ProjectileState): number {
+    if (projectile.kind === "review") {
+      return 20;
+    }
+    if (projectile.kind === "retry" || projectile.kind === "race") {
+      return 18;
+    }
+    if (projectile.kind === "bug") {
+      return 17;
+    }
+    if (projectile.kind === "branch") {
+      return 14;
+    }
+    return 16;
+  }
+
+  private readableProjectileRotation(direction: Vec2): number {
+    let angle = Math.atan2(direction.y, direction.x);
+    if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
+      angle += Math.PI;
+    }
+    return angle;
+  }
+
+  private drawMotionRail(
+    projectile: ProjectileState,
+    length: number,
+    alpha: number,
+  ): void {
+    const tailOrigin = {
+      x:
+        projectile.position.x -
+        projectile.velocity.x * (projectile.hitbox.width / 2 + 5),
+      y:
+        projectile.position.y -
+        projectile.velocity.y * (projectile.hitbox.width / 2 + 5),
+    };
+
+    this.world.lineStyle(
+      projectile.kind === "review" ||
+        projectile.kind === "race" ||
+        projectile.kind === "bug"
+        ? 3
+        : 2,
+      COLORS.black,
+      alpha,
+    );
+    this.world.lineBetween(
+      tailOrigin.x,
+      tailOrigin.y,
+      tailOrigin.x - projectile.velocity.x * length,
+      tailOrigin.y - projectile.velocity.y * length,
+    );
+
+    const endX = tailOrigin.x - projectile.velocity.x * length;
+    const endY = tailOrigin.y - projectile.velocity.y * length;
+    this.world.fillStyle(COLORS.black, alpha);
+    this.world.fillRect(Math.round(endX) - 2, Math.round(endY) - 2, 4, 4);
   }
 
   private drawDottedRay(
@@ -402,34 +489,30 @@ export class GameRenderer {
       this.world.fillRect(
         Math.round(origin.x + direction.x * distance) - 1,
         Math.round(origin.y + direction.y * distance) - 1,
-        2,
-        2,
+        3,
+        3,
       );
     }
   }
 
-  private drawDashedRect(
+  private drawCornerBrackets(
     x: number,
     y: number,
     width: number,
     height: number,
     color: number,
     alpha: number,
-    dash: number,
-    gap: number,
+    size: number,
   ): void {
-    this.world.lineStyle(1, color, alpha);
-    const step = dash + gap;
-    for (let offset = 0; offset < width; offset += step) {
-      const end = Math.min(width, offset + dash);
-      this.world.lineBetween(x + offset, y, x + end, y);
-      this.world.lineBetween(x + offset, y + height, x + end, y + height);
-    }
-    for (let offset = 0; offset < height; offset += step) {
-      const end = Math.min(height, offset + dash);
-      this.world.lineBetween(x, y + offset, x, y + end);
-      this.world.lineBetween(x + width, y + offset, x + width, y + end);
-    }
+    this.world.lineStyle(3, color, alpha);
+    this.world.lineBetween(x, y, x + size, y);
+    this.world.lineBetween(x, y, x, y + size);
+    this.world.lineBetween(x + width, y, x + width - size, y);
+    this.world.lineBetween(x + width, y, x + width, y + size);
+    this.world.lineBetween(x, y + height, x + size, y + height);
+    this.world.lineBetween(x, y + height, x, y + height - size);
+    this.world.lineBetween(x + width, y + height, x + width - size, y + height);
+    this.world.lineBetween(x + width, y + height, x + width, y + height - size);
   }
 
   private drawHatchRect(
@@ -484,39 +567,6 @@ export class GameRenderer {
     }
   }
 
-  private updateProjectileTrails(state: GameState): void {
-    const activeIds = new Set<number>();
-
-    for (const projectile of state.projectiles) {
-      activeIds.add(projectile.id);
-      if (projectile.telegraphRemainingMs > 0) {
-        continue;
-      }
-
-      const trail = this.projectileTrails.get(projectile.id) ?? [];
-      const last = trail.at(-1);
-      if (
-        !last ||
-        Math.hypot(
-          last.x - projectile.position.x,
-          last.y - projectile.position.y,
-        ) >= 16
-      ) {
-        trail.push({ ...projectile.position });
-        if (trail.length > 3) {
-          trail.shift();
-        }
-        this.projectileTrails.set(projectile.id, trail);
-      }
-    }
-
-    for (const id of this.projectileTrails.keys()) {
-      if (!activeIds.has(id)) {
-        this.projectileTrails.delete(id);
-      }
-    }
-  }
-
   private advanceEffects(frameDeltaMs: number): void {
     const safeDelta = Math.min(50, Math.max(0, frameDeltaMs));
     this.hitFlashMs = Math.max(0, this.hitFlashMs - safeDelta);
@@ -538,13 +588,13 @@ export class GameRenderer {
   private addBurst(position: Vec2, count: number, phase: number): void {
     for (let index = 0; index < count; index += 1) {
       const angle = phase + (Math.PI * 2 * index) / count;
-      const speed = 80 + (index % 4) * 24;
+      const speed = 110 + (index % 4) * 32;
       this.particles.push({
         ...position,
         velocity: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
         ageMs: 0,
-        durationMs: 260 + (index % 3) * 45,
-        size: 3 + (index % 2),
+        durationMs: 300 + (index % 3) * 55,
+        size: 5 + (index % 3),
       });
     }
   }

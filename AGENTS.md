@@ -106,7 +106,7 @@ pnpm check
 - `review`가 snapshot 조준 뒤 재조준하지 않음
 - 범위 공격 warning 무해·active 치명
 - blur/hidden pause와 held-key reset
-- 개발 전용 `?qaElapsedSeconds=45` 후반 공격 확인
+- 개발 전용 `?qaElapsedSeconds=84` Stage 8 조합 공격 확인
 - production build에서 개발 query가 무시됨
 
 검증하지 못한 항목은 완료했다고 표현하지 말고 WORKLOG에 남긴다.

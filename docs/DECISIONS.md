@@ -149,7 +149,15 @@
 ## D-019 — Codex task surface와 개발·vibe coding 공격 언어를 사용한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, D-012의 browser error page, D-015의 accent palette, D-018의 cursor silhouette 표현을 대체
+- 상태: 일부 대체됨 — D-020이 네 공격 계열과 작은 block 표현을 대체. monochrome task surface와 `>_` player는 유지
 - 배경: browser tab, pop-up, memory leak 중심 표현은 Codex를 기다리는 게임이라는 핵심 콘셉트와 개발자 공감을 충분히 전달하지 못했다. 색상별 공격도 사용자가 요청한 strict black-and-white 방향과 맞지 않았다.
 - 결정: 전체 화면을 white, black, gray만 쓰는 가상 Codex task surface로 바꾼다. player는 로고와 무관한 `>_` task node다. 공격은 `log`, `review`, `context-max`, `merge-conflict` 네 판정 계열로 구성하고 고정 phrase bank에서 일반 개발과 Codex·vibe coding 패러디를 seed 기반으로 선택한다. `log`는 player 좌표를 전혀 읽지 않고 임의 edge-to-edge로 이동하며, `review`만 생성 순간 위치를 snapshot하고 재조준하지 않는다.
 - 결과: 색 대신 task chip, approval modal, context fill, conflict band의 실루엣과 outline·hatch·inverse 단계로 위험을 구분한다. 실제 workspace, Codex session, context, approval 상태는 읽지 않으며 Ready와 HUD에 fictional simulation임을 명시한다. 새 공격 다양성은 우선 네 계열 안의 label·경로·pattern 변형으로 확보하고 새로운 판정 규칙이 필요할 때만 kind를 추가한다.
+
+## D-020 — 공격의 행동을 개발 용어의 의미와 결합하고 Stage 1–10으로 확장한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, 수치만 플레이 테스트로 조정 가능
+- 배경: 네 개의 작은 task chip·modal·band는 화면에서 일반 UI block처럼 보였고, 공격 이름을 다른 용어로 바꿔도 움직임이 성립해 개발 패러디의 개연성이 약했다. 긴 `merge-conflict` band는 `context-max` 영역 회피와 역할도 겹쳤다.
+- 결정: 투사체 block을 제거하고 명령어·상태 문구 자체를 진행 방향에 맞춰 회전시킨다. collision도 같은 방향의 oriented rectangle을 사용한다. 공격은 `LOG STREAM`, snapshot `REVIEW REQUEST`, 일점 `CONTEXT MAX`, 반복 `RETRY LOOP`, 분할 `FORK BOMB`, 교차 `RACE CONDITION`, 수렴 후 발산하는 `MERGE → BUG!`의 일곱 행동 패턴으로 나눈다. 기존 `merge-conflict` band는 제거한다. 12초 단위 Stage 1–10에서 Stage 7까지 패턴을 해금하고 Stage 8–10은 동시 수·속도·빈도·radial 탄 수를 올린다. Stage 10은 108초부터 최고 난이도에 고정한다.
+- 결과: `log`, `review`, `retry`, `branch`, `race`, `bug` projectile, `context-max` hazard, `fork-bomb`·`merge-bug` convergence sequence가 core state에서 분리된다. `RETRY`는 같은 snapshot을 시간차 반복하고, `READ()`와 `WRITE()`는 반대편에서 교차하며, `git branch --all`과 `git merge`는 각각 `BRANCH`와 `BUG!` radial projectile을 만든다. 상단 중앙 공격명 announcement는 제거하고 실제 공격 표현만으로 판독하게 한다.

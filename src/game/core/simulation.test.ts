@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FIXED_STEP_MS, GAMEPLAY } from "../constants";
 import type {
   AreaHazardState,
+  AttackSequenceState,
   GameState,
   ProjectileState,
 } from "./model";
@@ -22,7 +23,10 @@ function playingState(seed = 1, width = 1280, height = 720): GameState {
     logMs: 1_000_000,
     reviewMs: 1_000_000,
     contextMaxMs: 1_000_000,
-    mergeConflictMs: 1_000_000,
+    retryLoopMs: 1_000_000,
+    forkBombMs: 1_000_000,
+    raceConditionMs: 1_000_000,
+    mergeBugMs: 1_000_000,
   };
   return state;
 }
@@ -58,9 +62,25 @@ function hazard(
     label: "CONTEXT MAX!",
     position: { ...state.player.position },
     hitbox: { width: 180, height: 180 },
-    axis: null,
     phase: "telegraph",
     remainingMs: FIXED_STEP_MS * 2,
+    ...overrides,
+  };
+}
+
+function sequence(
+  overrides: Partial<AttackSequenceState> = {},
+): AttackSequenceState {
+  return {
+    id: 300,
+    kind: "fork-bomb",
+    label: "git branch --all",
+    position: { x: 160, y: 140 },
+    origins: [{ x: 0, y: 140 }],
+    remainingMs: FIXED_STEP_MS,
+    durationMs: GAMEPLAY.forkBombConvergeMs,
+    projectileCount: 8,
+    projectileSpeed: 320,
     ...overrides,
   };
 }
@@ -78,6 +98,7 @@ describe("survival simulation", () => {
     expect(first.player.position).toEqual({ x: 512, y: 384 });
     expect(first.projectiles).toEqual([]);
     expect(first.hazards).toEqual([]);
+    expect(first.sequences).toEqual([]);
     expect(first).toEqual(second);
     expect(startRun(first)).toEqual([]);
   });
@@ -259,13 +280,11 @@ describe("survival simulation", () => {
         position: { x: 1_100, y: 650 },
         hitbox: { width: 280, height: 280 },
       }),
-      hazard(state, {
-        id: 201,
-        kind: "merge-conflict",
-        label: "MERGE CONFLICT",
-        position: { x: 1_100, y: 360 },
-        axis: "vertical",
-        hitbox: { width: 150, height: 720 },
+    ];
+    state.sequences = [
+      sequence({
+        position: { x: 1_100, y: 650 },
+        origins: [{ x: 1_280, y: 700 }],
       }),
     ];
 
@@ -281,8 +300,8 @@ describe("survival simulation", () => {
     expect(state.hazards[0]!.position.x).toBeLessThanOrEqual(
       375 - state.hazards[0]!.hitbox.width / 2,
     );
-    expect(state.hazards[1]!.position.x).toBeLessThanOrEqual(375);
-    expect(state.hazards[1]!.hitbox.height).toBe(640);
+    expect(state.sequences[0]!.position.x).toBeLessThanOrEqual(375 - 36);
+    expect(state.sequences[0]!.origins[0]!.x).toBeLessThanOrEqual(375);
   });
 
   it("does not move without keyboard input", () => {
@@ -347,37 +366,36 @@ describe("survival simulation", () => {
     expect(state.lastHitSource).toBe("context-max");
   });
 
-  it("detects active horizontal and vertical merge conflict bands", () => {
-    for (const axis of ["horizontal", "vertical"] as const) {
-      const state = playingState();
-      state.hazards = [
-        hazard(state, {
-          kind: "merge-conflict",
-          label: "MERGE CONFLICT",
-          axis,
-          hitbox:
-            axis === "horizontal"
-              ? { width: state.arena.width, height: 100 }
-              : { width: 100, height: state.arena.height },
-          phase: "active",
-          remainingMs: 1_000,
-        }),
-      ];
+  it("matches projectile collision to its rotated text silhouette", () => {
+    const state = playingState(1, 800, 600);
+    state.player.position = { x: 450, y: 300 };
+    state.projectiles = [
+      projectile(state, {
+        position: { x: 400, y: 300 },
+        velocity: { x: 0, y: 1 },
+        hitbox: { width: 120, height: 20 },
+      }),
+    ];
 
-      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
-      expect(state.phase).toBe("results");
-      expect(state.lastHitSource).toBe("merge-conflict");
-    }
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(state.phase).toBe("playing");
+
+    state.player.position = { x: 400, y: 340 };
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(state.phase).toBe("results");
   });
 
-  it("spawns every attack family after the late-game threshold", () => {
+  it("spawns all seven semantic attack patterns at stage ten", () => {
     const state = playingState(77, 900, 600);
-    state.elapsedMs = GAMEPLAY.mergeConflictFirstSpawnMs;
+    state.elapsedMs = GAMEPLAY.difficultyRampMs;
     state.spawn = {
       logMs: 0,
       reviewMs: 0,
       contextMaxMs: 0,
-      mergeConflictMs: 0,
+      retryLoopMs: 0,
+      forkBombMs: 0,
+      raceConditionMs: 0,
+      mergeBugMs: 0,
     };
 
     const events = stepGame(
@@ -396,15 +414,118 @@ describe("survival simulation", () => {
       true,
     );
     expect(
-      state.hazards.some((candidate) => candidate.kind === "merge-conflict"),
+      state.projectiles.some((candidate) => candidate.kind === "retry"),
     ).toBe(true);
+    expect(
+      state.projectiles.some((candidate) => candidate.kind === "race"),
+    ).toBe(true);
+    expect(state.sequences.map((candidate) => candidate.kind).sort()).toEqual([
+      "fork-bomb",
+      "merge-bug",
+    ]);
+    expect(
+      state.sequences.find((candidate) => candidate.kind === "merge-bug")
+        ?.origins,
+    ).toHaveLength(8);
     expect(events.filter((event) => event.type === "hazard-warning")).toHaveLength(
-      2,
+      3,
+    );
+    expect(events.filter((event) => event.type === "pattern-warning")).toHaveLength(
+      4,
     );
     expect(
       state.projectiles.every((candidate) => candidate.telegraphRemainingMs > 0),
     ).toBe(true);
   });
+
+  it("retries one snapshot with numbered time-staggered projectiles", () => {
+    const state = playingState(15, 800, 600);
+    state.elapsedMs = GAMEPLAY.retryLoopFirstSpawnMs;
+    state.player.position = { x: 310, y: 260 };
+    state.spawn.retryLoopMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    const retries = state.projectiles.filter(
+      (candidate) => candidate.kind === "retry",
+    );
+    expect(retries.map((candidate) => candidate.label)).toEqual([
+      "RETRY 1/3",
+      "RETRY 2/3",
+      "RETRY 3/3",
+    ]);
+    expect(retries[0]!.telegraphRemainingMs).toBeLessThan(
+      retries[1]!.telegraphRemainingMs,
+    );
+    for (const retry of retries) {
+      const snapshotDirection = {
+        x: 310 - retry.position.x,
+        y: 260 - retry.position.y,
+      };
+      expect(
+        snapshotDirection.x * retry.velocity.y -
+          snapshotDirection.y * retry.velocity.x,
+      ).toBeCloseTo(0);
+    }
+  });
+
+  it("makes READ and WRITE race toward the same snapshot from opposite sides", () => {
+    const state = playingState(16, 800, 600);
+    state.elapsedMs = GAMEPLAY.raceConditionFirstSpawnMs;
+    state.player.position = { x: 360, y: 280 };
+    state.spawn.raceConditionMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    const race = state.projectiles.filter(
+      (candidate) => candidate.kind === "race",
+    );
+    expect(race.map((candidate) => candidate.label)).toEqual([
+      "READ()",
+      "WRITE()",
+    ]);
+    expect(
+      race[0]!.velocity.x * race[1]!.velocity.x +
+        race[0]!.velocity.y * race[1]!.velocity.y,
+    ).toBeCloseTo(-1);
+    expect(race[0]!.telegraphRemainingMs).toBe(
+      race[1]!.telegraphRemainingMs,
+    );
+  });
+
+  it.each([
+    ["fork-bomb", "branch", "BRANCH", 8],
+    ["merge-bug", "bug", "BUG!", 12],
+  ] as const)(
+    "turns %s convergence into a radial %s burst",
+    (sequenceKind, projectileKind, label, count) => {
+      const state = playingState(21, 800, 600);
+      state.sequences = [
+        sequence({
+          kind: sequenceKind,
+          label: sequenceKind === "fork-bomb" ? "git branch --all" : "git merge",
+          projectileCount: count,
+        }),
+      ];
+
+      const events = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      expect(state.sequences).toEqual([]);
+      expect(
+        state.projectiles.filter(
+          (candidate) => candidate.kind === projectileKind,
+        ),
+      ).toHaveLength(count);
+      expect(state.projectiles.every((candidate) => candidate.label === label)).toBe(
+        true,
+      );
+      expect(events).toContainEqual({
+        type: "pattern-burst",
+        kind: sequenceKind,
+        position: { x: 160, y: 140 },
+      });
+    },
+  );
 
   it("freezes the simulation after results and restarts cleanly", () => {
     const state = playingState(1, 800, 500);
@@ -425,6 +546,7 @@ describe("survival simulation", () => {
     expect(restarted.player.position).toEqual({ x: 400, y: 250 });
     expect(restarted.projectiles).toEqual([]);
     expect(restarted.hazards).toEqual([]);
+    expect(restarted.sequences).toEqual([]);
   });
 
   it("keeps values and entity caps valid across seeded responsive runs", () => {
@@ -452,6 +574,9 @@ describe("survival simulation", () => {
           GAMEPLAY.maxProjectiles,
         );
         expect(state.hazards.length).toBeLessThanOrEqual(GAMEPLAY.maxHazards);
+        expect(state.sequences.length).toBeLessThanOrEqual(
+          GAMEPLAY.maxSequences,
+        );
       }
     }
   });

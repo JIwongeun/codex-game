@@ -85,6 +85,30 @@ export function circleOverlapsRectangle(
   );
 }
 
+export function circleOverlapsOrientedRectangle(
+  circleCenter: Vec2,
+  circleRadius: number,
+  rectangleCenter: Vec2,
+  rectangle: RectangleHitbox,
+  direction: Vec2,
+): boolean {
+  const angle = Math.atan2(direction.y, direction.x);
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  const deltaX = circleCenter.x - rectangleCenter.x;
+  const deltaY = circleCenter.y - rectangleCenter.y;
+
+  return circleOverlapsRectangle(
+    {
+      x: deltaX * cosine + deltaY * sine,
+      y: -deltaX * sine + deltaY * cosine,
+    },
+    circleRadius,
+    { x: 0, y: 0 },
+    rectangle,
+  );
+}
+
 export function wrap(value: number, minimum: number, maximum: number): number {
   const range = maximum - minimum;
   return ((((value - minimum) % range) + range) % range) + minimum;

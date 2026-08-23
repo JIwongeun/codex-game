@@ -204,7 +204,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - Phaser `RESIZE`로 브라우저 viewport 전체를 논리 arena로 사용한다. resize 시 player와 범위 공격을 새 경계 안으로 clamp한다.
 - update에서 반복 생성되는 객체를 피한다.
-- 직선 공격은 최대 28개, 범위 공격은 최대 8개로 명시적 상한을 둔다.
+- 회전 text projectile은 최대 48개, context hazard와 convergence sequence는 각각 최대 4개로 명시적 상한을 둔다.
 - player 원과 projectile·hazard의 axis-aligned rectangle 교차로 보이는 문자 chip·범위와 판정을 맞춘다. 현재 상한에서는 공간 분할을 추가하지 않는다.
 - 에셋은 브라우저 캐시가 가능한 정적 파일로 제공한다.
 - 개발자 도구를 열지 않아도 오류 상태를 알 수 있게 한다.
@@ -217,7 +217,8 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - TypeScript typecheck
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
-- 완전 랜덤 `log`, snapshot `review`, 정사각 `context-max`, band `merge-conflict`의 예고·활성·피격 전이 테스트
+- 완전 랜덤 `log`, snapshot `review`, 일점 `context-max`, 반복 `retry`, 교차 `race`, `fork`·`merge` 수렴과 radial 분할 테스트
+- 회전한 text hitbox 충돌, 12초 단위 Stage 1–10 경계와 Stage 10 상한 테스트
 - `log` 경로가 player 위치에 독립적이고 `review`가 예고 중 재조준하지 않는 회귀 테스트
 - 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트
 - production build
@@ -232,7 +233,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - 랭킹을 구현한 경우의 API 연결 실패
 - 재시작 후 이전 게임 객체와 입력 listener가 남지 않는지
 
-개발 서버에서 `?qaElapsedSeconds=45`를 붙이면 시작한 run의 경과 시간을 45초로 설정하고 후반 공격 timer를 앞당겨 `MEMORY LEAK`과 `CONTEXT OVERFLOW`를 빠르게 확인할 수 있다. 이 분기는 `import.meta.env.DEV`로 제한되어 production build에는 적용되지 않는다.
+개발 서버에서 `?qaElapsedSeconds=84`를 붙이면 시작한 run을 Stage 8로 설정하고 7개 패턴 timer를 앞당겨 조합 공격을 빠르게 확인할 수 있다. 이 분기는 `import.meta.env.DEV`로 제한되어 production build에는 적용되지 않는다.
 
 ## 10. 배포 원칙
 

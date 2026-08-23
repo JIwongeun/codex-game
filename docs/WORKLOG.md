@@ -2,6 +2,35 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — 회전 text projectile, 7개 의미 기반 패턴과 Stage 1–10 재설계
+
+### 게임 규칙
+
+- 작은 task chip·approval modal과 긴 `merge-conflict` band를 제거하고, 명령어·상태 문구 자체가 진행 방향과 평행하게 회전하며 날아오도록 변경
+- 보이는 문구와 collision이 어긋나지 않도록 circle 대 oriented rectangle 충돌을 추가
+- `LOG STREAM`, `REVIEW REQUEST`, `CONTEXT MAX`, `RETRY LOOP`, `FORK BOMB`, `RACE CONDITION`, `MERGE → BUG!`의 7개 행동 패턴으로 재구성
+- `RETRY`는 같은 snapshot을 시간차 3–5회 반복하고, `READ()`·`WRITE()`는 반대편에서 같은 지점을 교차하도록 구현
+- `git branch --all` 수렴 뒤 8–16개 `BRANCH`, 여러 `change +N`의 `git merge` 뒤 12–20개 `BUG!`가 중심에서 56px 떨어진 위치부터 원형 발산하도록 sequence state 추가
+- 12초 단위 Stage 1–10을 도입하고 108초부터 속도·간격·동시 수·radial 수를 최고 난이도에 고정
+
+### UI·연출
+
+- projectile 사각 block과 사각 잔상을 제거하고 14–20px Pretendard Variable text, 흰 외곽 stroke, 짧은 motion rail로 교체
+- `CONTEXT`는 corner bracket, scan line, segmented progress와 active 흑백 반전으로 일점 폭발을 표현
+- `FORK`·`MERGE`는 화면 edge에서 수렴하는 실제 문구와 중심 진행률을 표시하고 완료 시 particle·camera shake·radial projectile을 동기화
+- player를 30×24 `>_` task node로 키우고 Pause headline을 작은 `PAUSED` 상태 표시로 낮춤
+- 상단 중앙 공격명·경고 announcement를 완전히 제거하고 HUD에는 stage, 시간, best, cleared와 조작만 유지
+
+### 자동 검증
+
+- `pnpm check`: typecheck, Vitest 6 files의 46 tests, Worker/client production build 통과
+- Stage 1–10 경계와 cap, 7개 패턴 해금, 같은 snapshot retry, 반대 방향 race, fork·merge radial 전이, 회전 hitbox, seeded 결정성, responsive resize와 entity cap을 회귀 테스트로 검증
+- 알려진 비차단 경고: Phaser 포함 client chunk가 Vite 기본 500kB 경고를 넘으며 gzip 약 330kB
+
+### 남은 확인
+
+- owner-only production에 배포한 뒤 사용자가 회전 문구 가독성, 수렴 과정, radial 회피 여유와 Stage별 실제 난이도를 직접 확인
+
 ## 2026-08-23 — Codex task surface와 개발·vibe coding 공격 전면 재설계
 
 ### 제품·문서

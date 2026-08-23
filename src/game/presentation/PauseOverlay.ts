@@ -16,14 +16,14 @@ export class PauseOverlay {
 
     const title = document.createElement("p");
     title.className = "pause-overlay__title";
-    title.textContent = "TASK SUSPENDED";
+    title.textContent = "PAUSED";
 
     this.timeText = document.createElement("p");
     this.timeText.className = "pause-overlay__time";
 
     const action = document.createElement("p");
     action.className = "pause-overlay__action";
-    action.textContent = ">  CLICK / SPACE TO RESUME";
+    action.textContent = "CLICK / SPACE TO CONTINUE";
 
     copy.append(title, this.timeText, action);
     this.element.append(copy);
@@ -34,7 +34,7 @@ export class PauseOverlay {
     this.element.hidden = !paused;
 
     if (paused) {
-      this.timeText.textContent = `SIMULATION FROZEN AT  ${formatSurvivalTime(elapsedMs)}`;
+      this.timeText.textContent = `RUN FROZEN  ·  ${formatSurvivalTime(elapsedMs)}`;
     }
   }
 

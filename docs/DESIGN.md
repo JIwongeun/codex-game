@@ -2,149 +2,117 @@
 
 ## 한 문장
 
-`Codex is working.` 화면 위로 개발과 vibe coding의 골칫거리들이 밀려들고, 플레이어는 작은 `>_` task node를 움직여 최대한 오래 작업을 지킨다.
+`Codex is working.` 화면에서 작은 `>_` task node를 움직여, 행동 자체가 개발 용어를 패러디하는 공격을 피하며 오래 버틴다.
 
-이 게임은 Codex UI 복제품이 아니다. 흰 task surface, 작은 상태 행, tool-call 같은 사각 블록, 간결한 진행 문구라는 구조적 인상을 게임 문법으로 번역한다.
+이 게임은 Codex UI 복제품이 아니다. 흰 task surface, 건조한 상태 문구, 넓은 여백과 개발 작업의 인과관계를 흑백 아케이드 문법으로 번역한다.
+
+## 핵심 설계 원칙
+
+공격 이름과 움직임은 분리될 수 없다. 이름을 다른 개발 용어로 바꿔도 성립하는 공격은 다시 설계한다.
+
+- `REVIEW REQUEST`는 요청 시점의 player 위치를 snapshot하고 이후 재조준하지 않는다.
+- `RETRY`는 같은 snapshot과 같은 목적을 시간차로 반복한다.
+- `git branch --all`은 한 줄로 수렴한 뒤 여러 `BRANCH`로 분할된다.
+- `READ()`와 `WRITE()`는 같은 자원을 반대편에서 동시에 차지하려 한다.
+- 여러 `change +N`은 `git merge` 지점으로 모이고, 결과가 `BUG!` 탄으로 전방위 발산한다.
+- `CONTEXT`는 0%에서 MAX까지 차오르는 동안만 피할 수 있고 MAX 순간 지정 영역이 활성화된다.
+
+상단 중앙에 공격 이름이나 설명 자막을 띄우지 않는다. 화면 안의 문구, 궤적, 수렴과 분할만으로 행동을 이해하게 한다.
 
 ## 감정 목표
 
 - 첫 3초: “Codex 기다릴 때 하는 게임이구나”를 이해한다.
-- 첫 15초: 익숙한 개발 문구가 공격으로 날아오는 상황에서 웃는다.
-- 첫 45초: 랜덤 탄막, snapshot 조준, 자리 이탈, band 회피의 차이를 학습한다.
-- 사망 직후: 원인이 명확하고 바로 다시 시작하고 싶다.
+- 첫 15초: 익숙한 문구 자체가 공격으로 날아오는 상황에서 웃는다.
+- 첫 45초: 랜덤 탄, snapshot 조준, 점 폭발과 반복 공격의 차이를 학습한다.
+- 72초 이후: branch 분할과 merge 폭발이 겹치며 패턴 조합을 읽는다.
+- 사망 직후: 피격 원인이 명확하고 바로 다시 시작하고 싶다.
 
 ## 시각 시스템
 
-### Palette
+### Palette와 Typography
 
-화면은 white, black, gray만 사용한다. 공격 종류는 색이 아니라 다음 조합으로 구분한다.
-
-- `log`: 얇은 gray outline, 짧은 code chip, 점선 경로
-- `review`: 큰 black outline modal, 굵은 제목, snapshot target line
-- `context-max`: 정사각 progress field, 아래에서 위로 차는 gray/black fill
-- `merge-conflict`: 긴 band, conflict marker 반복, hatch와 흑백 반전
-
-### Typography
-
-- 전 화면 `Pretendard Variable`을 사용한다.
-- 제목은 굵고 짧게, 상태·공격 문구는 11–14px 수준의 compact log처럼 표시한다.
-- 둥근 pill과 장식적 gradient를 사용하지 않는다.
-- 위험 전조는 작은 글씨를 숨기지 않고 outline, fill progress, 반복 marker로 중복 전달한다.
+- 화면은 white, black, gray만 사용한다.
+- 전 화면에 self-hosted `Pretendard Variable`을 사용한다.
+- 투사체는 사각 UI block이 아니라 14–20px의 굵은 명령어·상태 문구 자체다.
+- 문구 기준선은 진행 벡터와 평행하게 회전한다. 뒤집혀 읽히는 각도는 180도 보정하되 충돌 사각형의 방향은 동일하게 유지한다.
+- 흰 외곽 stroke와 짧은 motion rail로 흰 배경·검은 active 영역 모두에서 읽히게 한다.
+- 둥근 pill, gradient, 장식용 card, 작은 chip 군집은 사용하지 않는다.
 
 ### Player
 
-- 16×16 안팎의 검은 정사각 `TASK NODE`를 사용한다.
-- 내부에 흰색 `>_`를 pixel line으로 그린다.
+- 시각 크기는 약 30×24인 검은 `>_` task node다.
+- 실제 피격 반경은 6px로 시각 외곽보다 작아 정밀 회피에 관용을 둔다.
+- 진행 방향 notch와 hard-edge corner mark로 입력 방향을 보인다.
 - OS cursor, OpenAI logo, Codex logo를 모사하지 않는다.
-- 판정 중심과 그림 중심을 일치시킨다.
 
-## 화면 상태
+### 화면 상태
 
-### Ready
+- Ready: `Codex is working.`, 이동·한 번 피격 시 종료·실행 방법만 표시한다.
+- Playing: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 local best, 하단 조작과 fictional feed 고지만 유지한다.
+- Paused: 마지막 장면을 약하게 blur하고 중앙에는 작은 검은 `PAUSED` 상태와 재개 방법만 둔다.
+- Results: 정확한 피격 계열, 생존 시간, local best와 즉시 재시작만 표시한다.
 
-- 상단 작은 product mark: `CODEX / WAIT MODE`
-- 주 문구: `Codex is working.`
-- 보조 문구: `Use the wait time.`
-- task row:
-  - `> survive the queue`
-  - `Move with WASD / arrow keys.`
-  - `One hit ends the task.`
-- 실행: `CLICK / SPACE TO RUN`
-- 하단 고지: `PARODY SIMULATION · NOT CONNECTED TO YOUR CODEX SESSION`
+## 7개 공격 패턴
 
-### Playing
+| 해금 | 패턴 | 화면 문구 | 행동과 개연성 |
+|---|---|---|---|
+| Stage 1 | `LOG STREAM` | `CI: FAILED`, `TS2322`, `ONE MORE CHANGE` 등 | player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge로 흐른다. 일상적인 log가 예측 불가능하게 작업 화면을 가로지른다. |
+| Stage 2 | `REVIEW REQUEST` | `APPROVAL REQUIRED`, `NEEDS REBASE` 등 | 생성 순간 player 위치를 snapshot하고 점선 경로를 고정한 뒤 돌진한다. 코드가 움직여도 이미 요청된 review 대상은 바뀌지 않는다. |
+| Stage 3 | `CONTEXT MAX` | `CONTEXT // 0–100%` | snapshot 지점의 정사각 context field가 차오른 뒤 0.5초 활성화된다. 경고 중에는 무해하다. |
+| Stage 4 | `RETRY LOOP` | `RETRY 1/3`, `2/3`, `3/3` | 같은 snapshot을 향해 260ms 간격으로 같은 작업을 반복한다. 후반에는 최대 5회다. |
+| Stage 5 | `FORK BOMB` | `git branch --all` → `BRANCH` | 명령어 하나가 지정 지점으로 들어가고 완료 순간 8–16개 branch 탄으로 균등 원형 분할된다. |
+| Stage 6 | `RACE CONDITION` | `READ()` / `WRITE()` | 같은 snapshot을 향해 화면 반대편 두 작업이 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
+| Stage 7 | `MERGE → BUG!` | 여러 `change +N`, `git merge` → `BUG!` | 4–8개 변경이 player snapshot 지점으로 수렴한다. merge 완료 순간 12–20개 `BUG!` 탄이 원형 발산한다. |
 
-- 왼쪽 위: `TASK RUNNING`, level, cleared count
-- 오른쪽 위: 현재 생존 시간과 local best
-- 아래: 조작과 음소거 hint, 패러디 고지
-- 위험 알림은 상단 중앙 한 줄만 사용한다.
+`LOG`, `REVIEW`, `RETRY`, `RACE`, `BRANCH`, `BUG`는 각각 별도 projectile kind와 회전 사각 hitbox를 가진다. `CONTEXT MAX`만 warning/active를 갖는 area hazard다. `FORK`와 `MERGE`는 수렴 완료 시 projectile을 생성하는 sequence state다.
 
-### Paused
+## 10단계 시간 곡선
 
-- 뒤 게임 화면을 blur한다.
-- 중앙에 `TASK PAUSED`, 현재 시간, `CLICK / SPACE TO RESUME`만 표시한다.
-- 전체를 불투명 panel로 덮지 않는다.
+Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고 난이도에 고정된다.
 
-### Results
+| Stage | 시간 | 변화 |
+|---|---:|---|
+| 1 | 0–11.99초 | 무작위 `LOG STREAM` |
+| 2 | 12–23.99초 | snapshot `REVIEW REQUEST` 해금 |
+| 3 | 24–35.99초 | 일점 `CONTEXT MAX` 해금 |
+| 4 | 36–47.99초 | `RETRY LOOP` 3연사 해금 |
+| 5 | 48–59.99초 | `FORK BOMB` 8방향 분할 해금, log 2연사 가능 |
+| 6 | 60–71.99초 | `RACE CONDITION` 1 pair 해금, retry 4회 |
+| 7 | 72–83.99초 | `MERGE → BUG!` 4개 수렴·12방향 발산 해금 |
+| 8 | 84–95.99초 | context 2개, fork 12방향, race 2 pair 조합 |
+| 9 | 96–107.99초 | log 3연사, retry 5회, merge 6개·16방향 |
+| 10 | 108초 이후 | context 3개, fork 16방향, race 3 pair, merge 8개·20방향과 최대 속도·최저 간격 |
 
-- `Task failed.`와 정확한 피격 원인을 표시한다.
-- 생존 시간, local best, cleared count만 유지한다.
-- `CLICK / SPACE TO RETRY`로 즉시 재시작한다.
-
-## 공격 사양
-
-| 순서 | 내부 kind | 표시명 | 공감과 개연성 | 움직임·판정 | 난이도 상승 |
-|---|---|---|---|---|---|
-| 1 | `log` | `ONE MORE CHANGE` | 끝났다고 생각하면 계속 생기는 수정, CI, tool log | 임의 edge에서 반대 edge의 임의 지점으로 이동. player 좌표를 생성·예고·이동 중 전혀 읽지 않는다. chip 사각 hitbox | 0초부터, 간격 1.15→0.32초, 속도 280→620, volley 1→4 |
-| 2 | `review` | `APPROVAL REQUIRED` 계열 | 흐름 중간에 뜨는 승인·review 요청 | spawn 순간 player 위치만 snapshot. 약 0.95초 modal·점선 예고 후 고정 경로로 돌진, 재조준 없음 | 12초부터, 간격 5.8→2.8초, 속도 520→820 |
-| 3 | `context-max` | `CONTEXT MAX` | 대화와 수정이 길어져 simulated context가 가득 참 | 고정된 정사각 영역이 0→MAX로 차오름. warning은 무해, MAX 순간 약 0.5초 내부 치명 | 24초부터, 간격 8.5→5.5초, 영역 132→216px |
-| 4 | `merge-conflict` | `MERGE CONFLICT` | 끝나려는 순간 충돌하는 branch와 changes requested | 임의 수평·수직 band가 conflict marker로 닫힘. warning은 무해, 반전된 active 약 0.6초만 치명 | 42초부터, 간격 11→7초, 두께 90→140px |
-
-120초 이후에는 수치를 고정한다. 새로운 규칙을 계속 추가하지 않고 기존 네 규칙의 조합 밀도만 올린다.
-
-## 문구 Pool
-
-### Generic development
-
-- `CI: FAILED`
-- `TS2322`
-- `lint: 38 errors`
-- `git commit --amend`
-- `rebase required`
-- `PR #404`
-- `working tree dirty`
-- `tests still running...`
-
-### Codex·vibe coding
-
-- `one more change`
-- `retrying tool 3/3`
-- `approval required`
-- `context left: 12%`
-- `reading AGENTS.md`
-- `checking workspace...`
-- `almost done`
-- `fixing one last test`
-
-### Review modal variants
-
-- `APPROVAL REQUIRED`
-- `REQUEST CHANGES`
-- `NEEDS REBASE`
-- `RUN COMMAND?`
-
-공격 다양성은 같은 판정 계열 안에서 label, hitbox 폭, 진입 edge, target edge, axis, hatch·marker 리듬을 seeded 변형하는 방식으로 확보한다. 새 공격을 추가할 때도 기존 kind 하나에 억지로 예외를 넣지 말고, 새로운 예고·이동·판정 규칙이 실제로 필요할 때만 별도 kind로 추가한다.
-
-이 문구는 모두 게임 안의 가상 상태다. 실제 repository, Codex task, context, approval 상태를 읽거나 표시하지 않는다. 숫자와 상태가 등장할 때는 ready/footer의 패러디 고지와 `SIM` 표기를 함께 유지한다.
+단계 사이에서 속도와 생성 간격은 연속 보간한다. 해금·동시 수·분할 수는 표의 stage 경계에서만 바뀐다.
 
 ## 공정성과 가독성 불변식
 
-- 모든 공격은 치명 단계 전에 시각 경고가 있다.
-- warning과 active는 fill/outline 반전으로 구분되며 색상에 의존하지 않는다.
-- 기본 `log`는 player targeting을 절대 하지 않는다.
-- `review`와 `context-max`는 spawn 후 위치를 추적하지 않는다.
-- 75초 전에는 area hazard를 동시에 둘 이상 active로 만들지 않는다.
-- projectile은 최대 28개, hazard는 최대 8개로 제한한다.
-- HUD와 공격 글자가 겹쳐도 player와 active 범위가 묻히지 않게 위험 표현 depth를 우선한다.
-- 작은 viewport에서도 공격 hitbox와 시각 형태가 같은 위치에 머문다.
+- 모든 조준·영역·수렴 공격은 치명 단계 전에 경로 또는 진행률을 보인다.
+- 기본 `LOG STREAM`만 짧은 진입 예고를 사용하며 player를 조준하지 않는다.
+- 조준점은 생성 뒤 추적하지 않는다. 움직여서 회피할 수 있어야 한다.
+- 회전한 문구와 collision rectangle은 같은 각도를 사용한다.
+- radial projectile은 폭발 중심에서 56px 떨어져 생성되어 중심에 있던 player를 즉시 판정하지 않는다.
+- projectile은 최대 48개, context hazard와 convergence sequence는 각각 최대 4개다.
+- entity cap에 걸리면 일부 탄만 안전하게 생략하고 결정성은 유지한다.
+- 작은 viewport resize 후에도 player, context와 sequence 중심은 유효 범위에 남는다.
 
 ## 코드 책임
 
-- `core/model.ts`: 의미 있는 kind와 hitbox 계약
-- `core/rules.ts`: 해금 시각과 난이도 곡선
-- `core/simulation.ts`: seeded spawn, 이동, 단계, 충돌
-- `presentation/GameRenderer.ts`: 공격별 문자·선·패턴 표현과 player node
-- `presentation/Hud.ts`: Ready, Playing, Results 상태와 위험 알림
+- `core/model.ts`: projectile, hazard, convergence sequence와 event 계약
+- `core/rules.ts`: 12초 단위 Stage 1–10, 해금과 연속 난이도 곡선
+- `core/simulation.ts`: seeded spawn, snapshot, 수렴·분할, 회전 충돌, entity cap
+- `presentation/GameRenderer.ts`: 회전 텍스트, 경로, context progress, convergence와 particle 표현
+- `presentation/Hud.ts`: Ready, Playing, Results와 stage 표시. 공격명 announcement는 금지
 - `presentation/PauseOverlay.ts`: focus pause 표현
-- `services/SoundService.ts`: warning, active, hit의 최소 tone
+- `services/SoundService.ts`: warning, convergence burst, hit의 최소 tone
 
-Presentation은 판정을 만들지 않고 simulation state만 그린다. 문구 폭 때문에 필요한 hitbox는 simulation model에 명시하여 보이는 크기와 판정 크기를 맞춘다.
+Presentation은 판정을 만들지 않고 simulation state만 그린다. 문구 폭과 방향에 필요한 hitbox는 simulation model에 명시한다.
 
-## 이번 1차 구현의 완료 조건
+## 현재 완료 조건
 
-- 네 공격이 사양대로 spawn·예고·발동·충돌한다.
-- 화면 전체가 strict monochrome이며 기존 blue, amber, violet, red, green accent가 남지 않는다.
-- Ready, pause, results가 같은 Codex task surface 문법을 공유한다.
-- cursor avatar가 `>_` task node로 교체된다.
-- core 회귀 테스트, typecheck, production build가 통과한다.
-- owner-only production URL에서 사용자가 직접 조작감과 가독성을 확인할 수 있다.
+- 7개 패턴이 각각 문구의 의미와 일치하는 spawn·예고·이동·분할을 가진다.
+- Stage 1–10 경계와 Stage 10 cap이 자동 테스트로 고정된다.
+- 상단 중앙 공격 설명이 없고 실제 공격 표현만으로 판독 가능하다.
+- strict monochrome, Pretendard Variable, 전체 viewport 규칙을 유지한다.
+- typecheck, deterministic simulation tests, seeded entity-cap soak와 production build가 통과한다.
+- owner-only production에서 사용자가 실제 가독성과 난이도를 확인한다.

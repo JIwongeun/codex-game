@@ -9,10 +9,24 @@ export interface ArenaBounds {
 }
 
 export type GamePhase = "ready" | "playing" | "results";
-export type ProjectileKind = "log" | "review";
-export type HazardKind = "context-max" | "merge-conflict";
+export type ProjectileKind =
+  | "log"
+  | "review"
+  | "retry"
+  | "branch"
+  | "race"
+  | "bug";
+export type HazardKind = "context-max";
 export type HazardPhase = "telegraph" | "active";
-export type SweepAxis = "horizontal" | "vertical";
+export type SequenceKind = "fork-bomb" | "merge-bug";
+export type AttackPatternKind =
+  | "log-stream"
+  | "review-request"
+  | "context-max"
+  | "retry-loop"
+  | "fork-bomb"
+  | "race-condition"
+  | "merge-bug";
 export type HitSource = ProjectileKind | HazardKind;
 
 export type LogLabel =
@@ -36,8 +50,8 @@ export type ReviewLabel =
   | "NEEDS REBASE"
   | "RUN COMMAND?";
 
-export type ProjectileLabel = LogLabel | ReviewLabel;
-export type HazardLabel = "CONTEXT MAX!" | "MERGE CONFLICT";
+export type ProjectileLabel = LogLabel | ReviewLabel | string;
+export type HazardLabel = "CONTEXT MAX!";
 
 export interface RectangleHitbox {
   width: number;
@@ -67,16 +81,30 @@ export interface AreaHazardState {
   label: HazardLabel;
   position: Vec2;
   hitbox: RectangleHitbox;
-  axis: SweepAxis | null;
   phase: HazardPhase;
   remainingMs: number;
+}
+
+export interface AttackSequenceState {
+  id: number;
+  kind: SequenceKind;
+  label: string;
+  position: Vec2;
+  origins: Vec2[];
+  remainingMs: number;
+  durationMs: number;
+  projectileCount: number;
+  projectileSpeed: number;
 }
 
 export interface SpawnTimers {
   logMs: number;
   reviewMs: number;
   contextMaxMs: number;
-  mergeConflictMs: number;
+  retryLoopMs: number;
+  forkBombMs: number;
+  raceConditionMs: number;
+  mergeBugMs: number;
 }
 
 export interface GameState {
@@ -93,6 +121,7 @@ export interface GameState {
   player: PlayerState;
   projectiles: ProjectileState[];
   hazards: AreaHazardState[];
+  sequences: AttackSequenceState[];
   spawn: SpawnTimers;
 }
 
@@ -104,5 +133,7 @@ export type GameEvent =
   | { type: "run-started" }
   | { type: "hazard-warning"; kind: HazardKind }
   | { type: "hazard-activated"; kind: HazardKind }
+  | { type: "pattern-warning"; kind: SequenceKind | "retry-loop" | "race-condition" }
+  | { type: "pattern-burst"; kind: SequenceKind; position: Vec2 }
   | { type: "player-hit"; source: HitSource }
   | { type: "run-ended"; finalScore: number; source: HitSource };

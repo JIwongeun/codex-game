@@ -137,12 +137,17 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.gameRenderer.consume(events, this.state);
-    this.hud.consume(events, this.state);
     this.soundService.consume(events);
 
     for (const event of events) {
       if (event.type === "hazard-activated") {
         this.cameras.main.shake(70, 0.0015, true);
+      } else if (event.type === "pattern-burst") {
+        this.cameras.main.shake(
+          event.kind === "merge-bug" ? 130 : 90,
+          event.kind === "merge-bug" ? 0.004 : 0.0025,
+          true,
+        );
       } else if (event.type === "player-hit") {
         this.cameras.main.shake(180, 0.008, true);
       } else if (event.type === "run-ended") {
@@ -211,9 +216,12 @@ export class GameScene extends Phaser.Scene {
     this.state.spawn.logMs = Math.min(this.state.spawn.logMs, 250);
     this.state.spawn.reviewMs = Math.min(this.state.spawn.reviewMs, 350);
     this.state.spawn.contextMaxMs = Math.min(this.state.spawn.contextMaxMs, 450);
-    this.state.spawn.mergeConflictMs = Math.min(
-      this.state.spawn.mergeConflictMs,
-      550,
+    this.state.spawn.retryLoopMs = Math.min(this.state.spawn.retryLoopMs, 520);
+    this.state.spawn.forkBombMs = Math.min(this.state.spawn.forkBombMs, 620);
+    this.state.spawn.raceConditionMs = Math.min(
+      this.state.spawn.raceConditionMs,
+      720,
     );
+    this.state.spawn.mergeBugMs = Math.min(this.state.spawn.mergeBugMs, 820);
   }
 }

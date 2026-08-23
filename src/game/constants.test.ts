@@ -17,7 +17,7 @@ describe("game requirements", () => {
     expect(GAMEPLAY.playerRadius * 2).toBeLessThan(
       GAMEPLAY.reviewHitboxHeight,
     );
-    expect(GAMEPLAY.maxProjectiles).toBe(28);
+    expect(GAMEPLAY.maxProjectiles).toBe(48);
     expect(GAMEPLAY.playerSpeed).toBeGreaterThan(0);
   });
 

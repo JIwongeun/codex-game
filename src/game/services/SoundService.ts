@@ -49,11 +49,27 @@ export class SoundService {
         });
       } else if (event.type === "hazard-warning") {
         this.play({
-          frequency: event.kind === "merge-conflict" ? 180 : 240,
-          endFrequency: event.kind === "merge-conflict" ? 120 : 180,
+          frequency: 240,
+          endFrequency: 180,
           durationSeconds: 0.12,
           gain: 0.025,
           wave: "triangle",
+        });
+      } else if (event.type === "pattern-warning") {
+        this.play({
+          frequency: event.kind === "merge-bug" ? 170 : 220,
+          endFrequency: event.kind === "merge-bug" ? 110 : 160,
+          durationSeconds: 0.1,
+          gain: 0.02,
+          wave: "triangle",
+        });
+      } else if (event.type === "pattern-burst") {
+        this.play({
+          frequency: event.kind === "merge-bug" ? 92 : 150,
+          endFrequency: event.kind === "merge-bug" ? 46 : 80,
+          durationSeconds: 0.16,
+          gain: 0.04,
+          wave: "square",
         });
       } else if (event.type === "player-hit") {
         this.play({

@@ -26,7 +26,7 @@
 
 ## 3. 핵심 경험
 
-플레이어는 Canvas가 직접 그리는 hard-edge 검은 `>_` agent prompt다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 task log의 진행 방향과 `approval`, `context`, `merge` 범위 예고를 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
+플레이어는 Canvas가 직접 그리는 hard-edge 검은 `>_` agent prompt다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 회전 명령어, snapshot review, context 점 폭발, retry·race·branch·merge 수렴 패턴을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
 
 핵심 감정은 다음 세 단계다.
 
@@ -53,19 +53,23 @@
 - 플레이어는 화면 경계를 넘지 않는다.
 - 화면에는 작은 검은 `>_` task node를 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
 - 탭 blur/hidden pause 중에는 simulation과 타이머를 동결하고 held movement key를 초기화한다. 복귀 후 클릭 또는 Space로 재개한다.
-- 직선 공격은 보이는 task chip·review modal과 일치하는 사각 hitbox를 사용하고 player는 작은 원형 hitbox를 사용한다.
+- 직선 공격은 보이는 명령어 외곽과 같은 방향으로 회전하는 사각 hitbox를 사용하고 player는 작은 원형 hitbox를 사용한다.
 - 프레임률과 관계없이 60 Hz 고정 timestep으로 이동과 충돌을 판정한다.
 
 ### 난이도 단계
 
-난이도는 생존 시간에 따라 연속적으로 상승하며 15초마다 HUD level이 오른다. 생성 간격과 속도는 최대 120초까지 증가한 뒤 안전한 상한에서 유지한다.
+난이도는 12초 단위 Stage 1–10으로 표시한다. 속도와 생성 간격은 108초까지 연속 상승하고, 해금·동시 수·분할 수는 stage 경계에서 증가한 뒤 Stage 10 상한에 고정된다.
 
-1. `ONE MORE CHANGE` — 시작부터 임의 edge에서 반대 edge로 개발·Codex log chip이 날아온다. player 좌표를 전혀 읽지 않는 완전 랜덤 기본 탄막이다.
-2. `APPROVAL REQUIRED` — 12초부터 approval·review modal이 생성 순간 player 위치만 snapshot하고 경로를 예고한 뒤 재조준 없이 돌진한다.
-3. `CONTEXT MAX` — 24초부터 고정 정사각 simulated context 영역이 `0% → MAX!`로 차오른 뒤 짧게 활성화한다.
-4. `MERGE CONFLICT` — 42초부터 conflict marker가 있는 임의 수평 또는 수직 band가 예고 후 활성화한다.
+1. Stage 1 `LOG STREAM` — player 좌표와 무관한 무작위 개발·Codex 문구 탄막
+2. Stage 2 `REVIEW REQUEST` — 생성 순간 player 위치를 snapshot한 고정 조준
+3. Stage 3 `CONTEXT MAX` — 지정 지점이 `0% → MAX`로 차오른 뒤 일점 영역 활성화
+4. Stage 4 `RETRY LOOP` — 같은 snapshot을 향한 3–5회 시간차 반복
+5. Stage 5 `FORK BOMB` — `git branch --all` 수렴 후 8–16개 `BRANCH`로 원형 분할
+6. Stage 6 `RACE CONDITION` — `READ()`와 `WRITE()`가 반대편에서 같은 지점을 교차
+7. Stage 7 `MERGE → BUG!` — 4–8개 변경이 `git merge`로 수렴한 뒤 12–20개 `BUG!`로 발산
+8. Stage 8–10 — 앞 패턴의 동시 수, 속도, 빈도와 조합 밀도를 최고치까지 상승
 
-같은 공격 계열 안에서도 label, hitbox 폭, 진입 edge, target edge, axis, pattern을 seed 기반으로 바꾼다. 고정 phrase bank에는 일반 개발 문구와 `context left`, `retrying tool`, `reading AGENTS.md`, `approval required` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
+각 용어는 label뿐 아니라 이동과 결과로 의미를 전달한다. 고정 phrase bank에는 일반 개발 문구와 `context left`, `retrying tool`, `reading AGENTS.md`, `approval required` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
 
 예고 단계는 항상 무해하고, 활성화 단계만 피격을 발생시킨다. 공격 개체와 범위 수에는 명시적 상한을 둔다.
 
@@ -88,7 +92,7 @@
 - 격자, 패널, 상단 점수 바, 장식용 배경은 사용하지 않는다.
 - white, black, gray만 사용한다. 공격은 색이 아니라 outline, fill density, hatch, marker, 흑백 반전으로 구분한다.
 - 둥근 card와 부드러운 장식을 피하고 각진 1px frame, square pixel, stepped trail, tool-call row로 개발 도구의 digital 질감을 만든다.
-- HUD와 overlay의 모든 텍스트는 `Pretendard Variable`을 사용하고 굵기·자간으로 정보 계층을 구분한다.
+- HUD와 overlay의 모든 텍스트는 `Pretendard Variable`을 사용하고 굵기·자간으로 정보 계층을 구분한다. 상단 중앙 공격명 announcement는 표시하지 않는다.
 - 시작과 결과 화면은 Codex의 가상 task surface처럼 넓은 여백, 작은 상태 행, 건조한 실행 문구를 사용한다. 로고나 실제 제품 UI는 복제하지 않는다.
 - 탭 blur/hidden으로 멈춘 동안에는 결과 화면처럼 장면을 덮지 않는다. 마지막 게임 장면을 흐리게 남기고 중앙 pause 문구만 표시한다.
 - pause 중에는 마지막 장면과 player 위치를 blur 아래에 그대로 남기고 중앙 재개 문구만 표시한다.
@@ -100,15 +104,15 @@
 - Ready → Playing → Results → Retry 상태
 - 검은 `>_` task node의 WASD·방향키 8방향 이동
 - 한 번 피격 시 종료와 생존 시간 기록
-- 직선 공격 2종과 범위 공격 2종
-- 시간 기반 난이도 상승과 공격 상한
+- 의미가 다른 공격 패턴 7종과 수렴·분할 sequence
+- 12초 단위 Stage 1–10 난이도 상승과 공격 상한
 - 브라우저 로컬 최고 생존 기록
 - 음소거 가능한 기본 효과음
 - 소유자 전용 production 개발 빌드와 제출 직전 공개 전환
 
 ## 8. MVP 제외 범위
 
-- 공격, 스킬, 아이템, 성장 선택지
+- player 공격, 스킬, 아이템, 성장 선택지
 - 목숨, 회복, 무적 시간
 - 수집물, 꼬리, `COMPACT`, 점수 배율
 - 실시간 다른 플레이어 또는 봇으로 위장한 플레이어
@@ -131,7 +135,7 @@
 - 새 플레이어가 짧은 안내만 보고 WASD 또는 방향키로 이동해 첫 공격을 피한다.
 - 첫 판 종료 후 5초 안에 재시작 방법을 이해한다.
 - 사망 원인이 공격 실루엣이나 결과 문구로 이해된다.
-- 10초, 25초, 45초의 공격 단계가 서로 다르게 느껴진다.
+- 12초 단위 해금과 48·60·72초의 특수 패턴이 서로 다르게 느껴진다.
 - 예고 범위에서 벗어날 실제 시간이 충분하다.
 - 60 FPS가 아닌 환경에서도 플레이 속도가 크게 달라지지 않는다.
 
@@ -142,4 +146,4 @@
 - 범위 공격 예고 시간, 크기, 활성 시간
 - 난이도 단계 해제 시점과 최대 개체 수
 
-공격 종류와 상태 경계는 유지하고 수치만 실제 플레이 결과에 따라 조정한다.
+7개 공격의 의미와 Stage 1–10 경계는 유지하고 속도·간격·크기·탄 수만 실제 플레이 결과에 따라 조정한다.

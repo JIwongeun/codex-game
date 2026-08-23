@@ -3,9 +3,15 @@ import {
   DEFAULT_GAME_WIDTH,
   GAMEPLAY,
 } from "../constants";
-import { circleOverlapsRectangle, directionBetween, normalize } from "./math";
+import {
+  circleOverlapsOrientedRectangle,
+  circleOverlapsRectangle,
+  directionBetween,
+  normalize,
+} from "./math";
 import type {
   AreaHazardState,
+  AttackSequenceState,
   ArenaBounds,
   GameEvent,
   GameState,
@@ -17,7 +23,6 @@ import type {
   ProjectileState,
   RectangleHitbox,
   ReviewLabel,
-  SweepAxis,
   Vec2,
 } from "./model";
 import { nextRandom, normalizeSeed } from "./random";
@@ -73,11 +78,15 @@ export function createGameState(
     },
     projectiles: [],
     hazards: [],
+    sequences: [],
     spawn: {
       logMs: GAMEPLAY.logFirstSpawnMs,
       reviewMs: GAMEPLAY.reviewFirstSpawnMs,
       contextMaxMs: GAMEPLAY.contextMaxFirstSpawnMs,
-      mergeConflictMs: GAMEPLAY.mergeConflictFirstSpawnMs,
+      retryLoopMs: GAMEPLAY.retryLoopFirstSpawnMs,
+      forkBombMs: GAMEPLAY.forkBombFirstSpawnMs,
+      raceConditionMs: GAMEPLAY.raceConditionFirstSpawnMs,
+      mergeBugMs: GAMEPLAY.mergeBugFirstSpawnMs,
     },
   };
 }
@@ -114,30 +123,20 @@ export function resizeArena(
   );
 
   for (const hazard of state.hazards) {
-    if (hazard.kind === "context-max") {
-      const size = fitSquareSize(hazard.hitbox.width, state.arena);
-      hazard.hitbox = { width: size, height: size };
-      hazard.position = clampRectangleCenter(
-        hazard.position,
-        hazard.hitbox,
-        state.arena,
-      );
-      continue;
-    }
-
-    const crossAxisSize =
-      hazard.axis === "horizontal" ? state.arena.height : state.arena.width;
-    const currentThickness =
-      hazard.axis === "horizontal"
-        ? hazard.hitbox.height
-        : hazard.hitbox.width;
-    const thickness = Math.min(currentThickness, crossAxisSize * 0.45);
-    hazard.hitbox = mergeConflictHitbox(
-      hazard.axis ?? "horizontal",
-      thickness,
+    const size = fitSquareSize(hazard.hitbox.width, state.arena);
+    hazard.hitbox = { width: size, height: size };
+    hazard.position = clampRectangleCenter(
+      hazard.position,
+      hazard.hitbox,
       state.arena,
     );
-    hazard.position = clampMergeConflictCenter(hazard, state.arena);
+  }
+
+  for (const sequence of state.sequences) {
+    sequence.position = clampPointToArena(sequence.position, state.arena, 36);
+    sequence.origins = sequence.origins.map((origin) =>
+      clampPointToArena(origin, state.arena, 0),
+    );
   }
 }
 
@@ -188,6 +187,7 @@ export function stepGame(
   movePlayer(state, intent.direction, stepSeconds);
   updateProjectiles(state, stepMs, stepSeconds);
   updateHazards(state, stepMs, events);
+  updateSequences(state, stepMs, events);
   spawnScheduledAttacks(state, stepMs, events);
 
   const hitSource = findHitSource(state);
@@ -274,10 +274,7 @@ function updateHazards(
 
     if (hazard.phase === "telegraph") {
       hazard.phase = "active";
-      hazard.remainingMs =
-        hazard.kind === "context-max"
-          ? GAMEPLAY.contextMaxActiveMs
-          : GAMEPLAY.mergeConflictActiveMs;
+      hazard.remainingMs = GAMEPLAY.contextMaxActiveMs;
       survivors.push(hazard);
       events.push({ type: "hazard-activated", kind: hazard.kind });
     } else {
@@ -286,6 +283,40 @@ function updateHazards(
   }
 
   state.hazards = survivors;
+}
+
+function updateSequences(
+  state: GameState,
+  stepMs: number,
+  events: GameEvent[],
+): void {
+  const survivors: AttackSequenceState[] = [];
+
+  for (const sequence of state.sequences) {
+    sequence.remainingMs -= stepMs;
+    if (sequence.remainingMs > 0) {
+      survivors.push(sequence);
+      continue;
+    }
+
+    const projectileKind = sequence.kind === "fork-bomb" ? "branch" : "bug";
+    const label = sequence.kind === "fork-bomb" ? "BRANCH" : "BUG!";
+    spawnRadialProjectiles(
+      state,
+      projectileKind,
+      label,
+      sequence.position,
+      sequence.projectileCount,
+      sequence.projectileSpeed,
+    );
+    events.push({
+      type: "pattern-burst",
+      kind: sequence.kind,
+      position: { ...sequence.position },
+    });
+  }
+
+  state.sequences = survivors;
 }
 
 function spawnScheduledAttacks(
@@ -297,7 +328,10 @@ function spawnScheduledAttacks(
   state.spawn.logMs -= stepMs;
   state.spawn.reviewMs -= stepMs;
   state.spawn.contextMaxMs -= stepMs;
-  state.spawn.mergeConflictMs -= stepMs;
+  state.spawn.retryLoopMs -= stepMs;
+  state.spawn.forkBombMs -= stepMs;
+  state.spawn.raceConditionMs -= stepMs;
+  state.spawn.mergeBugMs -= stepMs;
 
   if (state.spawn.logMs <= 0) {
     spawnLogVolley(state, difficulty.logBurst, difficulty.logSpeed);
@@ -310,22 +344,75 @@ function spawnScheduledAttacks(
   }
 
   if (difficulty.contextMaxUnlocked && state.spawn.contextMaxMs <= 0) {
-    if (spawnContextMax(state, difficulty.contextMaxSize)) {
-      events.push({ type: "hazard-warning", kind: "context-max" });
+    const available = Math.min(
+      difficulty.contextMaxCount,
+      GAMEPLAY.maxHazards - state.hazards.length,
+    );
+    for (let index = 0; index < available; index += 1) {
+      const target =
+        index === 0
+          ? state.player.position
+          : randomRectangleCenter(
+              state,
+              squareHitbox(difficulty.contextMaxSize, state.arena),
+            );
+      if (spawnContextMax(state, difficulty.contextMaxSize, target)) {
+        events.push({ type: "hazard-warning", kind: "context-max" });
+      }
     }
     state.spawn.contextMaxMs += difficulty.contextMaxIntervalMs;
   }
 
-  if (
-    difficulty.mergeConflictUnlocked &&
-    state.spawn.mergeConflictMs <= 0
-  ) {
+  if (difficulty.retryLoopUnlocked && state.spawn.retryLoopMs <= 0) {
+    spawnRetryLoop(
+      state,
+      difficulty.retryLoopCount,
+      difficulty.reviewSpeed * 0.94,
+    );
+    events.push({ type: "pattern-warning", kind: "retry-loop" });
+    state.spawn.retryLoopMs += difficulty.retryLoopIntervalMs;
+  }
+
+  if (difficulty.forkBombUnlocked && state.spawn.forkBombMs <= 0) {
     if (
-      spawnMergeConflict(state, difficulty.mergeConflictThickness)
+      spawnSequence(
+        state,
+        "fork-bomb",
+        difficulty.forkFragmentCount,
+        difficulty.forkFragmentSpeed,
+      )
     ) {
-      events.push({ type: "hazard-warning", kind: "merge-conflict" });
+      events.push({ type: "pattern-warning", kind: "fork-bomb" });
     }
-    state.spawn.mergeConflictMs += difficulty.mergeConflictIntervalMs;
+    state.spawn.forkBombMs += difficulty.forkBombIntervalMs;
+  }
+
+  if (
+    difficulty.raceConditionUnlocked &&
+    state.spawn.raceConditionMs <= 0
+  ) {
+    spawnRaceCondition(
+      state,
+      difficulty.racePairCount,
+      difficulty.raceSpeed,
+    );
+    events.push({ type: "pattern-warning", kind: "race-condition" });
+    state.spawn.raceConditionMs += difficulty.raceConditionIntervalMs;
+  }
+
+  if (difficulty.mergeBugUnlocked && state.spawn.mergeBugMs <= 0) {
+    if (
+      spawnSequence(
+        state,
+        "merge-bug",
+        difficulty.bugFragmentCount,
+        difficulty.bugFragmentSpeed,
+        difficulty.mergeIncomingCount,
+      )
+    ) {
+      events.push({ type: "pattern-warning", kind: "merge-bug" });
+    }
+    state.spawn.mergeBugMs += difficulty.mergeBugIntervalMs;
   }
 }
 
@@ -408,6 +495,194 @@ function spawnReview(state: GameState, speed: number): boolean {
   return true;
 }
 
+function spawnRetryLoop(state: GameState, count: number, speed: number): void {
+  const available = Math.min(
+    count,
+    GAMEPLAY.maxProjectiles - state.projectiles.length,
+  );
+  if (available <= 0) {
+    return;
+  }
+
+  const edge = Math.floor(randomBetween(state, 0, 4));
+  const alongSize = edge < 2 ? state.arena.height : state.arena.width;
+  const baseAlong = randomBetween(state, alongSize * 0.2, alongSize * 0.8);
+  const target = { ...state.player.position };
+
+  for (let index = 0; index < available; index += 1) {
+    const label = `RETRY ${index + 1}/${available}`;
+    const offset = (index - (available - 1) / 2) * 24;
+    const position = pointOnEdge(
+      state.arena,
+      edge,
+      Math.min(alongSize - 20, Math.max(20, baseAlong + offset)),
+      24,
+    );
+    addProjectile(
+      state,
+      "retry",
+      label,
+      position,
+      target,
+      { width: 116, height: 28 },
+      speed,
+      520 + index * 260,
+    );
+  }
+}
+
+function spawnRaceCondition(
+  state: GameState,
+  pairCount: number,
+  speed: number,
+): void {
+  const availablePairs = Math.min(
+    pairCount,
+    Math.floor((GAMEPLAY.maxProjectiles - state.projectiles.length) / 2),
+  );
+  const target = { ...state.player.position };
+
+  for (let index = 0; index < availablePairs; index += 1) {
+    const horizontal = index % 2 === 0;
+    const offset = (index - (availablePairs - 1) / 2) * 34;
+    const pairTarget = horizontal
+      ? {
+          x: target.x,
+          y: clampAxis(target.y + offset, state.arena.height, 36),
+        }
+      : {
+          x: clampAxis(target.x + offset, state.arena.width, 36),
+          y: target.y,
+        };
+    const positions = horizontal
+      ? [
+          { x: -24, y: pairTarget.y },
+          { x: state.arena.width + 24, y: pairTarget.y },
+        ]
+      : [
+          { x: pairTarget.x, y: -24 },
+          { x: pairTarget.x, y: state.arena.height + 24 },
+        ];
+
+    addProjectile(
+      state,
+      "race",
+      "READ()",
+      positions[0]!,
+      pairTarget,
+      { width: 82, height: 28 },
+      speed,
+      760 + index * 100,
+    );
+    addProjectile(
+      state,
+      "race",
+      "WRITE()",
+      positions[1]!,
+      pairTarget,
+      { width: 92, height: 28 },
+      speed,
+      760 + index * 100,
+    );
+  }
+}
+
+function spawnSequence(
+  state: GameState,
+  kind: "fork-bomb" | "merge-bug",
+  projectileCount: number,
+  projectileSpeed: number,
+  mergeIncomingCount = 4,
+): boolean {
+  if (state.sequences.length >= GAMEPLAY.maxSequences) {
+    return false;
+  }
+
+  const position =
+    kind === "fork-bomb"
+      ? randomRectangleCenter(state, { width: 220, height: 220 })
+      : clampPointToArena(state.player.position, state.arena, 90);
+  const originCount = kind === "fork-bomb" ? 1 : mergeIncomingCount;
+  const origins: Vec2[] = [];
+
+  for (let index = 0; index < originCount; index += 1) {
+    const edge =
+      kind === "fork-bomb"
+        ? Math.floor(randomBetween(state, 0, 4))
+        : index % 4;
+    const alongSize = edge < 2 ? state.arena.height : state.arena.width;
+    origins.push(
+      pointOnEdge(
+        state.arena,
+        edge,
+        randomBetween(state, alongSize * 0.12, alongSize * 0.88),
+        28,
+      ),
+    );
+  }
+
+  const durationMs =
+    kind === "fork-bomb"
+      ? GAMEPLAY.forkBombConvergeMs
+      : GAMEPLAY.mergeBugConvergeMs;
+  state.sequences.push({
+    id: takeEntityId(state),
+    kind,
+    label: kind === "fork-bomb" ? "git branch --all" : "git merge",
+    position,
+    origins,
+    remainingMs: durationMs,
+    durationMs,
+    projectileCount,
+    projectileSpeed,
+  });
+  return true;
+}
+
+function spawnRadialProjectiles(
+  state: GameState,
+  kind: "branch" | "bug",
+  label: string,
+  center: Vec2,
+  count: number,
+  speed: number,
+): void {
+  const available = Math.min(
+    count,
+    GAMEPLAY.maxProjectiles - state.projectiles.length,
+  );
+  if (available <= 0) {
+    return;
+  }
+
+  const phase = randomBetween(state, 0, Math.PI * 2);
+  for (let index = 0; index < available; index += 1) {
+    const angle = phase + (Math.PI * 2 * index) / available;
+    const direction = { x: Math.cos(angle), y: Math.sin(angle) };
+    const position = {
+      x: center.x + direction.x * 56,
+      y: center.y + direction.y * 56,
+    };
+    const target = {
+      x: position.x + direction.x * 100,
+      y: position.y + direction.y * 100,
+    };
+    addProjectile(
+      state,
+      kind,
+      label,
+      position,
+      target,
+      {
+        width: kind === "branch" ? GAMEPLAY.fragmentHitboxWidth : 58,
+        height: GAMEPLAY.fragmentHitboxHeight,
+      },
+      speed,
+      0,
+    );
+  }
+}
+
 function addProjectile(
   state: GameState,
   kind: ProjectileKind,
@@ -457,7 +732,7 @@ function labelHitboxWidth(
   minimum: number,
   maximum: number,
 ): number {
-  return Math.min(maximum, Math.max(minimum, 18 + label.length * 6));
+  return Math.min(maximum, Math.max(minimum, 24 + label.length * 9));
 }
 
 function pointOnEdge(
@@ -478,15 +753,18 @@ function pointOnEdge(
   return { x: along, y: arena.height + margin };
 }
 
-function spawnContextMax(state: GameState, requestedSize: number): boolean {
+function spawnContextMax(
+  state: GameState,
+  requestedSize: number,
+  target: Vec2,
+): boolean {
   if (state.hazards.length >= GAMEPLAY.maxHazards) {
     return false;
   }
 
-  const size = fitSquareSize(requestedSize, state.arena);
-  const hitbox = { width: size, height: size };
+  const hitbox = squareHitbox(requestedSize, state.arena);
   const position = clampRectangleCenter(
-    state.player.position,
+    target,
     hitbox,
     state.arena,
   );
@@ -497,11 +775,15 @@ function spawnContextMax(state: GameState, requestedSize: number): boolean {
     label: "CONTEXT MAX!",
     position,
     hitbox,
-    axis: null,
     phase: "telegraph",
     remainingMs: GAMEPLAY.contextMaxTelegraphMs,
   });
   return true;
+}
+
+function squareHitbox(size: number, arena: ArenaBounds): RectangleHitbox {
+  const fittedSize = fitSquareSize(size, arena);
+  return { width: fittedSize, height: fittedSize };
 }
 
 function fitSquareSize(size: number, arena: ArenaBounds): number {
@@ -522,84 +804,36 @@ function clampRectangleCenter(
   };
 }
 
-function spawnMergeConflict(
+function randomRectangleCenter(
   state: GameState,
-  requestedThickness: number,
-): boolean {
-  if (state.hazards.length >= GAMEPLAY.maxHazards) {
-    return false;
-  }
-
-  const axis: SweepAxis = randomBetween(state, 0, 1) < 0.5 ? "horizontal" : "vertical";
-  const crossAxisSize = axis === "horizontal" ? state.arena.height : state.arena.width;
-  const thickness = Math.min(requestedThickness, crossAxisSize * 0.45);
-  const hitbox = mergeConflictHitbox(axis, thickness, state.arena);
-  const position =
-    axis === "horizontal"
-      ? {
-          x: state.arena.width / 2,
-          y: randomBetween(state, thickness / 2, state.arena.height - thickness / 2),
-        }
-      : {
-          x: randomBetween(state, thickness / 2, state.arena.width - thickness / 2),
-          y: state.arena.height / 2,
-        };
-
-  state.hazards.push({
-    id: takeEntityId(state),
-    kind: "merge-conflict",
-    label: "MERGE CONFLICT",
-    position,
-    hitbox,
-    axis,
-    phase: "telegraph",
-    remainingMs: GAMEPLAY.mergeConflictTelegraphMs,
-  });
-  return true;
-}
-
-function mergeConflictHitbox(
-  axis: SweepAxis,
-  thickness: number,
-  arena: ArenaBounds,
-): RectangleHitbox {
-  return axis === "horizontal"
-    ? { width: arena.width, height: thickness }
-    : { width: thickness, height: arena.height };
-}
-
-function clampMergeConflictCenter(
-  hazard: AreaHazardState,
-  arena: ArenaBounds,
+  hitbox: RectangleHitbox,
 ): Vec2 {
-  return hazard.axis === "horizontal"
-    ? {
-        x: arena.width / 2,
-        y: clampAxis(
-          hazard.position.y,
-          arena.height,
-          hazard.hitbox.height / 2,
-        ),
-      }
-    : {
-        x: clampAxis(
-          hazard.position.x,
-          arena.width,
-          hazard.hitbox.width / 2,
-        ),
-        y: arena.height / 2,
-      };
+  const halfWidth = Math.min(hitbox.width / 2, state.arena.width / 2);
+  const halfHeight = Math.min(hitbox.height / 2, state.arena.height / 2);
+  return {
+    x: randomBetween(
+      state,
+      halfWidth,
+      state.arena.width - halfWidth,
+    ),
+    y: randomBetween(
+      state,
+      halfHeight,
+      state.arena.height - halfHeight,
+    ),
+  };
 }
 
 function findHitSource(state: GameState): HitSource | null {
   for (const projectile of state.projectiles) {
     if (
       projectile.telegraphRemainingMs <= 0 &&
-      circleOverlapsRectangle(
+      circleOverlapsOrientedRectangle(
         state.player.position,
         GAMEPLAY.playerRadius,
         projectile.position,
         projectile.hitbox,
+        projectile.velocity,
       )
     ) {
       return projectile.kind;

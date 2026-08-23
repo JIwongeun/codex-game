@@ -54,9 +54,9 @@ body {
   display: grid;
   place-items: center;
   pointer-events: none;
-  background: rgb(255 255 255 / 16%);
-  backdrop-filter: blur(7px) grayscale(1);
-  -webkit-backdrop-filter: blur(7px) grayscale(1);
+  background: rgb(255 255 255 / 8%);
+  backdrop-filter: blur(3px) grayscale(1);
+  -webkit-backdrop-filter: blur(3px) grayscale(1);
 }
 
 .pause-overlay[hidden] {
@@ -64,6 +64,8 @@ body {
 }
 
 .pause-overlay__copy {
+  display: grid;
+  justify-items: center;
   text-align: center;
   color: #171717;
 }
@@ -75,23 +77,26 @@ body {
 }
 
 .pause-overlay__title {
-  font-size: clamp(1.75rem, 4vw, 3rem);
-  font-weight: 720;
-  letter-spacing: -0.035em;
+  padding: 7px 12px 6px;
+  color: #fff;
+  background: #171717;
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.16em;
 }
 
 .pause-overlay__time {
-  margin-top: 12px;
+  margin-top: 14px;
   color: #686868;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 580;
   letter-spacing: 0.075em;
 }
 
 .pause-overlay__action {
-  margin-top: 36px;
+  margin-top: 22px;
   color: #171717;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.065em;
 }

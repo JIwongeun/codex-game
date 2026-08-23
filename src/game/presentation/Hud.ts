@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import type { GameEvent, GameState, HitSource } from "../core/model";
+import type { GameState, HitSource } from "../core/model";
 import { difficultyAt, formatSurvivalTime } from "../core/rules";
 import { COLORS, FONTS, TEXT_COLORS } from "./theme";
 
@@ -8,13 +8,11 @@ const SOURCE_LABEL: Record<HitSource, string> = {
   log: "ONE MORE CHANGE",
   review: "REVIEW REQUEST",
   "context-max": "CONTEXT MAX",
-  "merge-conflict": "MERGE CONFLICT",
+  retry: "RETRY LOOP",
+  branch: "BRANCH",
+  race: "RACE CONDITION",
+  bug: "MERGE BUG",
 };
-
-interface Announcement {
-  text: string;
-  untilElapsedMs: number;
-}
 
 export class Hud {
   private readonly overlay: Phaser.GameObjects.Graphics;
@@ -24,12 +22,10 @@ export class Hud {
   private readonly bestText: Phaser.GameObjects.Text;
   private readonly hintText: Phaser.GameObjects.Text;
   private readonly footerText: Phaser.GameObjects.Text;
-  private readonly alertText: Phaser.GameObjects.Text;
   private readonly titleText: Phaser.GameObjects.Text;
   private readonly subtitleText: Phaser.GameObjects.Text;
   private readonly detailText: Phaser.GameObjects.Text;
   private readonly actionText: Phaser.GameObjects.Text;
-  private announcement: Announcement | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.overlay = scene.add.graphics().setDepth(30);
@@ -61,11 +57,6 @@ export class Hud {
       .setLetterSpacing(0.55)
       .setOrigin(1, 1)
       .setDepth(32);
-    this.alertText = this.text(scene, 0, 0, 11, TEXT_COLORS.ink)
-      .setFontStyle("700")
-      .setLetterSpacing(0.75)
-      .setOrigin(0.5, 0)
-      .setDepth(22);
     this.titleText = this.text(scene, 0, 0, 56, TEXT_COLORS.ink, FONTS.sans)
       .setFontStyle("720")
       .setLetterSpacing(-1.2)
@@ -83,30 +74,6 @@ export class Hud {
       .setDepth(31);
   }
 
-  consume(events: readonly GameEvent[], state: GameState): void {
-    for (const event of events) {
-      if (event.type === "hazard-warning") {
-        this.announcement = {
-          text:
-            event.kind === "context-max"
-              ? "[SIM CONTEXT]  FILLING TO MAX"
-              : "[MERGE]  CONFLICT BAND CLOSING",
-          untilElapsedMs: state.elapsedMs + 1_450,
-        };
-      } else if (event.type === "hazard-activated") {
-        this.announcement = {
-          text:
-            event.kind === "context-max"
-              ? "[SIM CONTEXT]  MAX!"
-              : "[MERGE]  CONFLICT ACTIVE",
-          untilElapsedMs: state.elapsedMs + 620,
-        };
-      } else if (event.type === "run-started") {
-        this.announcement = null;
-      }
-    }
-  }
-
   render(state: GameState, localBest: number, muted: boolean): void {
     this.layout(state);
     const difficulty = difficultyAt(state.elapsedMs);
@@ -116,8 +83,8 @@ export class Hud {
     this.bestText.setText(`BEST  ${formatSurvivalTime(localBest)}`);
     this.statusText.setText(
       state.arena.width < 640
-        ? `■ SIM RUN  ·  LV.${difficulty.level.toString().padStart(2, "0")}`
-        : `■ TASK RUNNING  ·  SIM RUN  ·  LV.${difficulty.level
+        ? `■ SIM RUN  ·  STAGE ${difficulty.stage.toString().padStart(2, "0")}`
+        : `■ TASK RUNNING  ·  SIM RUN  ·  STAGE ${difficulty.stage
             .toString()
             .padStart(2, "0")}  ·  ${state.attacksDodged
             .toString()
@@ -131,7 +98,6 @@ export class Hud {
         ? "FICTIONAL TASK FEED"
         : "FICTIONAL TASK FEED  ·  NO WORKSPACE DATA IS READ",
     );
-    this.renderAnnouncement(state);
 
     if (state.phase === "ready") {
       this.showOverlay(
@@ -173,7 +139,6 @@ export class Hud {
       width - padding,
       height - Math.max(16, padding * 0.55),
     );
-    this.alertText.setPosition(width / 2, compact ? padding + 58 : padding + 2);
 
     this.brandText.setFontSize(compact ? 12 : 14);
     this.statusText.setFontSize(compact ? 9 : 11);
@@ -181,31 +146,6 @@ export class Hud {
     this.bestText.setFontSize(compact ? 9 : 11);
     this.hintText.setFontSize(compact ? 8 : 10);
     this.footerText.setFontSize(compact ? 8 : 9);
-  }
-
-  private renderAnnouncement(state: GameState): void {
-    if (state.phase !== "playing") {
-      this.alertText.setVisible(false);
-      return;
-    }
-
-    if (this.announcement && state.elapsedMs <= this.announcement.untilElapsedMs) {
-      this.alertText.setText(this.announcement.text).setVisible(true);
-      return;
-    }
-
-    const incomingReview = state.projectiles.find(
-      (projectile) =>
-        projectile.kind === "review" && projectile.telegraphRemainingMs > 0,
-    );
-    if (incomingReview) {
-      this.alertText
-        .setText(`[REVIEW]  ${incomingReview.label}  ·  PATH LOCKED`)
-        .setVisible(true);
-      return;
-    }
-
-    this.alertText.setVisible(false);
   }
 
   private showOverlay(
