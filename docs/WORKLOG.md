@@ -27,10 +27,12 @@
 - Vitest 5 files, 31 tests 통과
 - direct pointer coordinate, viewport edge clamp, live resize, responsive arena, deterministic input stream, 모든 공격 단계와 개체 상한 검증
 - Worker/client production build 통과
+- source commit `5462b6f`를 Sites production version 3으로 owner-only 배포
+- 배포 후 access mode `custom`, owner 1명, group 0개, 외부 방문자 0명 유지 확인
 
 ### 남은 작업
 
-- 새 버전을 owner-only production으로 배포하고 실제 플레이 감각을 확인
+- owner session의 실제 플레이로 cursor 감각, 공격 판독성, 작은 화면 HUD를 확인
 - 실제 플레이 결과로 공격 속도·간격·warning 시간을 조정
 
 ## 2026-08-23 — 흑백 브라우저 디자인과 무한 생존 코어 전환
