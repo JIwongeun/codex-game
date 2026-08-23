@@ -13,7 +13,8 @@
 ### 검증 보강
 
 - production verifier가 initial HTML의 favicon id·rel·data URL과 runtime PNG 교체 코드를 모두 검사하도록 변경
-- 배포 후 root·favicon·OG·hashed asset 응답과 Worker 오류 로그를 다시 확인할 예정
+- Sites version 22 배포 후 root·hashed JavaScript·OG image가 모두 HTTP 200이고 initial favicon·robots meta가 production HTML에 포함됨을 확인
+- version 22 배포 이후 최근 production Worker 오류 로그 0건 확인
 
 ## 2026-08-24 — 제출 썸네일 production gate 보강
 
