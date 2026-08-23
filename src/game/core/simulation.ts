@@ -1,94 +1,53 @@
-import {
-  ARENA,
-  GAMEPLAY,
-  RUN_DURATION_MS,
-  STARTING_LIVES,
-} from "../constants";
+import { ARENA, GAMEPLAY } from "../constants";
 import {
   clamp,
   circlesOverlap,
   directionBetween,
-  distanceSquared,
   normalize,
-  rotateToward,
-  wrap,
 } from "./math";
 import type {
-  EnemyKind,
-  EnemyState,
+  AreaHazardState,
   GameEvent,
   GameState,
+  HitSource,
   InputIntent,
-  TokenState,
-  TrailPoint,
+  ProjectileKind,
+  ProjectileState,
+  SweepAxis,
   Vec2,
 } from "./model";
 import { nextRandom, normalizeSeed } from "./random";
-import {
-  compactRadius,
-  compactScore,
-  desiredTrailPoints,
-  difficultyAt,
-  survivalBonus,
-} from "./rules";
+import { difficultyAt } from "./rules";
 
 const PLAYER_START: Vec2 = { x: 640, y: 390 };
 const PLAYER_START_DIRECTION: Vec2 = { x: 1, y: 0 };
 
-const ENEMY_RADIUS: Record<EnemyKind, number> = {
-  tab: 12,
-  leak: 20,
-  notification: 16,
-};
-
-export const EMPTY_INPUT: InputIntent = {
-  direction: null,
-  compactPressed: false,
-};
-
-function createBaseTrail(): TrailPoint[] {
-  return Array.from({ length: GAMEPLAY.baseTrailPoints }, (_, index) => ({
-    id: index + 1,
-    x:
-      PLAYER_START.x -
-      (GAMEPLAY.baseTrailPoints - index - 1) * GAMEPLAY.trailSampleDistance,
-    y: PLAYER_START.y,
-  }));
-}
+export const EMPTY_INPUT: InputIntent = { direction: null };
 
 export function createGameState(seed: number): GameState {
   const normalizedSeed = normalizeSeed(seed);
-  const trail = createBaseTrail();
 
   return {
     phase: "ready",
-    endReason: null,
     seed: normalizedSeed,
     rngState: normalizedSeed,
     nextEntityId: 1,
-    nextTrailId: trail.length + 1,
     elapsedMs: 0,
-    remainingMs: RUN_DURATION_MS,
     score: 0,
-    pendingTokens: 0,
-    overflowRemainingMs: null,
-    lives: STARTING_LIVES,
-    compactCount: 0,
-    tokensCollected: 0,
-    enemiesDestroyed: 0,
+    attacksDodged: 0,
+    hazardsSurvived: 0,
+    lastHitSource: null,
     player: {
       position: { ...PLAYER_START },
       direction: { ...PLAYER_START_DIRECTION },
-      invulnerableMs: 0,
     },
-    trail,
-    tokens: [],
-    enemies: [],
-    tokenSpawnRemainingMs: GAMEPLAY.tokenSpawnIntervalMs,
-    enemySpawn: {
+    projectiles: [],
+    hazards: [],
+    spawn: {
       tabMs: GAMEPLAY.tabFirstSpawnMs,
-      leakMs: GAMEPLAY.leakFirstSpawnMs,
-      notificationMs: GAMEPLAY.notificationFirstSpawnMs,
+      popupMs: GAMEPLAY.popupFirstSpawnMs,
+      memoryLeakMs: GAMEPLAY.memoryLeakFirstSpawnMs,
+      contextSweepMs: GAMEPLAY.contextSweepFirstSpawnMs,
     },
   };
 }
@@ -99,13 +58,6 @@ export function startRun(state: GameState): GameEvent[] {
   }
 
   state.phase = "playing";
-
-  while (state.tokens.length < GAMEPLAY.startingTokenCount) {
-    if (!spawnToken(state)) {
-      break;
-    }
-  }
-
   return [{ type: "run-started" }];
 }
 
@@ -126,37 +78,17 @@ export function stepGame(
 
   const events: GameEvent[] = [];
   const stepSeconds = stepMs / 1_000;
-
-  state.player.invulnerableMs = Math.max(
-    0,
-    state.player.invulnerableMs - stepMs,
-  );
+  state.elapsedMs += stepMs;
+  state.score = Math.floor(state.elapsedMs);
 
   movePlayer(state, intent.direction, stepSeconds);
-  collectTokens(state, events);
+  updateProjectiles(state, stepMs, stepSeconds);
+  updateHazards(state, stepMs, events);
+  spawnScheduledAttacks(state, stepMs, events);
 
-  if (intent.compactPressed) {
-    performCompact(state, events);
-  }
-
-  updateEnemies(state, stepMs, stepSeconds);
-  resolveEnemyCollisions(state, events);
-  resolveOverflow(state, stepMs, events);
-
-  if (state.lives <= 0) {
-    finishRun(state, "lives", events);
-    return events;
-  }
-
-  replenishTokens(state, stepMs);
-  spawnScheduledEnemies(state, stepMs);
-
-  state.elapsedMs = Math.min(RUN_DURATION_MS, state.elapsedMs + stepMs);
-  state.remainingMs = Math.max(0, RUN_DURATION_MS - state.elapsedMs);
-
-  if (state.remainingMs <= 0.001) {
-    state.remainingMs = 0;
-    finishRun(state, "time", events);
+  const hitSource = findHitSource(state);
+  if (hitSource) {
+    finishRun(state, hitSource, events);
   }
 
   return events;
@@ -167,440 +99,299 @@ function movePlayer(
   requestedDirection: Vec2 | null,
   stepSeconds: number,
 ): void {
-  if (requestedDirection && Math.hypot(requestedDirection.x, requestedDirection.y) > 0) {
-    state.player.direction = rotateToward(
-      state.player.direction,
-      normalize(requestedDirection, state.player.direction),
-      GAMEPLAY.playerTurnSpeed * stepSeconds,
-    );
+  if (!requestedDirection || Math.hypot(requestedDirection.x, requestedDirection.y) <= 0) {
+    return;
   }
 
-  state.player.position.x = wrap(
-    state.player.position.x +
-      state.player.direction.x * GAMEPLAY.playerSpeed * stepSeconds,
-    ARENA.left,
-    ARENA.right,
+  const direction = normalize(requestedDirection, state.player.direction);
+  state.player.direction = direction;
+  state.player.position.x = clamp(
+    state.player.position.x + direction.x * GAMEPLAY.playerSpeed * stepSeconds,
+    ARENA.left + GAMEPLAY.playerRadius,
+    ARENA.right - GAMEPLAY.playerRadius,
   );
-  state.player.position.y = wrap(
-    state.player.position.y +
-      state.player.direction.y * GAMEPLAY.playerSpeed * stepSeconds,
-    ARENA.top,
-    ARENA.bottom,
+  state.player.position.y = clamp(
+    state.player.position.y + direction.y * GAMEPLAY.playerSpeed * stepSeconds,
+    ARENA.top + GAMEPLAY.playerRadius,
+    ARENA.bottom - GAMEPLAY.playerRadius,
   );
-
-  sampleTrail(state);
 }
 
-function sampleTrail(state: GameState): void {
-  const latest = state.trail.at(-1);
+function updateProjectiles(
+  state: GameState,
+  stepMs: number,
+  stepSeconds: number,
+): void {
+  const survivors: ProjectileState[] = [];
 
-  if (
-    !latest ||
-    distanceSquared(latest, state.player.position) >=
-      GAMEPLAY.trailSampleDistance * GAMEPLAY.trailSampleDistance
-  ) {
-    state.trail.push({
-      id: state.nextTrailId,
-      ...state.player.position,
-    });
-    state.nextTrailId += 1;
-  }
+  for (const projectile of state.projectiles) {
+    projectile.ageMs += stepMs;
 
-  trimTrail(state);
-}
-
-function trimTrail(state: GameState): void {
-  const excess = state.trail.length - desiredTrailPoints(state.pendingTokens);
-
-  if (excess > 0) {
-    state.trail.splice(0, excess);
-  }
-}
-
-function collectTokens(state: GameState, events: GameEvent[]): void {
-  const keptTokens: TokenState[] = [];
-  let overflowStarted = false;
-
-  for (const token of state.tokens) {
-    const canCollect = state.pendingTokens < GAMEPLAY.contextCapacity;
-    const collected =
-      canCollect &&
-      circlesOverlap(
-        state.player.position,
-        GAMEPLAY.playerRadius,
-        token.position,
-        token.radius,
+    if (projectile.telegraphRemainingMs > 0) {
+      projectile.telegraphRemainingMs = Math.max(
+        0,
+        projectile.telegraphRemainingMs - stepMs,
       );
-
-    if (!collected) {
-      keptTokens.push(token);
-      continue;
+      projectile.velocity = directionBetween(
+        projectile.position,
+        state.player.position,
+      );
+    } else {
+      projectile.position.x += projectile.velocity.x * projectile.speed * stepSeconds;
+      projectile.position.y += projectile.velocity.y * projectile.speed * stepSeconds;
     }
 
-    state.pendingTokens += 1;
-    state.tokensCollected += 1;
-    events.push({
-      type: "token-collected",
-      tokenId: token.id,
-      pendingTokens: state.pendingTokens,
-    });
-
-    if (state.pendingTokens === GAMEPLAY.contextCapacity) {
-      state.overflowRemainingMs = GAMEPLAY.overflowGraceMs;
-      overflowStarted = true;
+    if (isInsideProjectileBounds(projectile.position)) {
+      survivors.push(projectile);
+    } else if (projectile.telegraphRemainingMs <= 0) {
+      state.attacksDodged += 1;
     }
   }
 
-  state.tokens = keptTokens;
-
-  if (overflowStarted) {
-    events.push({ type: "overflow-started" });
-  }
+  state.projectiles = survivors;
 }
 
-function performCompact(state: GameState, events: GameEvent[]): void {
-  if (state.pendingTokens <= 0) {
-    return;
-  }
-
-  const tokenCount = state.pendingTokens;
-  const bankedScore = compactScore(tokenCount);
-  const radius = compactRadius(tokenCount);
-  const radiusSquared = radius * radius;
-  const destroyed = state.enemies.filter(
-    (enemy) => distanceSquared(enemy.position, state.player.position) <= radiusSquared,
-  );
-  const destroyedIds = new Set(destroyed.map((enemy) => enemy.id));
-
-  state.score += bankedScore;
-  state.pendingTokens = 0;
-  state.overflowRemainingMs = null;
-  state.compactCount += 1;
-  state.enemiesDestroyed += destroyed.length;
-  state.enemies = state.enemies.filter((enemy) => !destroyedIds.has(enemy.id));
-  trimTrail(state);
-
-  events.push({
-    type: "compacted",
-    bankedScore,
-    tokenCount,
-    radius,
-    clearedEnemies: destroyed.length,
-  });
-
-  for (const enemy of destroyed) {
-    events.push({
-      type: "enemy-destroyed",
-      enemyId: enemy.id,
-      kind: enemy.kind,
-    });
-  }
-}
-
-function updateEnemies(
+function updateHazards(
   state: GameState,
   stepMs: number,
-  stepSeconds: number,
+  events: GameEvent[],
 ): void {
-  const difficulty = difficultyAt(state.elapsedMs);
-  const survivors: EnemyState[] = [];
-  const splitChildren: EnemyState[] = [];
+  const survivors: AreaHazardState[] = [];
 
-  for (const enemy of state.enemies) {
-    enemy.ageMs += stepMs;
-    enemy.behaviorMs -= stepMs;
+  for (const hazard of state.hazards) {
+    hazard.remainingMs -= stepMs;
 
-    if (enemy.kind === "tab") {
-      moveChaser(enemy, state.player.position, difficulty.tabSpeed, stepSeconds);
-      survivors.push(enemy);
+    if (hazard.remainingMs > 0) {
+      survivors.push(hazard);
       continue;
     }
 
-    if (enemy.kind === "leak") {
-      moveChaser(enemy, state.player.position, difficulty.leakSpeed, stepSeconds);
-
-      if (enemy.behaviorMs <= 0) {
-        for (let index = 0; index < 3; index += 1) {
-          const angle = (Math.PI * 2 * index) / 3;
-          splitChildren.push(
-            createEnemy(state, "tab", enemy.position, {
-              x: Math.cos(angle),
-              y: Math.sin(angle),
-            }),
-          );
-        }
-      } else {
-        survivors.push(enemy);
-      }
-
-      continue;
-    }
-
-    if (enemy.notificationMode === "telegraph") {
-      enemy.velocity = directionBetween(enemy.position, state.player.position);
-
-      if (enemy.behaviorMs <= 0) {
-        enemy.notificationMode = "dash";
-        enemy.behaviorMs = GAMEPLAY.notificationDashMs;
-      }
-
-      survivors.push(enemy);
-      continue;
-    }
-
-    enemy.position.x += enemy.velocity.x * difficulty.notificationSpeed * stepSeconds;
-    enemy.position.y += enemy.velocity.y * difficulty.notificationSpeed * stepSeconds;
-
-    if (enemy.behaviorMs > 0 && isNearArena(enemy.position, 80)) {
-      survivors.push(enemy);
+    if (hazard.phase === "telegraph") {
+      hazard.phase = "active";
+      hazard.remainingMs =
+        hazard.kind === "memory-leak"
+          ? GAMEPLAY.memoryLeakActiveMs
+          : GAMEPLAY.contextSweepActiveMs;
+      survivors.push(hazard);
+      events.push({ type: "hazard-activated", kind: hazard.kind });
+    } else {
+      state.hazardsSurvived += 1;
     }
   }
 
-  const availableSlots = Math.max(0, GAMEPLAY.maxEnemies - survivors.length);
-  state.enemies = survivors.concat(splitChildren.slice(0, availableSlots));
+  state.hazards = survivors;
 }
 
-function moveChaser(
-  enemy: EnemyState,
-  target: Vec2,
+function spawnScheduledAttacks(
+  state: GameState,
+  stepMs: number,
+  events: GameEvent[],
+): void {
+  const difficulty = difficultyAt(state.elapsedMs);
+  state.spawn.tabMs -= stepMs;
+  state.spawn.popupMs -= stepMs;
+  state.spawn.memoryLeakMs -= stepMs;
+  state.spawn.contextSweepMs -= stepMs;
+
+  if (state.spawn.tabMs <= 0) {
+    for (let index = 0; index < difficulty.tabBurst; index += 1) {
+      spawnProjectile(state, "tab", difficulty.tabSpeed);
+    }
+    state.spawn.tabMs += difficulty.tabIntervalMs;
+  }
+
+  if (difficulty.popupUnlocked && state.spawn.popupMs <= 0) {
+    spawnProjectile(state, "popup", difficulty.popupSpeed);
+    state.spawn.popupMs += difficulty.popupIntervalMs;
+  }
+
+  if (difficulty.memoryLeakUnlocked && state.spawn.memoryLeakMs <= 0) {
+    if (spawnMemoryLeak(state, difficulty.memoryLeakRadius)) {
+      events.push({ type: "hazard-warning", kind: "memory-leak" });
+    }
+    state.spawn.memoryLeakMs += difficulty.memoryLeakIntervalMs;
+  }
+
+  if (difficulty.contextSweepUnlocked && state.spawn.contextSweepMs <= 0) {
+    if (spawnContextSweep(state, difficulty.contextSweepThickness)) {
+      events.push({ type: "hazard-warning", kind: "context-sweep" });
+    }
+    state.spawn.contextSweepMs += difficulty.contextSweepIntervalMs;
+  }
+}
+
+function spawnProjectile(
+  state: GameState,
+  kind: ProjectileKind,
   speed: number,
-  stepSeconds: number,
-): void {
-  const targetDirection = directionBetween(enemy.position, target);
-  enemy.velocity = rotateToward(enemy.velocity, targetDirection, 3 * stepSeconds);
-  enemy.position.x = clamp(
-    enemy.position.x + enemy.velocity.x * speed * stepSeconds,
-    ARENA.left,
-    ARENA.right,
-  );
-  enemy.position.y = clamp(
-    enemy.position.y + enemy.velocity.y * speed * stepSeconds,
-    ARENA.top,
-    ARENA.bottom,
-  );
-}
-
-function resolveEnemyCollisions(state: GameState, events: GameEvent[]): void {
-  if (state.player.invulnerableMs > 0) {
-    return;
-  }
-
-  const collided = state.enemies.filter(
-    (enemy) => canEnemyHit(enemy) && enemyTouchesPlayerOrDangerousTrail(state, enemy),
-  );
-
-  if (collided.length === 0) {
-    return;
-  }
-
-  const collidedIds = new Set(collided.map((enemy) => enemy.id));
-  state.enemies = state.enemies.filter((enemy) => !collidedIds.has(enemy.id));
-  applyPlayerHit(state, collided[0]?.kind ?? "tab", events);
-}
-
-function canEnemyHit(enemy: EnemyState): boolean {
-  return !(
-    enemy.kind === "notification" && enemy.notificationMode === "telegraph"
-  );
-}
-
-function enemyTouchesPlayerOrDangerousTrail(
-  state: GameState,
-  enemy: EnemyState,
 ): boolean {
-  if (
-    circlesOverlap(
-      state.player.position,
-      GAMEPLAY.playerRadius,
-      enemy.position,
-      enemy.radius,
-    )
-  ) {
-    return true;
-  }
-
-  const dangerousTrailPoints = Math.max(
-    0,
-    state.trail.length - GAMEPLAY.baseTrailPoints,
-  );
-
-  for (let index = 0; index < dangerousTrailPoints; index += 2) {
-    const point = state.trail[index];
-
-    if (point && circlesOverlap(point, 6, enemy.position, enemy.radius)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function resolveOverflow(
-  state: GameState,
-  stepMs: number,
-  events: GameEvent[],
-): void {
-  if (state.overflowRemainingMs === null) {
-    return;
-  }
-
-  state.overflowRemainingMs = Math.max(0, state.overflowRemainingMs - stepMs);
-
-  if (
-    state.overflowRemainingMs <= 0 &&
-    state.pendingTokens >= GAMEPLAY.contextCapacity
-  ) {
-    applyPlayerHit(state, "overflow", events);
-  }
-}
-
-function applyPlayerHit(
-  state: GameState,
-  source: EnemyKind | "overflow",
-  events: GameEvent[],
-): void {
-  const clearRadiusSquared = GAMEPLAY.hitClearRadius * GAMEPLAY.hitClearRadius;
-  state.lives = Math.max(0, state.lives - 1);
-  state.pendingTokens = 0;
-  state.overflowRemainingMs = null;
-  state.player.invulnerableMs = GAMEPLAY.invulnerabilityMs;
-  state.enemies = state.enemies.filter(
-    (enemy) =>
-      distanceSquared(enemy.position, state.player.position) > clearRadiusSquared,
-  );
-  trimTrail(state);
-  events.push({ type: "player-hit", source, lives: state.lives });
-}
-
-function replenishTokens(state: GameState, stepMs: number): void {
-  if (state.tokens.length >= GAMEPLAY.tokenTargetCount) {
-    state.tokenSpawnRemainingMs = GAMEPLAY.tokenSpawnIntervalMs;
-    return;
-  }
-
-  state.tokenSpawnRemainingMs -= stepMs;
-
-  if (state.tokenSpawnRemainingMs <= 0) {
-    spawnToken(state);
-    state.tokenSpawnRemainingMs += GAMEPLAY.tokenSpawnIntervalMs;
-  }
-}
-
-function spawnToken(state: GameState): boolean {
-  for (let attempt = 0; attempt < GAMEPLAY.enemySpawnAttempts; attempt += 1) {
-    const position = {
-      x: randomBetween(state, ARENA.left + 32, ARENA.right - 32),
-      y: randomBetween(state, ARENA.top + 32, ARENA.bottom - 32),
-    };
-    const awayFromPlayer =
-      distanceSquared(position, state.player.position) >= 100 * 100;
-    const awayFromTokens = state.tokens.every(
-      (token) => distanceSquared(position, token.position) >= 30 * 30,
-    );
-
-    if (!awayFromPlayer || !awayFromTokens) {
-      continue;
-    }
-
-    state.tokens.push({
-      id: takeEntityId(state),
-      position,
-      radius: GAMEPLAY.tokenRadius,
-    });
-    return true;
-  }
-
-  return false;
-}
-
-function spawnScheduledEnemies(state: GameState, stepMs: number): void {
-  const difficulty = difficultyAt(state.elapsedMs);
-  state.enemySpawn.tabMs -= stepMs;
-  state.enemySpawn.leakMs -= stepMs;
-  state.enemySpawn.notificationMs -= stepMs;
-
-  if (state.enemySpawn.tabMs <= 0) {
-    trySpawnEnemy(state, "tab");
-    state.enemySpawn.tabMs += difficulty.tabIntervalMs;
-  }
-
-  if (state.enemySpawn.leakMs <= 0) {
-    trySpawnEnemy(state, "leak");
-    state.enemySpawn.leakMs += difficulty.leakIntervalMs;
-  }
-
-  if (state.enemySpawn.notificationMs <= 0) {
-    trySpawnEnemy(state, "notification");
-    state.enemySpawn.notificationMs += difficulty.notificationIntervalMs;
-  }
-}
-
-function trySpawnEnemy(state: GameState, kind: EnemyKind): boolean {
-  if (state.enemies.length >= GAMEPLAY.maxEnemies) {
+  if (state.projectiles.length >= GAMEPLAY.maxProjectiles) {
     return false;
   }
 
-  for (let attempt = 0; attempt < GAMEPLAY.enemySpawnAttempts; attempt += 1) {
-    const position = randomEdgePosition(state);
+  const position = randomEdgePosition(state);
+  const aimJitter = kind === "tab" ? 90 : 30;
+  const target = {
+    x: clamp(
+      state.player.position.x + randomBetween(state, -aimJitter, aimJitter),
+      ARENA.left,
+      ARENA.right,
+    ),
+    y: clamp(
+      state.player.position.y + randomBetween(state, -aimJitter, aimJitter),
+      ARENA.top,
+      ARENA.bottom,
+    ),
+  };
 
+  state.projectiles.push({
+    id: takeEntityId(state),
+    kind,
+    position,
+    velocity: directionBetween(position, target),
+    radius: kind === "tab" ? GAMEPLAY.projectileRadius : GAMEPLAY.popupRadius,
+    speed,
+    ageMs: 0,
+    telegraphRemainingMs: kind === "popup" ? GAMEPLAY.popupTelegraphMs : 0,
+  });
+  return true;
+}
+
+function spawnMemoryLeak(state: GameState, radius: number): boolean {
+  if (state.hazards.length >= GAMEPLAY.maxHazards) {
+    return false;
+  }
+
+  const position = {
+    x: clamp(
+      state.player.position.x + randomBetween(state, -130, 130),
+      ARENA.left + radius,
+      ARENA.right - radius,
+    ),
+    y: clamp(
+      state.player.position.y + randomBetween(state, -110, 110),
+      ARENA.top + radius,
+      ARENA.bottom - radius,
+    ),
+  };
+
+  state.hazards.push({
+    id: takeEntityId(state),
+    kind: "memory-leak",
+    position,
+    radius,
+    axis: null,
+    thickness: 0,
+    phase: "telegraph",
+    remainingMs: GAMEPLAY.memoryLeakTelegraphMs,
+  });
+  return true;
+}
+
+function spawnContextSweep(state: GameState, thickness: number): boolean {
+  if (state.hazards.length >= GAMEPLAY.maxHazards) {
+    return false;
+  }
+
+  const axis: SweepAxis = randomBetween(state, 0, 1) < 0.5 ? "horizontal" : "vertical";
+  const position =
+    axis === "horizontal"
+      ? {
+          x: (ARENA.left + ARENA.right) / 2,
+          y: randomBetween(
+            state,
+            ARENA.top + thickness / 2,
+            ARENA.bottom - thickness / 2,
+          ),
+        }
+      : {
+          x: randomBetween(
+            state,
+            ARENA.left + thickness / 2,
+            ARENA.right - thickness / 2,
+          ),
+          y: (ARENA.top + ARENA.bottom) / 2,
+        };
+
+  state.hazards.push({
+    id: takeEntityId(state),
+    kind: "context-sweep",
+    position,
+    radius: 0,
+    axis,
+    thickness,
+    phase: "telegraph",
+    remainingMs: GAMEPLAY.contextSweepTelegraphMs,
+  });
+  return true;
+}
+
+function findHitSource(state: GameState): HitSource | null {
+  for (const projectile of state.projectiles) {
     if (
-      distanceSquared(position, state.player.position) <
-      GAMEPLAY.enemySpawnSafeDistance * GAMEPLAY.enemySpawnSafeDistance
+      projectile.telegraphRemainingMs <= 0 &&
+      circlesOverlap(
+        state.player.position,
+        GAMEPLAY.playerRadius,
+        projectile.position,
+        projectile.radius,
+      )
     ) {
+      return projectile.kind;
+    }
+  }
+
+  for (const hazard of state.hazards) {
+    if (hazard.phase !== "active") {
       continue;
     }
 
-    state.enemies.push(
-      createEnemy(state, kind, position, directionBetween(position, state.player.position)),
-    );
-    return true;
+    if (
+      hazard.kind === "memory-leak" &&
+      circlesOverlap(
+        state.player.position,
+        GAMEPLAY.playerRadius,
+        hazard.position,
+        hazard.radius,
+      )
+    ) {
+      return hazard.kind;
+    }
+
+    if (hazard.kind === "context-sweep" && sweepTouchesPlayer(hazard, state.player.position)) {
+      return hazard.kind;
+    }
   }
 
-  return false;
+  return null;
+}
+
+function sweepTouchesPlayer(hazard: AreaHazardState, player: Vec2): boolean {
+  const halfThickness = hazard.thickness / 2;
+
+  return hazard.axis === "horizontal"
+    ? Math.abs(player.y - hazard.position.y) <= halfThickness + GAMEPLAY.playerRadius
+    : Math.abs(player.x - hazard.position.x) <= halfThickness + GAMEPLAY.playerRadius;
 }
 
 function randomEdgePosition(state: GameState): Vec2 {
   const edge = Math.floor(randomBetween(state, 0, 4));
+  const margin = GAMEPLAY.projectileMargin;
 
   if (edge === 0) {
-    return { x: ARENA.left, y: randomBetween(state, ARENA.top, ARENA.bottom) };
+    return { x: ARENA.left - margin, y: randomBetween(state, ARENA.top, ARENA.bottom) };
   }
-
   if (edge === 1) {
-    return { x: ARENA.right, y: randomBetween(state, ARENA.top, ARENA.bottom) };
+    return { x: ARENA.right + margin, y: randomBetween(state, ARENA.top, ARENA.bottom) };
   }
-
   if (edge === 2) {
-    return { x: randomBetween(state, ARENA.left, ARENA.right), y: ARENA.top };
+    return { x: randomBetween(state, ARENA.left, ARENA.right), y: ARENA.top - margin };
   }
-
-  return { x: randomBetween(state, ARENA.left, ARENA.right), y: ARENA.bottom };
+  return { x: randomBetween(state, ARENA.left, ARENA.right), y: ARENA.bottom + margin };
 }
 
-function createEnemy(
-  state: GameState,
-  kind: EnemyKind,
-  position: Vec2,
-  velocity: Vec2,
-): EnemyState {
-  return {
-    id: takeEntityId(state),
-    kind,
-    position: { ...position },
-    velocity: normalize(velocity),
-    radius: ENEMY_RADIUS[kind],
-    ageMs: 0,
-    behaviorMs:
-      kind === "leak"
-        ? GAMEPLAY.leakSplitMs
-        : kind === "notification"
-          ? GAMEPLAY.notificationTelegraphMs
-          : 0,
-    notificationMode: kind === "notification" ? "telegraph" : null,
-  };
-}
-
-function isNearArena(position: Vec2, margin: number): boolean {
+function isInsideProjectileBounds(position: Vec2): boolean {
+  const margin = GAMEPLAY.projectileMargin * 1.5;
   return (
     position.x >= ARENA.left - margin &&
     position.x <= ARENA.right + margin &&
@@ -623,21 +414,15 @@ function takeEntityId(state: GameState): number {
 
 function finishRun(
   state: GameState,
-  reason: "time" | "lives",
+  source: HitSource,
   events: GameEvent[],
 ): void {
   if (state.phase !== "playing") {
     return;
   }
 
-  const bonus = reason === "time" ? survivalBonus(state.lives) : 0;
-  state.score += bonus;
   state.phase = "results";
-  state.endReason = reason;
-  events.push({
-    type: "run-ended",
-    reason,
-    finalScore: state.score,
-    survivalBonus: bonus,
-  });
+  state.lastHitSource = source;
+  events.push({ type: "player-hit", source });
+  events.push({ type: "run-ended", finalScore: state.score, source });
 }

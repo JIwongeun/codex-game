@@ -29,7 +29,7 @@ production build는 `dist/client`의 정적 파일과 `dist/server`의 Worker bu
 - TypeScript: 게임 규칙과 데이터 계약의 오류를 일찍 발견
 - Vite: 빠른 개발 서버와 정적 production 빌드
 - Phaser 3.90: 성숙한 Canvas/WebGL, 입력, 오디오, Scene 수명주기
-- Vitest: 점수, 타이머, spawn 규칙 같은 순수 로직 단위 테스트
+- Vitest: 생존 시간, 공격 단계, 예고/활성, 충돌, spawn 규칙 같은 순수 로직 단위 테스트
 - pnpm: 의존성 잠금과 재현 가능한 설치
 
 Phaser 4가 현재 배포되어 있어도 이번 3일 프로젝트에서는 API와 사례가 축적된 Phaser 3.90을 선택한다. 새로운 엔진 기능보다 예측 가능한 구현을 우선한다.
@@ -80,7 +80,8 @@ flowchart LR
 │     │  └─ InputController.ts
 │     ├─ presentation/
 │     │  ├─ GameRenderer.ts
-│     │  └─ Hud.ts
+│     │  ├─ Hud.ts
+│     │  └─ theme.ts
 │     ├─ runtime/
 │     │  └─ FixedStepRunner.ts
 │     ├─ services/
@@ -97,8 +98,8 @@ flowchart LR
 핵심 루프 구현 시 다음 책임을 기준으로 파일을 나눈다. 파일이 하나뿐인 책임을 위해 빈 추상 계층을 미리 만들지는 않는다.
 
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
-- Domain logic: 점수, 난이도, Context 수치 계산
-- Input: Phaser 입력을 edge-triggered action과 이동 방향으로 변환
+- Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
+- Input: Phaser 입력을 시작·재시작 action과 포인터 이동 방향으로 변환
 - Presentation: domain state를 읽어 Canvas와 HUD만 갱신
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환
 - Services: local storage와 브라우저 효과음. leaderboard HTTP는 실제 구현 시에만 추가
@@ -152,14 +153,14 @@ POST /api/runs
   -> runId, seed, expiresAt
 
 POST /api/scores
-  <- runId, guestId, displayName, score, durationMs
+  <- runId, guestId, displayName, survivalMs
   -> accepted, rank
 
 GET /api/leaderboard?period=all-time&limit=10
   -> entries[]
 ```
 
-`POST /api/runs`는 간단한 세션과 시작 시각을 제공한다. `POST /api/scores`는 최소한 실행 시간, 점수 상한, 중복 제출, 문자열 길이를 검사한다. 완전한 치트 방지는 MVP 목표가 아니다.
+`POST /api/runs`는 간단한 세션과 시작 시각을 제공한다. `POST /api/scores`는 최소한 서버가 관찰한 실행 시간과 `survivalMs`의 허용 오차, 중복 제출, 문자열 길이를 검사한다. 완전한 치트 방지는 MVP 목표가 아니다.
 
 ### 최소 데이터
 
@@ -168,8 +169,7 @@ scores
 - id
 - guest_id
 - display_name
-- best_score
-- duration_ms
+- best_survival_ms
 - seed
 - achieved_at
 ```
@@ -200,7 +200,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - 논리 해상도 1280×720, Phaser `FIT` 스케일을 사용한다.
 - update에서 반복 생성되는 객체를 피한다.
-- 토큰, 꼬리, 적 수에는 명시적 상한을 둔다.
+- 직선 공격과 범위 공격 수에는 명시적 상한을 둔다.
 - 충돌 판정은 처음에는 단순 거리 검사로 시작하고 필요할 때 공간 분할을 검토한다.
 - 에셋은 브라우저 캐시가 가능한 정적 파일로 제공한다.
 - 개발자 도구를 열지 않아도 오류 상태를 알 수 있게 한다.
@@ -212,8 +212,9 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 ### 자동 검사
 
 - TypeScript typecheck
-- 점수와 위험 배율 순수 함수 테스트
-- Context 증가·COMPACT·피격 전이 테스트
+- 생존 시간 formatting과 난이도 단계 순수 함수 테스트
+- 직선 공격과 범위 공격의 예고·활성·피격 전이 테스트
+- 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트
 - production build
 
 ### 브라우저 확인
@@ -225,7 +226,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - 랭킹을 구현한 경우의 API 연결 실패
 - 재시작 후 이전 게임 객체와 입력 listener가 남지 않는지
 
-개발 서버에서 `?qaRunSeconds=5`를 붙이면 시작한 run의 남은 시간을 5초로 설정해 실제 Scene의 시간 종료와 재시작을 빠르게 확인할 수 있다. 이 분기는 `import.meta.env.DEV`로 제한되어 production build에는 적용되지 않는다.
+개발 서버에서 `?qaElapsedSeconds=45`를 붙이면 시작한 run의 경과 시간을 45초로 설정하고 후반 공격 timer를 앞당겨 `MEMORY LEAK`과 `CONTEXT OVERFLOW`를 빠르게 확인할 수 있다. 이 분기는 `import.meta.env.DEV`로 제한되어 production build에는 적용되지 않는다.
 
 ## 10. 배포 원칙
 

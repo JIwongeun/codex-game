@@ -1,84 +1,57 @@
-import { GAMEPLAY, RUN_DURATION_MS } from "../constants";
+import { GAMEPLAY } from "../constants";
 import { clamp } from "./math";
 
 export interface Difficulty {
   progress: number;
+  level: number;
   tabIntervalMs: number;
-  leakIntervalMs: number;
-  notificationIntervalMs: number;
   tabSpeed: number;
-  leakSpeed: number;
-  notificationSpeed: number;
-  deadline: boolean;
+  tabBurst: number;
+  popupIntervalMs: number;
+  popupSpeed: number;
+  memoryLeakIntervalMs: number;
+  memoryLeakRadius: number;
+  contextSweepIntervalMs: number;
+  contextSweepThickness: number;
+  popupUnlocked: boolean;
+  memoryLeakUnlocked: boolean;
+  contextSweepUnlocked: boolean;
 }
 
 function lerp(start: number, end: number, amount: number): number {
   return start + (end - start) * amount;
 }
 
-export function contextRatio(pendingTokens: number): number {
-  return clamp(pendingTokens / GAMEPLAY.contextCapacity, 0, 1);
-}
-
-export function riskMultiplier(pendingTokens: number): number {
-  if (pendingTokens >= 24) {
-    return 4;
-  }
-
-  if (pendingTokens >= 18) {
-    return 3;
-  }
-
-  if (pendingTokens >= 12) {
-    return 2;
-  }
-
-  if (pendingTokens >= 6) {
-    return 1.5;
-  }
-
-  return 1;
-}
-
-export function compactScore(pendingTokens: number): number {
-  const safeTokens = clamp(Math.trunc(pendingTokens), 0, GAMEPLAY.contextCapacity);
-  return Math.floor(safeTokens * GAMEPLAY.tokenValue * riskMultiplier(safeTokens));
-}
-
-export function compactRadius(pendingTokens: number): number {
-  return Math.min(
-    GAMEPLAY.compactMaxRadius,
-    GAMEPLAY.compactBaseRadius +
-      clamp(pendingTokens, 0, GAMEPLAY.contextCapacity) *
-        GAMEPLAY.compactRadiusPerToken,
-  );
-}
-
-export function desiredTrailPoints(pendingTokens: number): number {
-  return (
-    GAMEPLAY.baseTrailPoints +
-    clamp(Math.trunc(pendingTokens), 0, GAMEPLAY.contextCapacity) *
-      GAMEPLAY.trailPointsPerToken
-  );
-}
-
-export function survivalBonus(lives: number): number {
-  return Math.max(0, Math.trunc(lives)) * GAMEPLAY.survivalBonusPerLife;
-}
-
 export function difficultyAt(elapsedMs: number): Difficulty {
-  const progress = clamp(elapsedMs / RUN_DURATION_MS, 0, 1);
-  const deadline = elapsedMs >= RUN_DURATION_MS - 15_000;
-  const intervalScale = deadline ? 0.75 : 1;
+  const safeElapsedMs = Math.max(0, elapsedMs);
+  const progress = clamp(safeElapsedMs / GAMEPLAY.difficultyRampMs, 0, 1);
 
   return {
     progress,
-    tabIntervalMs: lerp(2_800, 950, progress) * intervalScale,
-    leakIntervalMs: lerp(14_000, 10_000, progress) * intervalScale,
-    notificationIntervalMs: lerp(11_000, 7_000, progress) * intervalScale,
-    tabSpeed: lerp(75, 140, progress),
-    leakSpeed: lerp(70, 100, progress),
-    notificationSpeed: lerp(500, 650, progress),
-    deadline,
+    level: Math.floor(safeElapsedMs / GAMEPLAY.levelDurationMs) + 1,
+    tabIntervalMs: lerp(1_180, 260, progress),
+    tabSpeed: lerp(270, 660, progress),
+    tabBurst: Math.min(4, 1 + Math.floor(safeElapsedMs / 22_000)),
+    popupIntervalMs: lerp(5_800, 2_200, progress),
+    popupSpeed: lerp(520, 860, progress),
+    memoryLeakIntervalMs: lerp(8_000, 3_600, progress),
+    memoryLeakRadius: lerp(82, 142, progress),
+    contextSweepIntervalMs: lerp(11_000, 5_500, progress),
+    contextSweepThickness: lerp(92, 154, progress),
+    popupUnlocked: safeElapsedMs >= GAMEPLAY.popupFirstSpawnMs,
+    memoryLeakUnlocked: safeElapsedMs >= GAMEPLAY.memoryLeakFirstSpawnMs,
+    contextSweepUnlocked: safeElapsedMs >= GAMEPLAY.contextSweepFirstSpawnMs,
   };
+}
+
+export function formatSurvivalTime(milliseconds: number): string {
+  const safeMilliseconds = Math.max(0, Math.floor(milliseconds));
+  const totalCentiseconds = Math.floor(safeMilliseconds / 10);
+  const minutes = Math.floor(totalCentiseconds / 6_000);
+  const seconds = Math.floor((totalCentiseconds % 6_000) / 100);
+  const centiseconds = totalCentiseconds % 100;
+
+  return `${minutes.toString().padStart(2, "0")}:${seconds
+    .toString()
+    .padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
 }

@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import { FIXED_STEP_MS, RUN_DURATION_MS } from "../constants";
+import { FIXED_STEP_MS } from "../constants";
 import type { GameEvent, GameState } from "../core/model";
 import {
   createGameState,
@@ -50,7 +50,6 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (this.inputController.consumeMuteToggle()) {
       const muted = this.soundService.toggleMute();
-
       if (!muted) {
         this.soundService.unlock();
       }
@@ -60,11 +59,10 @@ export class GameScene extends Phaser.Scene {
       if (this.inputController.consumeAction()) {
         this.soundService.unlock();
         const events = startRun(this.state);
-        this.applyDevelopmentRunWindow();
+        this.applyDevelopmentElapsedTime();
         this.inputController.clearTransient();
         this.handleEvents(events);
       }
-
       this.renderFrame(delta);
       return;
     }
@@ -76,7 +74,6 @@ export class GameScene extends Phaser.Scene {
         this.fixedStep.reset();
         this.inputController.clearTransient();
       }
-
       this.renderFrame(0);
       return;
     }
@@ -85,17 +82,17 @@ export class GameScene extends Phaser.Scene {
       if (this.inputController.consumeAction()) {
         this.soundService.unlock();
         this.state = restartRun(this.createSeed());
-        this.applyDevelopmentRunWindow();
+        this.applyDevelopmentElapsedTime();
         this.fixedStep.reset();
         this.inputController.clearTransient();
         this.gameRenderer.resetEffects();
         this.cameras.main.resetFX();
       }
-
       this.renderFrame(delta);
       return;
     }
 
+    this.inputController.consumeAction();
     this.fixedStep.advance(delta, () => {
       const events = stepGame(
         this.state,
@@ -104,7 +101,6 @@ export class GameScene extends Phaser.Scene {
             this.state.player.position,
             this.state.player.direction,
           ),
-          compactPressed: this.inputController.consumeAction(),
         },
         FIXED_STEP_MS,
       );
@@ -134,8 +130,8 @@ export class GameScene extends Phaser.Scene {
     this.soundService.consume(events);
 
     for (const event of events) {
-      if (event.type === "compacted") {
-        this.cameras.main.shake(110, 0.0035, true);
+      if (event.type === "hazard-activated") {
+        this.cameras.main.shake(70, 0.0015, true);
       } else if (event.type === "player-hit") {
         this.cameras.main.shake(180, 0.008, true);
       } else if (event.type === "run-ended") {
@@ -179,25 +175,27 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private applyDevelopmentRunWindow(): void {
+  private applyDevelopmentElapsedTime(): void {
     if (!import.meta.env.DEV) {
       return;
     }
 
     const requestedSeconds = Number(
-      new URLSearchParams(window.location.search).get("qaRunSeconds"),
+      new URLSearchParams(window.location.search).get("qaElapsedSeconds"),
     );
 
-    if (
-      !Number.isFinite(requestedSeconds) ||
-      requestedSeconds < 1 ||
-      requestedSeconds >= RUN_DURATION_MS / 1_000
-    ) {
+    if (!Number.isFinite(requestedSeconds) || requestedSeconds <= 0) {
       return;
     }
 
-    const remainingMs = Math.floor(requestedSeconds * 1_000);
-    this.state.elapsedMs = RUN_DURATION_MS - remainingMs;
-    this.state.remainingMs = remainingMs;
+    this.state.elapsedMs = Math.floor(requestedSeconds * 1_000);
+    this.state.score = this.state.elapsedMs;
+    this.state.spawn.tabMs = Math.min(this.state.spawn.tabMs, 250);
+    this.state.spawn.popupMs = Math.min(this.state.spawn.popupMs, 350);
+    this.state.spawn.memoryLeakMs = Math.min(this.state.spawn.memoryLeakMs, 450);
+    this.state.spawn.contextSweepMs = Math.min(
+      this.state.spawn.contextSweepMs,
+      550,
+    );
   }
 }

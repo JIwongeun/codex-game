@@ -55,7 +55,7 @@ export class InputController {
     );
   }
 
-  direction(playerPosition: Vec2, currentDirection: Vec2): Vec2 {
+  direction(playerPosition: Vec2, currentDirection: Vec2): Vec2 | null {
     const left = this.isDown(this.movementKeys.left) || this.isDown(this.movementKeys.a);
     const right =
       this.isDown(this.movementKeys.right) || this.isDown(this.movementKeys.d);
@@ -70,14 +70,14 @@ export class InputController {
       };
 
       if (keyboardDirection.x === 0 && keyboardDirection.y === 0) {
-        return currentDirection;
+        return null;
       }
 
       return normalize(keyboardDirection, currentDirection);
     }
 
     if (!this.pointerTarget) {
-      return currentDirection;
+      return null;
     }
 
     const pointerDirection = {
@@ -88,7 +88,7 @@ export class InputController {
     return Math.hypot(pointerDirection.x, pointerDirection.y) >=
       GAMEPLAY.pointerDeadZone
       ? normalize(pointerDirection, currentDirection)
-      : currentDirection;
+      : null;
   }
 
   consumeAction(): boolean {

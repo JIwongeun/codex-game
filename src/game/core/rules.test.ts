@@ -1,56 +1,38 @@
 import { describe, expect, it } from "vitest";
 
-import { GAMEPLAY, RUN_DURATION_MS } from "../constants";
-import {
-  compactRadius,
-  compactScore,
-  contextRatio,
-  desiredTrailPoints,
-  difficultyAt,
-  riskMultiplier,
-  survivalBonus,
-} from "./rules";
+import { GAMEPLAY } from "../constants";
+import { difficultyAt, formatSurvivalTime } from "./rules";
 
-describe("game rules", () => {
-  it.each([
-    [0, 1],
-    [5, 1],
-    [6, 1.5],
-    [11, 1.5],
-    [12, 2],
-    [17, 2],
-    [18, 3],
-    [23, 3],
-    [24, 4],
-  ])("uses an explicit risk tier at %i tokens", (tokens, multiplier) => {
-    expect(riskMultiplier(tokens)).toBe(multiplier);
-  });
-
-  it("banks only clamped pending tokens", () => {
-    expect(compactScore(0)).toBe(0);
-    expect(compactScore(6)).toBe(900);
-    expect(compactScore(24)).toBe(9_600);
-    expect(compactScore(999)).toBe(9_600);
-  });
-
-  it("derives context, trail, radius, and survival rewards", () => {
-    expect(contextRatio(12)).toBe(0.5);
-    expect(desiredTrailPoints(12)).toBe(
-      GAMEPLAY.baseTrailPoints + 12 * GAMEPLAY.trailPointsPerToken,
-    );
-    expect(compactRadius(24)).toBe(350);
-    expect(survivalBonus(3)).toBe(1_500);
-  });
-
-  it("increases pressure monotonically and accelerates the deadline", () => {
+describe("survival rules", () => {
+  it("raises pressure monotonically and caps the deterministic ramp", () => {
     const start = difficultyAt(0);
-    const middle = difficultyAt(RUN_DURATION_MS / 2);
-    const deadline = difficultyAt(RUN_DURATION_MS - 1_000);
+    const middle = difficultyAt(GAMEPLAY.difficultyRampMs / 2);
+    const cap = difficultyAt(GAMEPLAY.difficultyRampMs * 2);
 
     expect(start.tabSpeed).toBeLessThan(middle.tabSpeed);
-    expect(middle.tabSpeed).toBeLessThan(deadline.tabSpeed);
+    expect(middle.tabSpeed).toBeLessThan(cap.tabSpeed);
     expect(start.tabIntervalMs).toBeGreaterThan(middle.tabIntervalMs);
-    expect(deadline.tabIntervalMs).toBeLessThan(middle.tabIntervalMs);
-    expect(deadline.deadline).toBe(true);
+    expect(middle.tabIntervalMs).toBeGreaterThan(cap.tabIntervalMs);
+    expect(cap.progress).toBe(1);
+    expect(cap.tabBurst).toBe(4);
+  });
+
+  it("unlocks stronger browser attacks in explicit stages", () => {
+    expect(difficultyAt(0).popupUnlocked).toBe(false);
+    expect(difficultyAt(GAMEPLAY.popupFirstSpawnMs).popupUnlocked).toBe(true);
+    expect(difficultyAt(GAMEPLAY.memoryLeakFirstSpawnMs).memoryLeakUnlocked).toBe(
+      true,
+    );
+    expect(
+      difficultyAt(GAMEPLAY.contextSweepFirstSpawnMs).contextSweepUnlocked,
+    ).toBe(true);
+  });
+
+  it.each([
+    [0, "00:00.00"],
+    [12_340, "00:12.34"],
+    [61_999, "01:01.99"],
+  ])("formats %i ms as %s", (milliseconds, formatted) => {
+    expect(formatSurvivalTime(milliseconds)).toBe(formatted);
   });
 });

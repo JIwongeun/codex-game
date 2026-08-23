@@ -2,6 +2,45 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — 흑백 브라우저 디자인과 무한 생존 코어 전환
+
+### 제품 방향 변경
+
+- 네온 격자, 상단 bar, Context 게이지, panel overlay를 제거하고 흰 웹페이지와 Canvas가 이어지는 브라우저 오류 페이지 스타일로 전환
+- 90초 토큰 수집·꼬리·`COMPACT` 구조를 죽림고수 기반 한 번 피격 무한 생존 구조로 대체
+- 점수를 생존 밀리초로 단순화하고 `localStorage` key를 `await-codex.best-survival-ms.v2`로 분리
+
+### 구현
+
+- 마우스 포인터를 따라가되 가까우면 멈추는 이동과 WASD/방향키 대체 입력
+- `TAB STORM`: 화면 사방에서 포인터 방향으로 날아오는 직선 공격
+- `POP-UP`: 12초 이후 진행 경로를 예고한 뒤 돌진하는 직선 공격
+- `MEMORY LEAK`: 24초 이후 원형 경고 뒤 짧게 활성화하는 범위 공격
+- `CONTEXT OVERFLOW`: 42초 이후 수평 또는 수직 band를 경고한 뒤 활성화하는 범위 공격
+- 15초 단위 level, 120초까지 연속 상승하는 속도·간격·동시 공격 수, 개체 상한
+- 한 번 피격 종료, 생존 기록, 회피 통계, 클릭/Space 즉시 재시작
+- 흑백 renderer와 HUD가 공유하는 `presentation/theme.ts` 추가
+- 개발 전용 `?qaElapsedSeconds=45` 후반 공격 검증 경로 추가
+
+### 검증
+
+- `pnpm check`: typecheck, 5 files의 28 tests, Worker/client production build 통과
+- 동일 seed·입력 stream 결정성, 무입력 정지, arena clamp, 예고 중 무해, 활성 후 피격, 직선·원형·band 충돌, 모든 공격 단계 spawn, 결과 상태 동결, entity 상한 검증
+- 실제 브라우저와 production 정적 preview에서 시작 화면, 마우스 이동, 초반 직선 공격 회피, 45초 단계의 원형·band 예고, 한 번 피격 결과 화면 확인
+- 브라우저 console error/warning 없음
+
+### 남은 위험
+
+- 난이도 수치는 자동 검증 가능한 1차 기준이다. 실제 사용자의 첫 사망 시간 분포를 보고 공격 간격과 예고 시간을 조정해야 한다.
+- Cloudflare plugin의 로컬 Worker preview에서는 asset 응답이 정상이지만 in-app browser Canvas가 mount되지 않는 현상을 확인했다. 동일 production asset의 정적 preview는 정상이며, 실제 Sites 배포 후 공개 URL에서 다시 검증해야 한다.
+- 새 디자인과 생존 코어는 아직 공개 URL에 배포하지 않았다.
+
+### 다음 행동
+
+1. 공개 URL에 새 version을 배포하고 root 진입·플레이·재시작을 확인한다.
+2. 실제 사용자의 초반 생존 시간과 사망 원인을 보고 수치를 한 차례 조정한다.
+3. 제출용 썸네일과 플레이 영상을 준비한다.
+
 ## 2026-08-23 — 공개 HTTPS 배포와 외부 실행 검증
 
 ### 완료한 변경

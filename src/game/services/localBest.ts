@@ -1,4 +1,4 @@
-export const LOCAL_BEST_KEY = "await-codex.best-score.v1";
+export const LOCAL_BEST_KEY = "await-codex.best-survival-ms.v2";
 
 export interface ScoreStorage {
   getItem(key: string): string | null;

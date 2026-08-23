@@ -1,6 +1,6 @@
 :root {
-  color: #f2f4f8;
-  background: #070a0f;
+  color: #202124;
+  background: #fff;
   font-family:
     "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-synthesis: none;
@@ -38,7 +38,7 @@ body {
   display: block;
   max-width: 100%;
   max-height: 100%;
-  box-shadow: 0 24px 80px rgb(0 0 0 / 45%);
+  cursor: none;
   touch-action: none;
   user-select: none;
 }

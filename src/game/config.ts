@@ -8,7 +8,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   parent: "game-root",
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: "#070a0f",
+  backgroundColor: "#ffffff",
   render: {
     antialias: true,
     roundPixels: true,

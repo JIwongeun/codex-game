@@ -39,21 +39,21 @@ export class SoundService {
 
   consume(events: readonly GameEvent[]): void {
     for (const event of events) {
-      if (event.type === "token-collected") {
+      if (event.type === "run-started") {
         this.play({
-          frequency: 520 + Math.min(event.pendingTokens, 12) * 18,
-          endFrequency: 760,
-          durationSeconds: 0.045,
+          frequency: 260,
+          endFrequency: 520,
+          durationSeconds: 0.08,
           gain: 0.025,
           wave: "sine",
         });
-      } else if (event.type === "compacted") {
+      } else if (event.type === "hazard-warning") {
         this.play({
-          frequency: 240,
-          endFrequency: 70,
-          durationSeconds: 0.18,
-          gain: 0.05,
-          wave: "sawtooth",
+          frequency: event.kind === "context-sweep" ? 180 : 240,
+          endFrequency: event.kind === "context-sweep" ? 120 : 180,
+          durationSeconds: 0.12,
+          gain: 0.025,
+          wave: "triangle",
         });
       } else if (event.type === "player-hit") {
         this.play({
@@ -62,14 +62,6 @@ export class SoundService {
           durationSeconds: 0.22,
           gain: 0.06,
           wave: "square",
-        });
-      } else if (event.type === "run-ended") {
-        this.play({
-          frequency: event.reason === "time" ? 330 : 150,
-          endFrequency: event.reason === "time" ? 660 : 70,
-          durationSeconds: 0.35,
-          gain: 0.04,
-          wave: "triangle",
         });
       }
     }
