@@ -125,7 +125,15 @@
 ## D-016 — pointer hotspot은 유지하고 검은 pixel cursor와 투명 pause 계층을 사용한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, D-013의 native cursor 외형과 기존 pause overlay를 대체
+- 상태: 일부 대체됨, D-017이 cursor 규격과 pause 재개 입력을 변경
 - 배경: 운영체제 기본 커서는 게임의 digital 도구 시각 언어와 충분히 연결되지 않았고, 기존 pause 화면은 마지막 플레이 장면을 거의 흰색으로 덮어 맥락을 잃게 했다.
 - 결정: pointer 입력과 충돌 좌표의 1:1 규칙은 유지하되 Canvas 안에서 24×32 hard-edge black PNG cursor를 CSS hotspot `(1, 1)`로 사용한다. pause는 Phaser 결과 overlay와 분리한 DOM 계층에서 `backdrop-filter`로 마지막 장면을 흐리고 중앙 문구만 표시한다.
 - 결과: 별도 player sprite나 추적 지연 없이 cursor 외형만 제품 언어에 맞는다. pause 안내는 입력을 가로채지 않아 기존 클릭·Space 재개 흐름을 유지하며, Scene 종료 시 DOM 계층을 제거한다.
+
+## D-017 — pause 입력을 동결하고 frozen cursor 복귀로만 재개한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, D-016의 cursor 규격과 pause 재개 흐름을 대체
+- 배경: pause 중 custom cursor와 gameplay target이 계속 움직여, 다른 위치로 옮긴 뒤 재개하면 공격을 피하는 순간이동 플레이가 가능했다. 24×32 cursor 외형도 일반적인 시스템 pointer보다 크고 넓게 보였다.
+- 결정: 입력은 실제 pointer 위치와 gameplay target을 분리한다. blur/hidden부터 gameplay target을 동결하고 Canvas는 OS 기본 cursor로 복구한다. 마지막 player 위치에는 동일한 검은 cursor 이미지를 pause blur 아래에 남기며, 반경 18px 안으로 돌아온 pointer click만 재개한다. 다른 위치의 click과 keyboard action은 재개하지 않는다. 검은 cursor는 32×32 canvas 안에 일반적인 시스템 화살표 비율로 좁게 그린 hard-edge PNG와 hotspot `(2, 1)`을 사용한다.
+- 결과: pause 중 OS cursor는 자유롭게 움직이지만 게임 좌표는 변하지 않는다. 재개 직후에도 동결 좌표를 유지하고 다음 pointer move부터 다시 1:1 추적한다. 웹 플랫폼은 사용자의 OS cursor bitmap과 배율을 읽어 색만 바꿀 수 없으므로 외형은 공통 시스템 화살표에 가까운 custom asset으로 유지한다.

@@ -11,6 +11,8 @@ import {
   stepGame,
 } from "../core/simulation";
 import { InputController } from "../input/InputController";
+import { canResumeFromPause } from "../input/pauseResume";
+import { GameCursor } from "../presentation/GameCursor";
 import { GameRenderer } from "../presentation/GameRenderer";
 import { Hud } from "../presentation/Hud";
 import { PauseOverlay } from "../presentation/PauseOverlay";
@@ -22,6 +24,7 @@ export class GameScene extends Phaser.Scene {
   private state!: GameState;
   private inputController!: InputController;
   private gameRenderer!: GameRenderer;
+  private gameCursor!: GameCursor;
   private hud!: Hud;
   private pauseOverlay!: PauseOverlay;
   private readonly fixedStep = new FixedStepRunner();
@@ -42,6 +45,10 @@ export class GameScene extends Phaser.Scene {
       this.scale.height,
     );
     this.gameRenderer = new GameRenderer(this);
+    this.gameCursor = new GameCursor(
+      this.game.canvas,
+      this.game.canvas.parentElement ?? document.body,
+    );
     this.hud = new Hud(this);
     this.pauseOverlay = new PauseOverlay(this.game.canvas.parentElement ?? document.body);
     this.inputController = new InputController(this);
@@ -79,11 +86,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.focusPaused) {
-      if (this.inputController.consumeAction()) {
+      const action = this.inputController.consumeAction();
+
+      if (canResumeFromPause(this.state.player.position, action)) {
         this.soundService.unlock();
         this.focusPaused = false;
         this.fixedStep.reset();
         this.inputController.clearTransient();
+        this.inputController.setGameplayPointerTracking(true);
       }
       this.renderFrame(0);
       return;
@@ -132,6 +142,7 @@ export class GameScene extends Phaser.Scene {
       this.soundService.isMuted,
     );
     this.pauseOverlay.render(this.focusPaused, this.state.elapsedMs);
+    this.gameCursor.render(this.focusPaused, this.state.player.position);
   }
 
   private handleEvents(events: readonly GameEvent[]): void {
@@ -163,6 +174,7 @@ export class GameScene extends Phaser.Scene {
     this.focusPaused = true;
     this.fixedStep.reset();
     this.inputController.resetForSuspend();
+    this.inputController.setGameplayPointerTracking(false);
   };
 
   private readonly handleFocus = (): void => {
@@ -182,6 +194,7 @@ export class GameScene extends Phaser.Scene {
     this.game.events.off(Phaser.Core.Events.VISIBLE, this.handleFocus);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize);
     this.inputController.destroy();
+    this.gameCursor.destroy();
     this.pauseOverlay.destroy();
     this.soundService.destroy();
   };

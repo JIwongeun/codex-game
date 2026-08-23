@@ -17,7 +17,7 @@ Codex가 작업하는 동안 마우스 포인터로 브라우저 요청과 오�
 - 목표: 사방에서 날아오는 `TAB`과 `POP-UP`, 예고 후 발동하는 `MEMORY LEAK`과 `CONTEXT OVERFLOW`를 회피
 - 한 판: 시간 제한 없이 한 번 피격될 때까지
 - 결과: 생존 시간과 브라우저 로컬 최고 기록을 표시하고 즉시 재시작
-- 일시정지: 다른 탭으로 이동하면 게임과 타이머가 멈추고, 흐려진 현재 장면 위의 중앙 안내를 클릭하거나 Space로 재개
+- 일시정지: 다른 탭으로 이동하면 게임 좌표와 타이머가 멈추고 OS 기본 cursor가 복구됩니다. 흐려진 장면에 남은 검은 cursor 위치로 돌아와 클릭하면 기존 위치에서 재개됩니다.
 
 ## 시작하기
 
@@ -62,6 +62,6 @@ pnpm check      # typecheck + test + build
 - pnpm
 - Cloudflare Workers-compatible static hosting
 
-게임 판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 입력, renderer, HUD, fixed-step runtime, local storage, 효과음은 각각 별도 모듈이며 `pnpm check`에서 typecheck, 31개 단위 테스트, production build를 함께 검증합니다.
+게임 판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 입력, renderer, HUD, fixed-step runtime, local storage, 효과음은 각각 별도 모듈이며 `pnpm check`에서 typecheck, 35개 단위 테스트, production build를 함께 검증합니다.
 
 개발 서버에서 `?qaElapsedSeconds=45`를 붙이면 `MEMORY LEAK`과 `CONTEXT OVERFLOW`가 해제된 후반 난이도를 바로 확인할 수 있습니다. 이 옵션은 production build에서는 무시됩니다.

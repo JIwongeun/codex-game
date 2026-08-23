@@ -9,11 +9,18 @@ interface TouchGesture {
   startTime: number;
 }
 
+export interface InputAction {
+  source: "pointer" | "keyboard";
+  position: Vec2 | null;
+}
+
 export class InputController {
   private readonly keyboard: Phaser.Input.Keyboard.KeyboardPlugin | null;
   private pointerTarget: Vec2 | null = null;
+  private pointerPosition: Vec2 | null = null;
+  private gameplayPointerTracking = true;
   private touchGesture: TouchGesture | null = null;
-  private actionPending = false;
+  private actionPending: InputAction | null = null;
   private muteTogglePending = false;
 
   constructor(private readonly scene: Phaser.Scene) {
@@ -36,10 +43,14 @@ export class InputController {
     return this.pointerTarget ? { ...this.pointerTarget } : null;
   }
 
-  consumeAction(): boolean {
+  consumeAction(): InputAction | null {
     const pending = this.actionPending;
-    this.actionPending = false;
+    this.actionPending = null;
     return pending;
+  }
+
+  setGameplayPointerTracking(enabled: boolean): void {
+    this.gameplayPointerTracking = enabled;
   }
 
   consumeMuteToggle(): boolean {
@@ -49,7 +60,7 @@ export class InputController {
   }
 
   clearTransient(): void {
-    this.actionPending = false;
+    this.actionPending = null;
     this.muteTogglePending = false;
     this.touchGesture = null;
   }
@@ -92,7 +103,10 @@ export class InputController {
       return;
     }
 
-    this.actionPending = true;
+    this.actionPending = {
+      source: "pointer",
+      position: this.pointerPosition ? { ...this.pointerPosition } : null,
+    };
   };
 
   private readonly handlePointerMove = (pointer: Phaser.Input.Pointer): void => {
@@ -114,7 +128,10 @@ export class InputController {
     const duration = pointer.upTime - this.touchGesture.startTime;
 
     if (distance < 12 && duration < 250) {
-      this.actionPending = true;
+      this.actionPending = {
+        source: "pointer",
+        position: this.pointerPosition ? { ...this.pointerPosition } : null,
+      };
     }
 
     this.touchGesture = null;
@@ -130,7 +147,10 @@ export class InputController {
     }
 
     if (event.code === "Space") {
-      this.actionPending = true;
+      this.actionPending = {
+        source: "keyboard",
+        position: this.pointerPosition ? { ...this.pointerPosition } : null,
+      };
     } else if (event.code === "KeyM") {
       this.muteTogglePending = true;
     }
@@ -138,7 +158,11 @@ export class InputController {
 
   private updatePointerTarget(pointer: Phaser.Input.Pointer): void {
     if (Number.isFinite(pointer.worldX) && Number.isFinite(pointer.worldY)) {
-      this.pointerTarget = { x: pointer.worldX, y: pointer.worldY };
+      this.pointerPosition = { x: pointer.worldX, y: pointer.worldY };
+
+      if (this.gameplayPointerTracking) {
+        this.pointerTarget = { ...this.pointerPosition };
+      }
     }
   }
 }

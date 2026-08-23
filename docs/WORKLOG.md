@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — pause cursor 순간이동 차단과 system-arrow 비율 정리
+
+### 구현
+
+- `InputController`에서 실제 pointer 위치와 gameplay target을 분리해 pause 중에는 전자만 갱신하고 player 좌표는 마지막 위치에 동결
+- pause Canvas cursor를 OS 기본값으로 복구하고, 동일한 검은 cursor 이미지를 마지막 player 위치의 blur 아래에 고정 표시
+- frozen cursor 반경 18px 안의 pointer click만 재개하도록 gate를 추가하고 다른 위치 click과 Space 재개를 차단
+- 재개 순간에는 기존 gameplay target을 유지하고 다음 pointer move부터 1:1 추적을 다시 활성화
+- 기존 24×32 cursor를 32×32 canvas 안의 더 좁은 공통 system-arrow 비율 hard-edge PNG와 hotspot `(2, 1)`로 교체
+
+### 검증
+
+- `pnpm check`: typecheck, Vitest 7 files의 35 tests, Worker/client production build 통과
+- pause 중 pointer action의 실제 좌표는 보존되지만 gameplay 좌표는 동결되는 `InputController` 회귀 테스트 추가
+- frozen cursor 경계 안 click 허용, 바깥 click과 keyboard action 차단을 검증하는 순수 gate 테스트 추가
+
 ## 2026-08-23 — black pixel cursor와 background blur pause
 
 ### 구현
