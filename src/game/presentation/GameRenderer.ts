@@ -72,7 +72,11 @@ export class GameRenderer {
   consume(events: readonly GameEvent[], state: GameState): void {
     for (const event of events) {
       if (event.type === "hazard-activated") {
-        this.addContextBurst(event.position, state.elapsedMs);
+        if (event.kind === "compaction") {
+          this.addContextBurst(event.position, state.elapsedMs);
+        } else {
+          this.addBurst(event.position, 14, state.elapsedMs);
+        }
       } else if (event.type === "pattern-burst") {
         this.addBurst(
           event.position,
@@ -125,7 +129,11 @@ export class GameRenderer {
 
   private drawHazards(state: GameState): void {
     for (const hazard of state.hazards) {
-      this.drawCompaction(hazard);
+      if (hazard.kind === "compaction") {
+        this.drawCompaction(hazard);
+      } else {
+        this.drawFullAccess(hazard);
+      }
     }
   }
 
@@ -143,27 +151,18 @@ export class GameRenderer {
     const centerX = x + width / 2;
     const centerY = y + height / 2;
 
-    this.world.fillStyle(COLORS.ink, active ? 0.008 : 0.012 + progress * 0.012);
-    this.world.fillRect(x, y, width, height);
-
     if (!active) {
-      this.world.lineStyle(1, tone, 0.22 + progress * 0.26);
-      this.world.strokeRect(x, y, width, height);
-      this.drawCornerBrackets(x, y, width, height, tone, 0.86, 16);
-
       const compression = Phaser.Math.Easing.Quadratic.In(progress);
 
-      for (let index = 0; index < 5; index += 1) {
-        const startInset = 12 + index * 12;
-        const startWidth = Math.max(12, width - startInset * 2);
-        const startHeight = Math.max(12, height - startInset * 2);
+      for (let index = 0; index < 4; index += 1) {
+        const startSize = Math.min(width, height) * (0.16 + index * 0.05);
         const frameWidth = Phaser.Math.Linear(
-          startWidth,
+          startSize,
           10 + index * 3,
           compression,
         );
         const frameHeight = Phaser.Math.Linear(
-          startHeight,
+          startSize * (0.62 + (index % 2) * 0.12),
           10 + index * 3,
           compression,
         );
@@ -181,9 +180,8 @@ export class GameRenderer {
       }
 
       for (let index = 0; index < 7; index += 1) {
-        const lane = (index + 1) / 8;
-        const startX = centerX + ((index % 3) - 1) * width * 0.16;
-        const startY = y + height * lane;
+        const startX = centerX + ((index % 3) - 1) * width * 0.17;
+        const startY = centerY + (index - 3) * height * 0.055;
         const lineCenterX = Phaser.Math.Linear(startX, centerX, compression);
         const lineY = Phaser.Math.Linear(
           startY,
@@ -224,15 +222,6 @@ export class GameRenderer {
       1,
     );
     const frameFade = 1 - burstProgress;
-    this.drawCornerBrackets(
-      x,
-      y,
-      width,
-      height,
-      tone,
-      0.18 + frameFade * 0.46,
-      20,
-    );
 
     for (let index = 0; index < 3; index += 1) {
       const ringProgress = Phaser.Math.Clamp(
@@ -240,8 +229,8 @@ export class GameRenderer {
         0,
         1,
       );
-      const ringWidth = Phaser.Math.Linear(8, width * 1.08, ringProgress);
-      const ringHeight = Phaser.Math.Linear(8, height * 1.08, ringProgress);
+      const ringWidth = Phaser.Math.Linear(8, 62 + index * 12, ringProgress);
+      const ringHeight = Phaser.Math.Linear(8, 44 + index * 10, ringProgress);
       this.world.lineStyle(1, tone, (1 - ringProgress) * 0.64);
       this.world.strokeRect(
         centerX - ringWidth / 2,
@@ -259,6 +248,55 @@ export class GameRenderer {
       failedCoreSize,
       failedCoreSize,
     );
+  }
+
+  private drawFullAccess(hazard: AreaHazardState): void {
+    const { x, y, width, height } = this.hazardRect(hazard);
+    const active = hazard.phase === "active";
+    const progress = active
+      ? 1
+      : Phaser.Math.Clamp(
+          1 - hazard.remainingMs / GAMEPLAY.fullAccessTelegraphMs,
+          0,
+          1,
+        );
+    const tone = ATTACK_TONES.codex.value;
+
+    this.world.fillStyle(
+      active ? COLORS.ink : tone,
+      active ? 0.11 : 0.012 + progress * 0.018,
+    );
+    this.world.fillRect(x, y, width, height);
+    this.world.lineStyle(1, active ? COLORS.ink : tone, active ? 0.86 : 0.3);
+    this.world.strokeRect(x, y, width, height);
+    this.drawCornerBrackets(
+      x,
+      y,
+      width,
+      height,
+      active ? COLORS.ink : tone,
+      active ? 0.96 : 0.48 + progress * 0.34,
+      13,
+    );
+
+    if (!active) {
+      const scanY = y + height * progress;
+      this.world.lineStyle(1, tone, 0.18 + progress * 0.3);
+      this.world.lineBetween(x + 8, scanY, x + width - 8, scanY);
+      this.world.fillStyle(tone, 0.54 + progress * 0.32);
+      this.world.fillRect(x, y, 3, Math.max(2, height * progress));
+      return;
+    }
+
+    for (let offset = -height; offset < width; offset += 16) {
+      this.world.lineStyle(1, COLORS.ink, 0.12);
+      this.world.lineBetween(
+        x + Math.max(0, offset),
+        y + Math.max(0, -offset),
+        x + Math.min(width, offset + height),
+        y + Math.min(height, height + offset),
+      );
+    }
   }
 
   private drawProjectiles(state: GameState): void {
@@ -411,18 +449,29 @@ export class GameRenderer {
       }
 
       const active = hazard.phase === "active";
-      const progress =
-        hazard.kind === "compaction" && !active
-          ? Phaser.Math.Clamp(
-              1 - hazard.remainingMs / GAMEPLAY.compactionTelegraphMs,
-              0,
-              1,
-            )
-          : 1;
-      const text = active
-        ? "[context] COMPACTION FAILED"
-        : `[context] compacting · ${Math.round(progress * 100)}%`;
       const rect = this.hazardRect(hazard);
+      const telegraphMs =
+        hazard.kind === "compaction"
+          ? GAMEPLAY.compactionTelegraphMs
+          : GAMEPLAY.fullAccessTelegraphMs;
+      const progress = active
+        ? 1
+        : Phaser.Math.Clamp(1 - hazard.remainingMs / telegraphMs, 0, 1);
+      const text =
+        hazard.kind === "compaction"
+          ? active
+            ? "[context] COMPACTION FAILED"
+            : `[context] compacting ${Math.round(progress * 100)}%`
+          : active
+            ? "[approval] FULL ACCESS GRANTED"
+            : `[approval] FULL ACCESS? ${Math.round(progress * 100)}%`;
+      const labelPosition =
+        hazard.kind === "compaction"
+          ? {
+              x: rect.x + rect.width / 2,
+              y: rect.y + rect.height / 2 + 34,
+            }
+          : { x: rect.x + 108, y: rect.y + 18 };
 
       this.updateRichLabel(view, {
         surface: "codex",
@@ -433,8 +482,8 @@ export class GameRenderer {
       });
       view.container
         .setPosition(
-          Math.round(rect.x + 10),
-          Math.round(rect.y + rect.height - 16),
+          Math.round(labelPosition.x),
+          Math.round(labelPosition.y),
         )
         .setRotation(0)
         .setAlpha(active ? 1 : 0.82 + progress * 0.18)

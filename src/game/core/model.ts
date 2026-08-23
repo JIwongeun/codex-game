@@ -18,7 +18,7 @@ export type ProjectileKind =
   | "agent"
   | "finding"
   | "limit";
-export type HazardKind = "compaction";
+export type HazardKind = "compaction" | "full-access";
 export type HazardPhase = "telegraph" | "active";
 export type SequenceKind = "review-loop" | "usage-limit";
 export type AttackPatternKind =
@@ -33,39 +33,7 @@ export type AttackPatternKind =
 export type HitSource = ProjectileKind;
 export type AttackSurface = "terminal" | "browser" | "codex";
 
-export type ToolCallLabel =
-  | "+ one more change"
-  | "$ pnpm check"
-  | "$ pnpm test --run"
-  | "$ rg --files -g AGENTS.md"
-  | "$ rg -n TODO src"
-  | "$ git diff --check"
-  | "$ git diff --stat"
-  | "$ git status --short"
-  | "[tool] reading AGENTS.md"
-  | "[tool] reading docs again"
-  | "[tool] rereading same file"
-  | "[tool] searching codebase"
-  | "[tool] waiting for output"
-  | "warning: CRLF incoming"
-  | "warning: tree is dirty"
-  | "error: command timed out"
-  | "error: exit code 1"
-  | "TS2322: not assignable"
-  | "ENOENT: file not found"
-  | "codex: checking diff again"
-  | "codex: fixing one last test"
-  | "codex: updating plan again"
-  | "codex: one last check"
-  | "404 Not Found"
-  | "429 Too Many Requests"
-  | "502 Bad Gateway"
-  | "ERR_CONNECTION_REFUSED"
-  | "ERR_NAME_NOT_RESOLVED"
-  | "ERR_TIMED_OUT"
-  | "PAGE_CRASHED"
-  | "PAGE_UNRESPONSIVE"
-  | "net::ERR_FAILED";
+export type ToolCallLabel = string;
 
 export type ApprovalLabel =
   | "[approval] allow full access?"
@@ -83,7 +51,7 @@ export type SequenceResultLabel =
   | "RESETS IN 4 DAYS";
 
 export type ProjectileLabel = ToolCallLabel | ApprovalLabel | string;
-export type HazardLabel = "CONTEXT COMPACTION";
+export type HazardLabel = "CONTEXT COMPACTION" | "FULL ACCESS";
 
 export interface RectangleHitbox {
   width: number;

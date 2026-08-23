@@ -16,6 +16,26 @@ describe("attackTextTokens", () => {
     ]);
   });
 
+  it("recognizes Linux, PowerShell, and build executables", () => {
+    expect(attackTextTokens("terminal", "$ rm -r dist")).toEqual([
+      { text: "$ ", role: "muted" },
+      { text: "rm", role: "terminalExecutable" },
+      { text: " ", role: "ink" },
+      { text: "-r", role: "terminalParameter" },
+      { text: " ", role: "ink" },
+      { text: "dist", role: "ink" },
+    ]);
+    expect(
+      attackTextTokens("terminal", "$ Get-Content package.json")[1],
+    ).toEqual({ text: "Get-Content", role: "terminalExecutable" });
+    expect(
+      attackTextTokens(
+        "terminal",
+        "$ npx eslint src --max-warnings=0",
+      ).at(-1),
+    ).toEqual({ text: "--max-warnings=0", role: "terminalParameter" });
+  });
+
   it("keeps browser and Codex surfaces on their own syntax", () => {
     expect(attackTextTokens("browser", "404 Not Found")).toEqual([
       { text: "404", role: "browserError" },

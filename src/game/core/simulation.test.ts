@@ -252,40 +252,21 @@ describe("survival simulation", () => {
       }
     }
 
-    expect(toolCallLabels).toEqual(
-      new Set([
-        "+ one more change",
-        "$ pnpm test --run",
-        "$ rg --files -g AGENTS.md",
-        "$ git diff --stat",
-        "$ git diff --check",
-        "$ git status --short",
-        "$ pnpm check",
-        "$ rg -n TODO src",
-        "[tool] reading AGENTS.md",
-        "[tool] rereading same file",
-        "[tool] searching codebase",
-        "[tool] waiting for output",
-        "[tool] reading docs again",
-        "warning: tree is dirty",
-        "warning: CRLF incoming",
-        "error: command timed out",
-        "error: exit code 1",
-        "TS2322: not assignable",
-        "ENOENT: file not found",
-        "codex: checking diff again",
-        "codex: fixing one last test",
-        "codex: updating plan again",
-        "codex: one last check",
-        "404 Not Found",
+    expect(toolCallLabels.size).toBeGreaterThanOrEqual(180);
+    expect([...toolCallLabels]).toEqual(
+      expect.arrayContaining([
+        "$ git add .",
+        '$ git commit -m "fix flaky test"',
+        "$ git push --force-with-lease",
+        "$ npm run build",
+        "$ pnpm exec vitest run",
+        "$ npx tsc --noEmit",
+        "$ cd src/game",
+        "$ ls -la",
+        "$ rm -r dist",
+        "$ Get-Content package.json",
+        "[context] compacting conversation",
         "429 Too Many Requests",
-        "502 Bad Gateway",
-        "ERR_CONNECTION_REFUSED",
-        "ERR_NAME_NOT_RESOLVED",
-        "ERR_TIMED_OUT",
-        "PAGE_CRASHED",
-        "PAGE_UNRESPONSIVE",
-        "net::ERR_FAILED",
       ]),
     );
     expect(approvalLabels).toEqual(
@@ -453,6 +434,42 @@ describe("survival simulation", () => {
     expect(state.lastHitSource).toBeNull();
   });
 
+  it("keeps full access harmless while warning and lethal while active", () => {
+    const state = playingState();
+    state.hazards = [
+      hazard(state, {
+        kind: "full-access",
+        label: "FULL ACCESS",
+      }),
+    ];
+
+    expect(stepGame(state, EMPTY_INPUT, FIXED_STEP_MS)).toEqual([]);
+    expect(state.phase).toBe("playing");
+
+    const events = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(events).toContainEqual({
+      type: "hazard-activated",
+      kind: "full-access",
+      position: { ...state.player.position },
+    });
+    expect(events).toContainEqual({ type: "player-hit", source: "approval" });
+    expect(state.phase).toBe("results");
+    expect(state.lastHitSource).toBe("approval");
+  });
+
+  it("adds full access as the distinct area attack in late stages", () => {
+    const state = playingState(41, 1280, 720);
+    state.elapsedMs = GAMEPLAY.stageDurationMs * 7;
+    state.spawn.compactionMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    expect(state.hazards.map(({ kind }) => kind)).toEqual([
+      "compaction",
+      "full-access",
+    ]);
+  });
+
   it("makes burst context tokens arc outward and then fall", () => {
     const state = playingState();
     state.hazards = [hazard(state)];
@@ -481,7 +498,7 @@ describe("survival simulation", () => {
     expect(token.velocity.y).toBeGreaterThan(0);
   });
 
-  it("fits the enlarged context compaction to a small viewport", () => {
+  it("fits late-stage compaction and full access to a small viewport", () => {
     const state = playingState(17, 375, 640);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
     state.spawn.compactionMs = 0;
@@ -489,14 +506,24 @@ describe("survival simulation", () => {
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
     expect(state.hazards).toHaveLength(3);
-    for (const compaction of state.hazards) {
-      expect(compaction.hitbox.width).toBe(375 * 0.675);
-      expect(compaction.hitbox.height).toBe(375 * 0.675);
-      expect(compaction.position.x).toBeGreaterThanOrEqual(
-        compaction.hitbox.width / 2,
+    expect(state.hazards.map(({ kind }) => kind)).toEqual([
+      "compaction",
+      "full-access",
+      "full-access",
+    ]);
+    for (const hazard of state.hazards) {
+      if (hazard.kind === "compaction") {
+        expect(hazard.hitbox.width).toBe(375 * 0.675);
+        expect(hazard.hitbox.height).toBe(375 * 0.675);
+      } else {
+        expect(hazard.hitbox.width).toBe(375 * 0.72);
+        expect(hazard.hitbox.height).toBe(190);
+      }
+      expect(hazard.position.x).toBeGreaterThanOrEqual(
+        hazard.hitbox.width / 2,
       );
-      expect(compaction.position.x).toBeLessThanOrEqual(
-        state.arena.width - compaction.hitbox.width / 2,
+      expect(hazard.position.x).toBeLessThanOrEqual(
+        state.arena.width - hazard.hitbox.width / 2,
       );
     }
   });

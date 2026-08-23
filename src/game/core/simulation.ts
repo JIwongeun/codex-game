@@ -28,45 +28,9 @@ import type {
 } from "./model";
 import { nextRandom, normalizeSeed } from "./random";
 import { difficultyAt } from "./rules";
+import { TOOL_CALL_ENTRIES } from "./toolCallCorpus";
 
 const PLAYER_START_DIRECTION: Vec2 = { x: 1, y: 0 };
-const TOOL_CALL_ENTRIES: readonly {
-  label: ToolCallLabel;
-  surface: AttackSurface;
-}[] = [
-  { label: "+ one more change", surface: "codex" },
-  { label: "$ pnpm test --run", surface: "terminal" },
-  { label: "$ pnpm check", surface: "terminal" },
-  { label: "$ rg --files -g AGENTS.md", surface: "terminal" },
-  { label: "$ rg -n TODO src", surface: "terminal" },
-  { label: "$ git diff --check", surface: "terminal" },
-  { label: "$ git diff --stat", surface: "terminal" },
-  { label: "$ git status --short", surface: "terminal" },
-  { label: "[tool] reading AGENTS.md", surface: "codex" },
-  { label: "[tool] reading docs again", surface: "codex" },
-  { label: "[tool] rereading same file", surface: "codex" },
-  { label: "[tool] searching codebase", surface: "codex" },
-  { label: "[tool] waiting for output", surface: "codex" },
-  { label: "warning: CRLF incoming", surface: "terminal" },
-  { label: "warning: tree is dirty", surface: "terminal" },
-  { label: "error: command timed out", surface: "terminal" },
-  { label: "error: exit code 1", surface: "terminal" },
-  { label: "TS2322: not assignable", surface: "terminal" },
-  { label: "ENOENT: file not found", surface: "terminal" },
-  { label: "codex: checking diff again", surface: "codex" },
-  { label: "codex: fixing one last test", surface: "codex" },
-  { label: "codex: updating plan again", surface: "codex" },
-  { label: "codex: one last check", surface: "codex" },
-  { label: "404 Not Found", surface: "browser" },
-  { label: "429 Too Many Requests", surface: "browser" },
-  { label: "502 Bad Gateway", surface: "browser" },
-  { label: "ERR_CONNECTION_REFUSED", surface: "browser" },
-  { label: "ERR_NAME_NOT_RESOLVED", surface: "browser" },
-  { label: "ERR_TIMED_OUT", surface: "browser" },
-  { label: "PAGE_CRASHED", surface: "browser" },
-  { label: "PAGE_UNRESPONSIVE", surface: "browser" },
-  { label: "net::ERR_FAILED", surface: "browser" },
-];
 const APPROVAL_ENTRIES: readonly {
   label: ApprovalLabel;
   surface: "codex";
@@ -168,8 +132,12 @@ export function resizeArena(
   );
 
   for (const hazard of state.hazards) {
-    const size = fitSquareSize(hazard.hitbox.width, state.arena);
-    hazard.hitbox = { width: size, height: size };
+    if (hazard.kind === "compaction") {
+      const size = fitSquareSize(hazard.hitbox.width, state.arena);
+      hazard.hitbox = { width: size, height: size };
+    } else {
+      hazard.hitbox = fitFullAccessHitbox(hazard.hitbox, state.arena);
+    }
     hazard.position = clampRectangleCenter(
       hazard.position,
       hazard.hitbox,
@@ -327,15 +295,20 @@ function updateHazards(
 
     if (hazard.phase === "telegraph") {
       hazard.phase = "active";
-      hazard.remainingMs = GAMEPLAY.compactionActiveMs;
+      hazard.remainingMs =
+        hazard.kind === "compaction"
+          ? GAMEPLAY.compactionActiveMs
+          : GAMEPLAY.fullAccessActiveMs;
       survivors.push(hazard);
-      const difficulty = difficultyAt(state.elapsedMs);
-      spawnContextTokens(
-        state,
-        hazard.position,
-        difficulty.compactionFragmentCount,
-        difficulty.compactionFragmentSpeed,
-      );
+      if (hazard.kind === "compaction") {
+        const difficulty = difficultyAt(state.elapsedMs);
+        spawnContextTokens(
+          state,
+          hazard.position,
+          difficulty.compactionFragmentCount,
+          difficulty.compactionFragmentSpeed,
+        );
+      }
       events.push({
         type: "hazard-activated",
         kind: hazard.kind,
@@ -420,15 +393,32 @@ function spawnScheduledAttacks(
       GAMEPLAY.maxHazards - state.hazards.length,
     );
     for (let index = 0; index < available; index += 1) {
+      if (index === 0) {
+        if (
+          spawnCompaction(
+            state,
+            difficulty.compactionSize,
+            state.player.position,
+          )
+        ) {
+          events.push({ type: "hazard-warning", kind: "compaction" });
+        }
+        continue;
+      }
+
+      const accessHitbox = fitFullAccessHitbox(
+        {
+          width: GAMEPLAY.fullAccessWidth,
+          height: GAMEPLAY.fullAccessHeight,
+        },
+        state.arena,
+      );
       const target =
-        index === 0
+        index === 1
           ? state.player.position
-          : randomRectangleCenter(
-              state,
-              squareHitbox(difficulty.compactionSize, state.arena),
-            );
-      if (spawnCompaction(state, difficulty.compactionSize, target)) {
-        events.push({ type: "hazard-warning", kind: "compaction" });
+          : randomRectangleCenter(state, accessHitbox);
+      if (spawnFullAccess(state, target, accessHitbox)) {
+        events.push({ type: "hazard-warning", kind: "full-access" });
       }
     }
     state.spawn.compactionMs += difficulty.compactionIntervalMs;
@@ -956,6 +946,27 @@ function spawnCompaction(
   return true;
 }
 
+function spawnFullAccess(
+  state: GameState,
+  target: Vec2,
+  hitbox: RectangleHitbox,
+): boolean {
+  if (state.hazards.length >= GAMEPLAY.maxHazards) {
+    return false;
+  }
+
+  state.hazards.push({
+    id: takeEntityId(state),
+    kind: "full-access",
+    label: "FULL ACCESS",
+    position: clampRectangleCenter(target, hitbox, state.arena),
+    hitbox,
+    phase: "telegraph",
+    remainingMs: GAMEPLAY.fullAccessTelegraphMs,
+  });
+  return true;
+}
+
 function squareHitbox(size: number, arena: ArenaBounds): RectangleHitbox {
   const fittedSize = fitSquareSize(size, arena);
   return { width: fittedSize, height: fittedSize };
@@ -970,6 +981,28 @@ function fitSquareSize(size: number, arena: ArenaBounds): number {
         GAMEPLAY.compactionMaxViewportRatio,
     ),
   );
+}
+
+function fitFullAccessHitbox(
+  hitbox: RectangleHitbox,
+  arena: ArenaBounds,
+): RectangleHitbox {
+  return {
+    width: Math.max(
+      1,
+      Math.min(
+        hitbox.width,
+        arena.width * GAMEPLAY.fullAccessMaxViewportWidthRatio,
+      ),
+    ),
+    height: Math.max(
+      1,
+      Math.min(
+        hitbox.height,
+        arena.height * GAMEPLAY.fullAccessMaxViewportHeightRatio,
+      ),
+    ),
+  };
 }
 
 function clampRectangleCenter(
@@ -1016,6 +1049,22 @@ function findHitSource(state: GameState): HitSource | null {
       )
     ) {
       return projectile.kind;
+    }
+  }
+
+  for (const hazard of state.hazards) {
+    if (
+      hazard.kind === "full-access" &&
+      hazard.phase === "active" &&
+      circleOverlapsOrientedRectangle(
+        state.player.position,
+        GAMEPLAY.playerRadius,
+        hazard.position,
+        hazard.hitbox,
+        { x: 1, y: 0 },
+      )
+    ) {
+      return "approval";
     }
   }
 
