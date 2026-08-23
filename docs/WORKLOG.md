@@ -37,6 +37,14 @@
 - `review` spawn snapshot과 예고 중 velocity 고정, rectangle collision, 네 attack family, 17개 phrase variant, responsive resize, seeded soak와 entity cap 검증
 - 알려진 비차단 경고: Phaser 포함 client chunk가 Vite 기본 500kB 경고를 넘으며 gzip 약 329kB
 
+### production 반영
+
+- 검증된 source commit `71bc14a`를 Sites source repository에 push하고 version 8로 저장
+- owner-only production deployment `appgdep_6a8ad5adbc208191a512c0d48f0c25c8`가 `succeeded` 상태로 완료
+- live URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
+- 배포 후 access mode `custom`, owner 1명, group 0개, 외부 방문자 0명과 latest version 8 유지 확인
+- 사용자 요청에 따라 자동 browser 시각 판정은 수행하지 않고 production 플레이 확인을 사용자에게 넘김
+
 ### 다음 확인
 
 - owner-only production 배포 후 사용자가 문구 가독성, `>_` node 크기, 경고와 active의 판독성, 12·24·42초 난이도를 직접 확인
