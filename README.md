@@ -7,7 +7,7 @@ Codex가 작업하는 동안 `>_` task node를 움직여 개발·vibe coding의 
 ## 바로 플레이
 
 - 개발 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
-- 링크를 아는 사람은 로그인 없이 접속할 수 있습니다. 검색 색인은 HTML robots meta와 `X-Robots-Tag`로 차단하지만 URL 자체는 공개 접근입니다.
+- 링크를 아는 사람은 로그인 없이 접속할 수 있습니다. HTML robots meta로 검색 색인을 요청하지 않지만 URL 자체는 공개 접근입니다.
 - 개발자 PC를 켜 두거나 외부에 로컬 서버를 노출할 필요가 없습니다.
 
 ## 플레이

@@ -208,4 +208,4 @@
 - 상태: 확정
 - 배경: owner-only `custom` 접근은 사용자가 매 변경 뒤 새로고침해 확인하고 링크를 심사위원·테스터에게 바로 공유하기에 불편했다. Sites에는 별도의 unlisted 또는 secret-link 접근 모드가 없고 `custom`과 `public`만 제공된다.
 - 결정: production Sites 접근을 `public`으로 전환한다. URL을 아는 방문자는 로그인·승인 없이 플레이할 수 있다. HTML에는 `noindex, nofollow, noarchive` robots meta를 넣고 Worker가 모든 응답에 같은 `X-Robots-Tag`를 추가해 검색 색인을 요청하지 않는다.
-- 결과: 같은 URL을 개발 확인과 대회 제출에 사용할 수 있다. `noindex`는 인증이나 접근 제어가 아니므로 URL을 전달받거나 발견한 사람의 접속을 차단하지 않으며, 이를 비공개 링크로 표현하지 않는다.
+- 결과: 같은 URL을 개발 확인과 대회 제출에 사용할 수 있다. Sites 외부 응답에서 `X-Robots-Tag`가 노출되지 않아 production 검색 제외는 HTML robots meta가 담당한다. `noindex`는 인증이나 접근 제어가 아니므로 URL을 전달받거나 발견한 사람의 접속을 차단하지 않으며, 이를 비공개 링크로 표현하지 않는다.

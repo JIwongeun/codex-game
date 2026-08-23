@@ -9,13 +9,16 @@
 - HTML에 `noindex, nofollow, noarchive` robots meta 추가
 - Worker가 HTML과 asset을 포함한 모든 응답에 동일한 `X-Robots-Tag`를 추가하도록 변경
 - 검색 차단 header가 asset 응답 본문과 상태를 보존하는 회귀 테스트 추가
-- Sites access를 `custom` owner-only에서 로그인 없는 `public`으로 전환 예정
+- Sites access를 `custom` owner-only에서 로그인 없는 `public`으로 전환
 
 ### 검증
 
 - `pnpm check`: typecheck, 8 files / 48 tests, production build 통과
 - `git diff --check`: 통과
-- production 반영과 비로그인 HTTP 접근 확인 전
+- source commit `2cba054`를 Sites version 15로 production 배포
+- Sites access revision 4가 `public`이고 live URL이 인증 없이 HTTP 200을 반환함을 확인
+- production HTML에서 `noindex, nofollow, noarchive` robots meta가 제공됨을 확인
+- Sites의 외부 응답에서는 Worker가 설정한 `X-Robots-Tag`가 노출되지 않아, 실제 검색 제외는 HTML robots meta가 담당
 
 ## 2026-08-23 — Start와 Game 두 화면으로 통합
 

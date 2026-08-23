@@ -17,10 +17,10 @@
 
 - 플레이 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
 - HTTPS 정적 호스팅이 HTML, JavaScript, CSS를 전달하며 Sites 접근 정책은 로그인 없는 `public`이다.
-- HTML robots meta와 모든 Worker 응답의 `X-Robots-Tag`는 `noindex, nofollow, noarchive`를 요청한다. 이는 검색 색인 억제일 뿐 인증이나 접근 차단이 아니다.
+- HTML robots meta는 `noindex, nofollow, noarchive`를 요청한다. Worker도 같은 `X-Robots-Tag`를 설정하지만 Sites 외부 응답에서는 해당 header가 노출되지 않으므로 production 검색 제외는 HTML meta에 의존한다. 이는 검색 색인 억제일 뿐 인증이나 접근 차단이 아니다.
 - `worker/index.ts`는 `ASSETS` binding에 요청을 넘기는 얇은 배포 adapter이며 게임 로직이나 사용자 데이터를 처리하지 않는다.
 - `.openai/hosting.json`에는 Sites project 식별자만 있고 배포 credential이나 secret은 저장하지 않는다.
-- 현재 게임 자체의 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. 비공개 접근 인증은 Sites가 담당하며 브라우저 `localStorage`에는 해당 브라우저의 최고점만 저장한다.
+- 현재 게임 자체의 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. Sites는 로그인 없는 공개 정적 페이지를 제공하며 브라우저 `localStorage`에는 해당 브라우저의 최고점만 저장한다.
 - 따라서 제출 기간에 개발자 PC를 서버로 켜 두거나 공유기 port forwarding을 할 필요가 없다.
 
 production build는 `dist/client`의 정적 파일과 `dist/server`의 Worker bundle을 함께 만든다. `pnpm preview`는 같은 Worker/asset 경계를 로컬에서 확인하는 용도다.
