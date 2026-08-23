@@ -23,6 +23,12 @@
 
 - 실제 production 화면에서 player silhouette 크기와 440px/s 이동 감각은 사용자 확인 후 조정
 
+### production 반영
+
+- 검증된 source commit `8a7e43c`를 Sites version 7로 저장하고 owner-only production에 배포
+- 배포 상태 `succeeded`, live URL의 latest version 7 확인
+- access mode `custom`, owner 1명, group 0개, 외부 방문자 0명 유지 확인
+
 ## 2026-08-23 — pause cursor 순간이동 차단과 system-arrow 비율 정리
 
 ### 구현
