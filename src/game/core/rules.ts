@@ -28,6 +28,11 @@ export interface Difficulty {
   usageDrainCount: number;
   limitFragmentCount: number;
   limitFragmentSpeed: number;
+  blackoutIntervalMs: number;
+  blackoutDurationMs: number;
+  blackoutMaxActive: number;
+  blackoutWidthRatio: readonly [number, number];
+  blackoutHeightRatio: readonly [number, number];
   approvalUnlocked: boolean;
   compactionUnlocked: boolean;
   retryLoopUnlocked: boolean;
@@ -35,6 +40,7 @@ export interface Difficulty {
   parallelAgentsUnlocked: boolean;
   reviewLoopUnlocked: boolean;
   usageLimitUnlocked: boolean;
+  blackoutUnlocked: boolean;
 }
 
 function lerp(start: number, end: number, amount: number): number {
@@ -48,16 +54,32 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     GAMEPLAY.maxStage,
     Math.floor(safeElapsedMs / GAMEPLAY.stageDurationMs) + 1,
   );
+  const stageTenIntervalMultiplier = stage >= 10 ? 0.84 : 1;
+  const stageTenSpeedMultiplier = stage >= 10 ? 1.08 : 1;
+  const postStageTenMs = Math.max(
+    0,
+    safeElapsedMs - GAMEPLAY.difficultyRampMs,
+  );
+  const blackoutRamp = clamp(
+    postStageTenMs / GAMEPLAY.blackoutPostStageRampMs,
+    0,
+    1,
+  );
+  const blackoutMaxActive =
+    stage < 10 ? 1 : postStageTenMs >= 60_000 ? 4 : postStageTenMs >= 30_000 ? 3 : 2;
 
   return {
     progress,
     stage,
-    toolCallIntervalMs: lerp(1_050, 380, progress),
-    toolCallSpeed: lerp(270, 570, progress),
+    toolCallIntervalMs:
+      lerp(1_050, 380, progress) * stageTenIntervalMultiplier,
+    toolCallSpeed: lerp(270, 570, progress) * stageTenSpeedMultiplier,
     toolCallBurst: stage >= 9 ? 3 : stage >= 5 ? 2 : 1,
-    approvalIntervalMs: lerp(6_200, 3_100, progress),
-    approvalSpeed: lerp(470, 740, progress),
-    compactionIntervalMs: lerp(8_400, 4_200, progress),
+    approvalIntervalMs:
+      lerp(6_200, 3_100, progress) * stageTenIntervalMultiplier,
+    approvalSpeed: lerp(470, 740, progress) * stageTenSpeedMultiplier,
+    compactionIntervalMs:
+      lerp(8_400, 4_200, progress) * stageTenIntervalMultiplier,
     compactionCount: stage >= 10 ? 3 : stage >= 8 ? 2 : 1,
     compactionSize: lerp(
       GAMEPLAY.compactionStartSize,
@@ -65,21 +87,42 @@ export function difficultyAt(elapsedMs: number): Difficulty {
       progress,
     ),
     compactionFragmentCount: stage >= 10 ? 20 : stage >= 8 ? 16 : 12,
-    compactionFragmentSpeed: lerp(300, 520, progress),
-    retryLoopIntervalMs: lerp(9_800, 4_800, progress),
+    compactionFragmentSpeed:
+      lerp(300, 520, progress) * stageTenSpeedMultiplier,
+    retryLoopIntervalMs:
+      lerp(9_800, 4_800, progress) * stageTenIntervalMultiplier,
     retryLoopCount: stage >= 9 ? 5 : stage >= 6 ? 4 : 3,
-    reasoningIntervalMs: lerp(11_500, 5_800, progress),
-    reasoningSpeed: lerp(760, 1_080, progress),
-    parallelAgentsIntervalMs: lerp(9_500, 4_700, progress),
+    reasoningIntervalMs:
+      lerp(11_500, 5_800, progress) * stageTenIntervalMultiplier,
+    reasoningSpeed: lerp(760, 1_080, progress) * stageTenSpeedMultiplier,
+    parallelAgentsIntervalMs:
+      lerp(9_500, 4_700, progress) * stageTenIntervalMultiplier,
     parallelAgentPairs: stage >= 10 ? 3 : stage >= 9 ? 2 : 1,
-    parallelAgentSpeed: lerp(420, 760, progress),
-    reviewLoopIntervalMs: lerp(10_800, 5_400, progress),
+    parallelAgentSpeed: lerp(420, 760, progress) * stageTenSpeedMultiplier,
+    reviewLoopIntervalMs:
+      lerp(10_800, 5_400, progress) * stageTenIntervalMultiplier,
     reviewFindingCount: stage >= 10 ? 16 : stage >= 9 ? 12 : 8,
-    reviewFindingSpeed: lerp(260, 500, progress),
-    usageLimitIntervalMs: lerp(12_500, 6_000, progress),
+    reviewFindingSpeed: lerp(260, 500, progress) * stageTenSpeedMultiplier,
+    usageLimitIntervalMs:
+      lerp(12_500, 6_000, progress) * stageTenIntervalMultiplier,
     usageDrainCount: stage >= 10 ? 8 : stage >= 9 ? 6 : 4,
     limitFragmentCount: stage >= 10 ? 20 : stage >= 9 ? 16 : 12,
-    limitFragmentSpeed: lerp(280, 540, progress),
+    limitFragmentSpeed: lerp(280, 540, progress) * stageTenSpeedMultiplier,
+    blackoutIntervalMs:
+      stage < 10
+        ? GAMEPLAY.blackoutStageNineIntervalMs
+        : lerp(
+            GAMEPLAY.blackoutStageTenStartIntervalMs,
+            GAMEPLAY.blackoutMinimumIntervalMs,
+            blackoutRamp,
+          ),
+    blackoutDurationMs:
+      stage < 10
+        ? GAMEPLAY.blackoutStageNineDurationMs
+        : GAMEPLAY.blackoutStageTenDurationMs,
+    blackoutMaxActive,
+    blackoutWidthRatio: stage < 10 ? [0.36, 0.46] : [0.26, 0.34],
+    blackoutHeightRatio: stage < 10 ? [0.28, 0.38] : [0.22, 0.3],
     approvalUnlocked: safeElapsedMs >= GAMEPLAY.approvalFirstSpawnMs,
     compactionUnlocked: safeElapsedMs >= GAMEPLAY.compactionFirstSpawnMs,
     retryLoopUnlocked: safeElapsedMs >= GAMEPLAY.retryLoopFirstSpawnMs,
@@ -88,6 +131,7 @@ export function difficultyAt(elapsedMs: number): Difficulty {
       safeElapsedMs >= GAMEPLAY.parallelAgentsFirstSpawnMs,
     reviewLoopUnlocked: safeElapsedMs >= GAMEPLAY.reviewLoopFirstSpawnMs,
     usageLimitUnlocked: safeElapsedMs >= GAMEPLAY.usageLimitFirstSpawnMs,
+    blackoutUnlocked: safeElapsedMs >= GAMEPLAY.stageDurationMs * 8,
   };
 }
 

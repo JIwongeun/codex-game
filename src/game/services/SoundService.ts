@@ -61,6 +61,7 @@ export class SoundService {
   private musicStage = 1;
   private nextMusicStepMs = 0;
   private musicRunning = false;
+  private endingActive = false;
   private muted = false;
 
   get isMuted(): boolean {
@@ -68,7 +69,7 @@ export class SoundService {
   }
 
   syncMusic(playing: boolean, elapsedMs: number): void {
-    if (!playing || this.muted) {
+    if (!playing || this.muted || this.endingActive) {
       this.pauseMusic();
       return;
     }
@@ -186,6 +187,7 @@ export class SoundService {
   consume(events: readonly GameEvent[]): void {
     for (const event of events) {
       if (event.type === "run-started") {
+        this.endingActive = false;
         this.play({
           frequency: 260,
           endFrequency: 520,
@@ -237,6 +239,40 @@ export class SoundService {
           durationSeconds: 0.22,
           gain: 0.06,
           wave: "square",
+        });
+      } else if (event.type === "blackout-started") {
+        this.play({
+          frequency: 210,
+          endFrequency: 74,
+          durationSeconds: 0.12,
+          gain: 0.028,
+          wave: "square",
+        });
+        this.play({
+          frequency: 1_100,
+          endFrequency: 820,
+          durationSeconds: 0.04,
+          gain: 0.01,
+          wave: "triangle",
+          delaySeconds: 0.1,
+        });
+      } else if (event.type === "ending-started") {
+        this.endingActive = true;
+        this.pauseMusic();
+        this.play({
+          frequency: 164,
+          endFrequency: 164,
+          durationSeconds: 0.42,
+          gain: 0.035,
+          wave: "square",
+        });
+        this.play({
+          frequency: 123,
+          endFrequency: 92,
+          durationSeconds: 0.62,
+          gain: 0.032,
+          wave: "square",
+          delaySeconds: 0.18,
         });
       }
     }

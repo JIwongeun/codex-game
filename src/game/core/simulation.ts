@@ -9,11 +9,11 @@ import {
   normalize,
 } from "./math";
 import type {
+  ApprovalGateState,
   AreaHazardState,
   AttackSurface,
   AttackSequenceState,
   ArenaBounds,
-  ApprovalLabel,
   GameEvent,
   GameState,
   HitSource,
@@ -22,27 +22,17 @@ import type {
   ProjectileKind,
   ProjectileState,
   RectangleHitbox,
+  RetryChainState,
   SequenceResultLabel,
   ToolCallLabel,
   Vec2,
 } from "./model";
+import { approvalGateSegments } from "./approvalGate";
 import { nextRandom, normalizeSeed } from "./random";
 import { difficultyAt } from "./rules";
 import { TOOL_CALL_ENTRIES } from "./toolCallCorpus";
 
 const PLAYER_START_DIRECTION: Vec2 = { x: 1, y: 0 };
-const APPROVAL_ENTRIES: readonly {
-  label: ApprovalLabel;
-  surface: "codex";
-}[] = [
-  { label: "[approval] allow full access?", surface: "codex" },
-  { label: "[approval] run outside sandbox?", surface: "codex" },
-  { label: "[approval] allow network?", surface: "codex" },
-  { label: "[approval] approve session?", surface: "codex" },
-  { label: "[approval] still waiting...", surface: "codex" },
-  { label: "[approval] approve again?", surface: "codex" },
-  { label: "[approval] full access again?", surface: "codex" },
-];
 const USAGE_LIMIT_RESULTS: readonly SequenceResultLabel[] = [
   "5H LIMIT REACHED",
   "WEEKLY LIMIT REACHED",
@@ -127,6 +117,10 @@ export function createGameState(
     projectiles: [],
     hazards: [],
     sequences: [],
+    approvalGates: [],
+    retryChains: [],
+    blackouts: [],
+    ending: null,
     spawn: {
       toolCallMs: GAMEPLAY.toolCallFirstSpawnMs,
       approvalMs: GAMEPLAY.approvalFirstSpawnMs,
@@ -136,6 +130,7 @@ export function createGameState(
       parallelAgentsMs: GAMEPLAY.parallelAgentsFirstSpawnMs,
       reviewLoopMs: GAMEPLAY.reviewLoopFirstSpawnMs,
       usageLimitMs: GAMEPLAY.usageLimitFirstSpawnMs,
+      blackoutMs: GAMEPLAY.blackoutFirstSpawnMs,
     },
   };
 }
@@ -191,6 +186,33 @@ export function resizeArena(
       clampPointToArena(origin, state.arena, 0),
     );
   }
+
+  for (const gate of state.approvalGates) {
+    const perpendicularSize =
+      Math.abs(gate.direction.x) > 0 ? state.arena.height : state.arena.width;
+    gate.gapCenter = clampAxis(
+      gate.gapCenter,
+      perpendicularSize,
+      gate.gapSize / 2,
+    );
+  }
+
+  for (const retry of state.retryChains) {
+    retry.position = clampPointToArena(retry.position, state.arena, 0);
+    retry.target = clampPointToArena(retry.target, state.arena, 0);
+  }
+
+  for (const blackout of state.blackouts) {
+    blackout.hitbox = {
+      width: Math.min(blackout.hitbox.width, state.arena.width * 0.46),
+      height: Math.min(blackout.hitbox.height, state.arena.height * 0.38),
+    };
+    blackout.position = clampRectangleCenter(
+      blackout.position,
+      blackout.hitbox,
+      state.arena,
+    );
+  }
 }
 
 function movePlayer(
@@ -233,14 +255,35 @@ export function stepGame(
   }
 
   const events: GameEvent[] = [];
+  if (state.ending) {
+    state.ending.elapsedMs = Math.min(
+      state.ending.durationMs,
+      state.ending.elapsedMs + stepMs,
+    );
+    if (state.ending.elapsedMs >= state.ending.durationMs) {
+      state.ending = null;
+      state.phase = "results";
+      events.push({ type: "run-ended", finalScore: state.score, source: null });
+    }
+    return events;
+  }
+
   const stepSeconds = stepMs / 1_000;
   state.elapsedMs += stepMs;
   state.score = Math.floor(state.elapsedMs);
+
+  if (state.elapsedMs >= GAMEPLAY.endingAtMs) {
+    beginEnding(state, events);
+    return events;
+  }
 
   movePlayer(state, intent.direction, stepSeconds);
   updateProjectiles(state, stepMs, stepSeconds);
   updateHazards(state, stepMs, events);
   updateSequences(state, stepMs, events);
+  updateApprovalGates(state, stepMs, stepSeconds);
+  updateRetryChains(state, stepMs, stepSeconds);
+  updateBlackouts(state, stepMs);
   spawnScheduledAttacks(state, stepMs, events);
 
   const hitSource = findHitSource(state);
@@ -399,6 +442,88 @@ function updateSequences(
   state.sequences = survivors;
 }
 
+function updateApprovalGates(
+  state: GameState,
+  stepMs: number,
+  stepSeconds: number,
+): void {
+  const survivors: ApprovalGateState[] = [];
+
+  for (const gate of state.approvalGates) {
+    if (gate.telegraphRemainingMs > 0) {
+      gate.telegraphRemainingMs = Math.max(
+        0,
+        gate.telegraphRemainingMs - stepMs,
+      );
+      survivors.push(gate);
+      continue;
+    }
+
+    gate.position.x += gate.direction.x * gate.speed * stepSeconds;
+    gate.position.y += gate.direction.y * gate.speed * stepSeconds;
+    if (isApprovalGateInsideBounds(gate, state.arena)) {
+      survivors.push(gate);
+    } else {
+      state.attacksDodged += 1;
+    }
+  }
+
+  state.approvalGates = survivors;
+}
+
+function updateRetryChains(
+  state: GameState,
+  stepMs: number,
+  stepSeconds: number,
+): void {
+  const survivors: RetryChainState[] = [];
+
+  for (const retry of state.retryChains) {
+    if (retry.telegraphRemainingMs > 0) {
+      retry.telegraphRemainingMs = Math.max(
+        0,
+        retry.telegraphRemainingMs - stepMs,
+      );
+      survivors.push(retry);
+      continue;
+    }
+
+    const distance = Math.hypot(
+      retry.target.x - retry.position.x,
+      retry.target.y - retry.position.y,
+    );
+    const travel = retry.speed * stepSeconds;
+    if (distance > travel) {
+      retry.position.x += retry.velocity.x * travel;
+      retry.position.y += retry.velocity.y * travel;
+      survivors.push(retry);
+      continue;
+    }
+
+    retry.position = { ...retry.target };
+    if (retry.attempt >= retry.totalAttempts) {
+      state.attacksDodged += 1;
+      continue;
+    }
+
+    retry.attempt += 1;
+    retry.target = { ...state.player.position };
+    retry.velocity = directionBetween(retry.position, retry.target);
+    retry.speed *= GAMEPLAY.retryChainSpeedGain;
+    retry.telegraphRemainingMs = GAMEPLAY.retryChainTelegraphMs;
+    survivors.push(retry);
+  }
+
+  state.retryChains = survivors;
+}
+
+function updateBlackouts(state: GameState, stepMs: number): void {
+  state.blackouts = state.blackouts.filter((blackout) => {
+    blackout.remainingMs -= stepMs;
+    return blackout.remainingMs > 0;
+  });
+}
+
 function spawnScheduledAttacks(
   state: GameState,
   stepMs: number,
@@ -413,6 +538,7 @@ function spawnScheduledAttacks(
   state.spawn.parallelAgentsMs -= stepMs;
   state.spawn.reviewLoopMs -= stepMs;
   state.spawn.usageLimitMs -= stepMs;
+  state.spawn.blackoutMs -= stepMs;
 
   if (state.spawn.toolCallMs <= 0) {
     spawnToolCallVolley(
@@ -424,7 +550,7 @@ function spawnScheduledAttacks(
   }
 
   if (difficulty.approvalUnlocked && state.spawn.approvalMs <= 0) {
-    if (spawnApproval(state, difficulty.approvalSpeed)) {
+    if (spawnApprovalGate(state, difficulty.approvalSpeed)) {
       events.push({ type: "pattern-warning", kind: "approval-required" });
     }
     state.spawn.approvalMs += difficulty.approvalIntervalMs;
@@ -468,12 +594,13 @@ function spawnScheduledAttacks(
   }
 
   if (difficulty.retryLoopUnlocked && state.spawn.retryLoopMs <= 0) {
-    spawnRetryLoop(
+    if (spawnRetryChain(
       state,
       difficulty.retryLoopCount,
       difficulty.approvalSpeed * 0.94,
-    );
-    events.push({ type: "pattern-warning", kind: "retry-loop" });
+    )) {
+      events.push({ type: "pattern-warning", kind: "retry-loop" });
+    }
     state.spawn.retryLoopMs += difficulty.retryLoopIntervalMs;
   }
 
@@ -525,6 +652,16 @@ function spawnScheduledAttacks(
     }
     state.spawn.usageLimitMs += difficulty.usageLimitIntervalMs;
   }
+
+  if (difficulty.blackoutUnlocked && state.spawn.blackoutMs <= 0) {
+    if (spawnBlackout(state, difficulty)) {
+      events.push({
+        type: "blackout-started",
+        position: { ...state.blackouts.at(-1)!.position },
+      });
+    }
+    state.spawn.blackoutMs += difficulty.blackoutIntervalMs;
+  }
 }
 
 function spawnToolCallVolley(
@@ -575,8 +712,58 @@ function spawnToolCallVolley(
   }
 }
 
-function spawnApproval(state: GameState, speed: number): boolean {
-  if (state.projectiles.length >= GAMEPLAY.maxProjectiles) {
+function spawnApprovalGate(state: GameState, speed: number): boolean {
+  if (state.approvalGates.length >= GAMEPLAY.maxApprovalGates) {
+    return false;
+  }
+
+  const edge = Math.floor(randomBetween(state, 0, 4));
+  const horizontal = edge < 2;
+  const perpendicularSize = horizontal
+    ? state.arena.height
+    : state.arena.width;
+  const gapSize = Math.min(
+    GAMEPLAY.approvalGateMaxGap,
+    Math.max(
+      GAMEPLAY.approvalGateMinGap,
+      perpendicularSize * 0.16,
+    ),
+  );
+  const gapCenter = randomBetween(
+    state,
+    gapSize / 2 + 20,
+    perpendicularSize - gapSize / 2 - 20,
+  );
+  const margin = GAMEPLAY.approvalGateThickness;
+  const position = pointOnEdge(state.arena, edge, 0, margin);
+  const direction =
+    edge === 0
+      ? { x: 1, y: 0 }
+      : edge === 1
+        ? { x: -1, y: 0 }
+        : edge === 2
+          ? { x: 0, y: 1 }
+          : { x: 0, y: -1 };
+
+  state.approvalGates.push({
+    id: takeEntityId(state),
+    position,
+    direction,
+    gapCenter,
+    gapSize,
+    thickness: GAMEPLAY.approvalGateThickness,
+    speed,
+    telegraphRemainingMs: GAMEPLAY.approvalGateTelegraphMs,
+  });
+  return true;
+}
+
+function spawnRetryChain(
+  state: GameState,
+  count: number,
+  speed: number,
+): boolean {
+  if (state.retryChains.length >= GAMEPLAY.maxRetryChains) {
     return false;
   }
 
@@ -585,68 +772,25 @@ function spawnApproval(state: GameState, speed: number): boolean {
   const position = pointOnEdge(
     state.arena,
     edge,
-    randomBetween(state, alongSize * 0.12, alongSize * 0.88),
-    18,
+    randomBetween(state, alongSize * 0.16, alongSize * 0.84),
+    24,
   );
   const target = { ...state.player.position };
-  const entry = randomApprovalEntry(state);
-
-  addProjectile(
-    state,
-    "approval",
-    entry.surface,
-    entry.label,
+  state.retryChains.push({
+    id: takeEntityId(state),
     position,
     target,
-    {
-      width: labelHitboxWidth(
-        entry.label,
-        GAMEPLAY.approvalHitboxMinWidth,
-        GAMEPLAY.approvalHitboxMaxWidth,
-      ),
-      height: GAMEPLAY.approvalHitboxHeight,
+    velocity: directionBetween(position, target),
+    hitbox: {
+      width: GAMEPLAY.retryChainHitboxWidth,
+      height: GAMEPLAY.retryChainHitboxHeight,
     },
     speed,
-    GAMEPLAY.approvalTelegraphMs,
-  );
+    attempt: 1,
+    totalAttempts: count,
+    telegraphRemainingMs: GAMEPLAY.retryChainTelegraphMs,
+  });
   return true;
-}
-
-function spawnRetryLoop(state: GameState, count: number, speed: number): void {
-  const available = Math.min(
-    count,
-    GAMEPLAY.maxProjectiles - state.projectiles.length,
-  );
-  if (available <= 0) {
-    return;
-  }
-
-  const edge = Math.floor(randomBetween(state, 0, 4));
-  const alongSize = edge < 2 ? state.arena.height : state.arena.width;
-  const baseAlong = randomBetween(state, alongSize * 0.2, alongSize * 0.8);
-  const target = { ...state.player.position };
-
-  for (let index = 0; index < available; index += 1) {
-    const label = `[tool] retry ${index + 1}/${available}`;
-    const offset = (index - (available - 1) / 2) * 24;
-    const position = pointOnEdge(
-      state.arena,
-      edge,
-      Math.min(alongSize - 20, Math.max(20, baseAlong + offset)),
-      24,
-    );
-    addProjectile(
-      state,
-      "retry",
-      "codex",
-      label,
-      position,
-      target,
-      { width: 70, height: 15 },
-      speed,
-      520 + index * 260,
-    );
-  }
 }
 
 function spawnReasoningXhigh(state: GameState, speed: number): boolean {
@@ -928,13 +1072,6 @@ function randomToolCallEntry(
   return TOOL_CALL_ENTRIES[index] ?? TOOL_CALL_ENTRIES[0];
 }
 
-function randomApprovalEntry(
-  state: GameState,
-): (typeof APPROVAL_ENTRIES)[number] {
-  const index = Math.floor(randomBetween(state, 0, APPROVAL_ENTRIES.length));
-  return APPROVAL_ENTRIES[index] ?? APPROVAL_ENTRIES[0];
-}
-
 function randomUsageLimitResult(state: GameState): SequenceResultLabel {
   const index = Math.floor(randomBetween(state, 0, USAGE_LIMIT_RESULTS.length));
   return USAGE_LIMIT_RESULTS[index] ?? USAGE_LIMIT_RESULTS[0];
@@ -1024,6 +1161,78 @@ function spawnFullAccess(
     remainingMs: GAMEPLAY.fullAccessTelegraphMs,
   });
   return true;
+}
+
+function spawnBlackout(
+  state: GameState,
+  difficulty: ReturnType<typeof difficultyAt>,
+): boolean {
+  if (state.blackouts.length >= difficulty.blackoutMaxActive) {
+    return false;
+  }
+
+  const width = state.arena.width * randomBetween(
+    state,
+    difficulty.blackoutWidthRatio[0],
+    difficulty.blackoutWidthRatio[1],
+  );
+  const height = state.arena.height * randomBetween(
+    state,
+    difficulty.blackoutHeightRatio[0],
+    difficulty.blackoutHeightRatio[1],
+  );
+  const hitbox = { width, height };
+  let position = randomRectangleCenter(state, hitbox);
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (!state.blackouts.some((blackout) => blackoutOverlapRatio(
+      position,
+      hitbox,
+      blackout.position,
+      blackout.hitbox,
+    ) > 0.72)) {
+      break;
+    }
+    position = randomRectangleCenter(state, hitbox);
+  }
+
+  state.blackouts.push({
+    id: takeEntityId(state),
+    position,
+    hitbox,
+    remainingMs: difficulty.blackoutDurationMs,
+    durationMs: difficulty.blackoutDurationMs,
+  });
+  return true;
+}
+
+function blackoutOverlapRatio(
+  firstPosition: Vec2,
+  first: RectangleHitbox,
+  secondPosition: Vec2,
+  second: RectangleHitbox,
+): number {
+  const overlapWidth = Math.max(
+    0,
+    Math.min(
+      firstPosition.x + first.width / 2,
+      secondPosition.x + second.width / 2,
+    ) - Math.max(
+      firstPosition.x - first.width / 2,
+      secondPosition.x - second.width / 2,
+    ),
+  );
+  const overlapHeight = Math.max(
+    0,
+    Math.min(
+      firstPosition.y + first.height / 2,
+      secondPosition.y + second.height / 2,
+    ) - Math.max(
+      firstPosition.y - first.height / 2,
+      secondPosition.y - second.height / 2,
+    ),
+  );
+  return (overlapWidth * overlapHeight) / Math.max(1, first.width * first.height);
 }
 
 function squareHitbox(size: number, arena: ArenaBounds): RectangleHitbox {
@@ -1127,7 +1336,56 @@ function findHitSource(state: GameState): HitSource | null {
     }
   }
 
+  for (const gate of state.approvalGates) {
+    if (gate.telegraphRemainingMs > 0) {
+      continue;
+    }
+    for (const segment of approvalGateSegments(gate, state.arena)) {
+      if (
+        segment.hitbox.width > 0 &&
+        segment.hitbox.height > 0 &&
+        circleOverlapsOrientedRectangle(
+          state.player.position,
+          GAMEPLAY.playerRadius,
+          segment.position,
+          segment.hitbox,
+          { x: 1, y: 0 },
+        )
+      ) {
+        return "approval";
+      }
+    }
+  }
+
+  for (const retry of state.retryChains) {
+    if (
+      retry.telegraphRemainingMs <= 0 &&
+      circleOverlapsOrientedRectangle(
+        state.player.position,
+        GAMEPLAY.playerRadius,
+        retry.position,
+        retry.hitbox,
+        retry.velocity,
+      )
+    ) {
+      return "retry";
+    }
+  }
+
   return null;
+}
+
+function isApprovalGateInsideBounds(
+  gate: ApprovalGateState,
+  arena: ArenaBounds,
+): boolean {
+  const margin = gate.thickness * 2;
+  return (
+    gate.position.x >= -margin &&
+    gate.position.x <= arena.width + margin &&
+    gate.position.y >= -margin &&
+    gate.position.y <= arena.height + margin
+  );
 }
 
 function isInsideProjectileBounds(state: GameState, position: Vec2): boolean {
@@ -1165,4 +1423,20 @@ function finishRun(
   state.lastHitSource = source;
   events.push({ type: "player-hit", source });
   events.push({ type: "run-ended", finalScore: state.score, source });
+}
+
+function beginEnding(state: GameState, events: GameEvent[]): void {
+  state.elapsedMs = GAMEPLAY.endingAtMs;
+  state.score = GAMEPLAY.endingAtMs;
+  state.projectiles = [];
+  state.hazards = [];
+  state.sequences = [];
+  state.approvalGates = [];
+  state.retryChains = [];
+  state.blackouts = [];
+  state.ending = {
+    elapsedMs: 0,
+    durationMs: GAMEPLAY.endingDurationMs,
+  };
+  events.push({ type: "ending-started" });
 }

@@ -67,6 +67,37 @@ describe("survival rules", () => {
     expect(difficultyAt(GAMEPLAY.difficultyRampMs).stage).toBe(10);
   });
 
+  it("teaches one blackout at stage nine and stacks four after stage ten", () => {
+    const before = difficultyAt(GAMEPLAY.stageDurationMs * 8 - 1);
+    const stageNine = difficultyAt(GAMEPLAY.stageDurationMs * 8);
+    const stageTen = difficultyAt(GAMEPLAY.difficultyRampMs);
+    const late = difficultyAt(GAMEPLAY.difficultyRampMs + 60_000);
+
+    expect(before.blackoutUnlocked).toBe(false);
+    expect(stageNine.blackoutUnlocked).toBe(true);
+    expect(stageNine.blackoutMaxActive).toBe(1);
+    expect(stageTen.blackoutMaxActive).toBe(2);
+    expect(late.blackoutMaxActive).toBe(4);
+    expect(stageTen.blackoutIntervalMs).toBeGreaterThan(
+      late.blackoutIntervalMs,
+    );
+    expect(late.blackoutIntervalMs).toBe(
+      GAMEPLAY.blackoutMinimumIntervalMs,
+    );
+  });
+
+  it("turns stage ten into an explicit speed and frequency overdrive", () => {
+    const stageNineEnd = difficultyAt(GAMEPLAY.difficultyRampMs - 1);
+    const stageTen = difficultyAt(GAMEPLAY.difficultyRampMs);
+
+    expect(stageTen.toolCallIntervalMs).toBeLessThan(
+      stageNineEnd.toolCallIntervalMs * 0.9,
+    );
+    expect(stageTen.reasoningSpeed).toBeGreaterThan(
+      stageNineEnd.reasoningSpeed * 1.05,
+    );
+  });
+
   it.each([
     [0, 1],
     [GAMEPLAY.stageDurationMs - 1, 1],

@@ -195,6 +195,31 @@ describe("SoundService", () => {
     expect(context?.oscillators.length).toBeGreaterThanOrEqual(afterError + 4);
   });
 
+  it("plays blackout and crash cues, then keeps music stopped until restart", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    sound.syncMusic(true, 108_000);
+    const context = FakeAudioContext.instances[0];
+    const beforeBlackout = context?.oscillators.length ?? 0;
+
+    sound.consume([{ type: "blackout-started", position: { x: 1, y: 1 } }]);
+    expect(context?.oscillators.length).toBeGreaterThanOrEqual(
+      beforeBlackout + 2,
+    );
+
+    sound.consume([{ type: "ending-started" }]);
+    const afterCrash = context?.oscillators.length ?? 0;
+    expect(afterCrash).toBeGreaterThanOrEqual(beforeBlackout + 4);
+
+    sound.syncMusic(true, 180_000);
+    expect(context?.oscillators).toHaveLength(afterCrash);
+
+    sound.consume(RUN_STARTED);
+    sound.syncMusic(true, 0);
+    expect(context?.oscillators.length).toBeGreaterThan(afterCrash);
+  });
+
   it("plays after unmute and disconnects an active tone when muted again", () => {
     const sound = new SoundService();
 

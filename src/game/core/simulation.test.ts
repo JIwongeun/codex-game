@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { FIXED_STEP_MS, GAMEPLAY } from "../constants";
 import type {
+  ApprovalGateState,
   AreaHazardState,
   AttackSequenceState,
   GameState,
   ProjectileState,
+  RetryChainState,
 } from "./model";
 import {
   createGameState,
@@ -28,8 +30,46 @@ function playingState(seed = 1, width = 1280, height = 720): GameState {
     parallelAgentsMs: 1_000_000,
     reviewLoopMs: 1_000_000,
     usageLimitMs: 1_000_000,
+    blackoutMs: 1_000_000,
   };
   return state;
+}
+
+function approvalGate(
+  state: GameState,
+  overrides: Partial<ApprovalGateState> = {},
+): ApprovalGateState {
+  return {
+    id: 250,
+    position: { x: state.player.position.x, y: 0 },
+    direction: { x: 1, y: 0 },
+    gapCenter: state.player.position.y + 120,
+    gapSize: 90,
+    thickness: GAMEPLAY.approvalGateThickness,
+    speed: 0,
+    telegraphRemainingMs: FIXED_STEP_MS * 2,
+    ...overrides,
+  };
+}
+
+function retryChain(
+  overrides: Partial<RetryChainState> = {},
+): RetryChainState {
+  return {
+    id: 275,
+    position: { x: 100, y: 100 },
+    target: { x: 200, y: 100 },
+    velocity: { x: 1, y: 0 },
+    hitbox: {
+      width: GAMEPLAY.retryChainHitboxWidth,
+      height: GAMEPLAY.retryChainHitboxHeight,
+    },
+    speed: 100,
+    attempt: 1,
+    totalAttempts: 3,
+    telegraphRemainingMs: 0,
+    ...overrides,
+  };
 }
 
 function projectile(
@@ -102,6 +142,10 @@ describe("survival simulation", () => {
     expect(first.projectiles).toEqual([]);
     expect(first.hazards).toEqual([]);
     expect(first.sequences).toEqual([]);
+    expect(first.approvalGates).toEqual([]);
+    expect(first.retryChains).toEqual([]);
+    expect(first.blackouts).toEqual([]);
+    expect(first.ending).toBeNull();
     expect(first).toEqual(second);
     expect(startRun(first)).toEqual([]);
   });
@@ -157,7 +201,7 @@ describe("survival simulation", () => {
     expect(spawned.velocity).toEqual(initialVelocity);
   });
 
-  it("locks an approval path to the spawn-time player snapshot", () => {
+  it("spawns approval as a sweeping gate with one deny gap", () => {
     const state = playingState(17, 800, 600);
     state.elapsedMs = GAMEPLAY.approvalFirstSpawnMs;
     state.player.position = { x: 190, y: 430 };
@@ -165,32 +209,25 @@ describe("survival simulation", () => {
 
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
-    const spawned = state.projectiles.find(
-      (candidate) => candidate.kind === "approval",
-    );
+    const spawned = state.approvalGates[0];
     expect(spawned).toBeDefined();
     if (!spawned) {
-      throw new Error("expected an approval projectile");
+      throw new Error("expected an approval gate");
     }
 
-    const snapshotDirection = {
-      x: state.player.position.x - spawned.position.x,
-      y: state.player.position.y - spawned.position.y,
-    };
-    const crossProduct =
-      snapshotDirection.x * spawned.velocity.y -
-      snapshotDirection.y * spawned.velocity.x;
-    expect(crossProduct).toBeCloseTo(0);
-
-    const initialVelocity = { ...spawned.velocity };
+    expect(Math.abs(spawned.direction.x) + Math.abs(spawned.direction.y)).toBe(1);
+    expect(spawned.gapSize).toBeGreaterThanOrEqual(
+      GAMEPLAY.approvalGateMinGap,
+    );
+    expect(spawned.gapSize).toBeLessThanOrEqual(
+      GAMEPLAY.approvalGateMaxGap,
+    );
+    const initialGap = spawned.gapCenter;
     state.player.position = { x: 760, y: 40 };
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
-    expect(spawned.velocity).toEqual(initialVelocity);
-    expect(spawned.hitbox.width).toBeGreaterThanOrEqual(
-      GAMEPLAY.approvalHitboxMinWidth,
-    );
-    expect(spawned.hitbox.width).toBeLessThanOrEqual(
-      GAMEPLAY.approvalHitboxMaxWidth,
+    expect(spawned.gapCenter).toBe(initialGap);
+    expect(spawned.telegraphRemainingMs).toBeLessThan(
+      GAMEPLAY.approvalGateTelegraphMs,
     );
   });
 
@@ -220,8 +257,6 @@ describe("survival simulation", () => {
 
   it("selects seeded parody labels with bounded label-sized hitboxes", () => {
     const toolCallLabels = new Set<string>();
-    const approvalLabels = new Set<string>();
-    const approvalSurfaces = new Map<string, string>();
 
     for (let seed = 1; seed <= 512; seed += 1) {
       const state = playingState(seed, 800, 600);
@@ -238,15 +273,6 @@ describe("survival simulation", () => {
           );
           expect(candidate.hitbox.width).toBeLessThanOrEqual(
             GAMEPLAY.toolCallHitboxMaxWidth,
-          );
-        } else {
-          approvalLabels.add(candidate.label);
-          approvalSurfaces.set(candidate.label, candidate.surface);
-          expect(candidate.hitbox.width).toBeGreaterThanOrEqual(
-            GAMEPLAY.approvalHitboxMinWidth,
-          );
-          expect(candidate.hitbox.width).toBeLessThanOrEqual(
-            GAMEPLAY.approvalHitboxMaxWidth,
           );
         }
       }
@@ -269,29 +295,6 @@ describe("survival simulation", () => {
         "429 Too Many Requests",
       ]),
     );
-    expect(approvalLabels).toEqual(
-      new Set([
-        "[approval] allow full access?",
-        "[approval] run outside sandbox?",
-        "[approval] allow network?",
-        "[approval] approve session?",
-        "[approval] still waiting...",
-        "[approval] approve again?",
-        "[approval] full access again?",
-      ]),
-    );
-    expect(approvalSurfaces).toEqual(
-      new Map([
-        ["[approval] allow full access?", "codex"],
-        ["[approval] run outside sandbox?", "codex"],
-        ["[approval] allow network?", "codex"],
-        ["[approval] approve session?", "codex"],
-        ["[approval] still waiting...", "codex"],
-        ["[approval] approve again?", "codex"],
-        ["[approval] full access again?", "codex"],
-      ]),
-    );
-
     const surfaces = new Set<string>();
     for (let seed = 1; seed <= 512; seed += 1) {
       const state = playingState(seed, 800, 600);
@@ -387,21 +390,40 @@ describe("survival simulation", () => {
 
   it("keeps an approval harmless while telegraphing, then makes it lethal", () => {
     const state = playingState();
-    state.projectiles = [
-      projectile(state, {
-        kind: "approval",
-        surface: "codex",
-        label: "[approval] allow full access?",
-        hitbox: {
-          width: GAMEPLAY.approvalHitboxMinWidth,
-          height: GAMEPLAY.approvalHitboxHeight,
-        },
-        telegraphRemainingMs: FIXED_STEP_MS * 2,
+    state.approvalGates = [approvalGate(state)];
+
+    expect(stepGame(state, EMPTY_INPUT, FIXED_STEP_MS)).toEqual([]);
+    expect(state.phase).toBe("playing");
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(state.phase).toBe("results");
+    expect(state.lastHitSource).toBe("approval");
+  });
+
+  it("keeps the deny gap in an active approval gate safe", () => {
+    const state = playingState();
+    state.approvalGates = [
+      approvalGate(state, {
+        gapCenter: state.player.position.y,
+        telegraphRemainingMs: 0,
       }),
     ];
 
     expect(stepGame(state, EMPTY_INPUT, FIXED_STEP_MS)).toEqual([]);
     expect(state.phase).toBe("playing");
+  });
+
+  it("collides with a horizontal approval segment in screen coordinates", () => {
+    const state = playingState();
+    state.player.position = { x: 150, y: 300 };
+    state.approvalGates = [
+      approvalGate(state, {
+        position: { x: 640, y: 300 },
+        direction: { x: 0, y: 1 },
+        gapCenter: 640,
+        telegraphRemainingMs: 0,
+      }),
+    ];
+
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(state.phase).toBe("results");
     expect(state.lastHitSource).toBe("approval");
@@ -609,6 +631,7 @@ describe("survival simulation", () => {
       parallelAgentsMs: 0,
       reviewLoopMs: 0,
       usageLimitMs: 0,
+      blackoutMs: 0,
     };
 
     const events = stepGame(
@@ -620,15 +643,11 @@ describe("survival simulation", () => {
     expect(
       state.projectiles.some((candidate) => candidate.kind === "tool-call"),
     ).toBe(true);
-    expect(
-      state.projectiles.some((candidate) => candidate.kind === "approval"),
-    ).toBe(true);
+    expect(state.approvalGates).toHaveLength(1);
     expect(
       state.hazards.some((candidate) => candidate.kind === "compaction"),
     ).toBe(true);
-    expect(
-      state.projectiles.some((candidate) => candidate.kind === "retry"),
-    ).toBe(true);
+    expect(state.retryChains).toHaveLength(1);
     expect(
       state.projectiles.some((candidate) => candidate.kind === "reasoning"),
     ).toBe(true);
@@ -639,6 +658,7 @@ describe("survival simulation", () => {
       "review-loop",
       "usage-limit",
     ]);
+    expect(state.blackouts).toHaveLength(1);
     expect(
       state.sequences.find((candidate) => candidate.kind === "usage-limit")
         ?.origins,
@@ -654,12 +674,11 @@ describe("survival simulation", () => {
       type: "pattern-warning",
       kind: "approval-required",
     });
-    expect(
-      state.projectiles.every((candidate) => candidate.telegraphRemainingMs > 0),
-    ).toBe(true);
+    expect(state.approvalGates[0]?.telegraphRemainingMs).toBeGreaterThan(0);
+    expect(state.retryChains[0]?.telegraphRemainingMs).toBeGreaterThan(0);
   });
 
-  it("retries one snapshot with numbered time-staggered projectiles", () => {
+  it("retries as one chain that reacquires the player after each failure", () => {
     const state = playingState(15, 800, 600);
     state.elapsedMs = GAMEPLAY.retryLoopFirstSpawnMs;
     state.player.position = { x: 310, y: 260 };
@@ -667,27 +686,96 @@ describe("survival simulation", () => {
 
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
-    const retries = state.projectiles.filter(
-      (candidate) => candidate.kind === "retry",
-    );
-    expect(retries.map((candidate) => candidate.label)).toEqual([
-      "[tool] retry 1/3",
-      "[tool] retry 2/3",
-      "[tool] retry 3/3",
-    ]);
-    expect(retries[0]!.telegraphRemainingMs).toBeLessThan(
-      retries[1]!.telegraphRemainingMs,
-    );
-    for (const retry of retries) {
-      const snapshotDirection = {
-        x: 310 - retry.position.x,
-        y: 260 - retry.position.y,
-      };
-      expect(
-        snapshotDirection.x * retry.velocity.y -
-          snapshotDirection.y * retry.velocity.x,
-      ).toBeCloseTo(0);
+    const retry = state.retryChains[0];
+    expect(retry).toBeDefined();
+    if (!retry) {
+      throw new Error("expected one retry chain");
     }
+    expect(retry.attempt).toBe(1);
+    expect(retry.totalAttempts).toBe(3);
+    expect(retry.target).toEqual({ x: 310, y: 260 });
+
+    state.retryChains = [
+      retryChain({
+        position: { x: 100, y: 100 },
+        target: { x: 200, y: 100 },
+        velocity: { x: 1, y: 0 },
+        speed: 100,
+      }),
+    ];
+    state.player.position = { x: 420, y: 330 };
+    stepGame(state, EMPTY_INPUT, 1_000);
+
+    const reacquired = state.retryChains[0];
+    expect(reacquired?.attempt).toBe(2);
+    expect(reacquired?.position).toEqual({ x: 200, y: 100 });
+    expect(reacquired?.target).toEqual({ x: 420, y: 330 });
+    expect(reacquired?.telegraphRemainingMs).toBe(
+      GAMEPLAY.retryChainTelegraphMs,
+    );
+    expect(reacquired?.speed).toBe(100 * GAMEPLAY.retryChainSpeedGain);
+  });
+
+  it("stacks seeded rm blackouts from stage nine to four late in stage ten", () => {
+    const stageNine = playingState(91, 1_000, 700);
+    stageNine.elapsedMs = GAMEPLAY.stageDurationMs * 8;
+    stageNine.spawn.blackoutMs = 0;
+
+    const stageNineEvents = stepGame(stageNine, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(stageNine.blackouts).toHaveLength(1);
+    expect(stageNineEvents).toContainEqual({
+      type: "blackout-started",
+      position: stageNine.blackouts[0]?.position,
+    });
+    expect(stageNine.blackouts[0]?.durationMs).toBe(
+      GAMEPLAY.blackoutStageNineDurationMs,
+    );
+
+    const late = playingState(92, 1_000, 700);
+    late.elapsedMs = GAMEPLAY.difficultyRampMs + 60_000;
+    late.spawn.blackoutMs = 0;
+    stepGame(late, EMPTY_INPUT, FIXED_STEP_MS);
+    for (let index = 0; index < 3; index += 1) {
+      stepGame(late, EMPTY_INPUT, GAMEPLAY.blackoutMinimumIntervalMs);
+    }
+
+    expect(late.blackouts).toHaveLength(4);
+    expect(late.blackouts.every(({ durationMs }) =>
+      durationMs === GAMEPLAY.blackoutStageTenDurationMs
+    )).toBe(true);
+  });
+
+  it("ends a three-minute survival with a timed task-crash sequence", () => {
+    const state = playingState(180, 1_000, 700);
+    state.elapsedMs = GAMEPLAY.endingAtMs - 10;
+    state.projectiles = [projectile(state, { position: { x: 20, y: 20 } })];
+    state.hazards = [hazard(state, { position: { x: 20, y: 20 } })];
+
+    const startEvents = stepGame(state, EMPTY_INPUT, 20);
+    expect(startEvents).toEqual([{ type: "ending-started" }]);
+    expect(state.phase).toBe("playing");
+    expect(state.elapsedMs).toBe(GAMEPLAY.endingAtMs);
+    expect(state.ending).toEqual({
+      elapsedMs: 0,
+      durationMs: GAMEPLAY.endingDurationMs,
+    });
+    expect(state.projectiles).toEqual([]);
+    expect(state.hazards).toEqual([]);
+
+    const endEvents = stepGame(
+      state,
+      EMPTY_INPUT,
+      GAMEPLAY.endingDurationMs,
+    );
+    expect(state.phase).toBe("results");
+    expect(state.ending).toBeNull();
+    expect(endEvents).toEqual([
+      {
+        type: "run-ended",
+        finalScore: GAMEPLAY.endingAtMs,
+        source: null,
+      },
+    ]);
   });
 
   it("makes parallel agents cross the same snapshot from opposite sides", () => {
@@ -893,6 +981,7 @@ describe("survival simulation", () => {
         parallelAgentsMs: 0,
         reviewLoopMs: 0,
         usageLimitMs: 0,
+        blackoutMs: 0,
       };
 
       for (let tick = 0; tick < 3_600; tick += 1) {
@@ -906,6 +995,12 @@ describe("survival simulation", () => {
         for (const sequenceState of state.sequences) {
           sequenceState.remainingMs = 1_000_000;
         }
+        for (const gateState of state.approvalGates) {
+          gateState.telegraphRemainingMs = 1_000_000;
+        }
+        for (const retryState of state.retryChains) {
+          retryState.telegraphRemainingMs = 1_000_000;
+        }
 
         stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
@@ -916,6 +1011,15 @@ describe("survival simulation", () => {
         expect(state.hazards.length).toBeLessThanOrEqual(GAMEPLAY.maxHazards);
         expect(state.sequences.length).toBeLessThanOrEqual(
           GAMEPLAY.maxSequences,
+        );
+        expect(state.approvalGates.length).toBeLessThanOrEqual(
+          GAMEPLAY.maxApprovalGates,
+        );
+        expect(state.retryChains.length).toBeLessThanOrEqual(
+          GAMEPLAY.maxRetryChains,
+        );
+        expect(state.blackouts.length).toBeLessThanOrEqual(
+          GAMEPLAY.maxBlackouts,
         );
       }
 

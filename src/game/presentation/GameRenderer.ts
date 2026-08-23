@@ -1,6 +1,10 @@
 import Phaser from "phaser";
 
 import { GAMEPLAY } from "../constants";
+import {
+  approvalGateDisplayPosition,
+  approvalGateSegments,
+} from "../core/approvalGate";
 import type {
   AttackSurface,
   AreaHazardState,
@@ -14,6 +18,7 @@ import {
   attackTextTokens,
   layoutAttackTextTokens,
 } from "./attackText";
+import { BlueScreenOverlay } from "./BlueScreenOverlay";
 import { ATTACK_TONES, COLORS, FONTS, TEXT_COLORS } from "./theme";
 
 type AttackTone = (typeof ATTACK_TONES)[keyof typeof ATTACK_TONES];
@@ -42,6 +47,11 @@ interface RichLabelStyle {
   letterSpacing?: number;
 }
 
+interface BlackoutView {
+  readonly command: Phaser.GameObjects.Text;
+  readonly status: Phaser.GameObjects.Text;
+}
+
 function directionBetweenPoints(from: Vec2, to: Vec2): Vec2 {
   const deltaX = to.x - from.x;
   const deltaY = to.y - from.y;
@@ -58,11 +68,16 @@ export class GameRenderer {
   private readonly scene: Phaser.Scene;
   private readonly background: Phaser.GameObjects.Graphics;
   private readonly world: Phaser.GameObjects.Graphics;
+  private readonly blackoutLayer: Phaser.GameObjects.Graphics;
   private readonly playerLayer: Phaser.GameObjects.Graphics;
   private readonly effectsLayer: Phaser.GameObjects.Graphics;
+  private readonly endingOverlay: BlueScreenOverlay;
   private readonly projectileLabels = new Map<number, RichLabelView>();
   private readonly hazardLabels = new Map<number, RichLabelView>();
   private readonly sequenceLabels = new Map<number, RichLabelView>();
+  private readonly approvalGateLabels = new Map<number, RichLabelView>();
+  private readonly retryChainLabels = new Map<number, RichLabelView>();
+  private readonly blackoutViews = new Map<number, BlackoutView>();
   private readonly particles: ParticleEffect[] = [];
   private hitFlashMs = 0;
 
@@ -70,8 +85,15 @@ export class GameRenderer {
     this.scene = scene;
     this.background = scene.add.graphics().setDepth(-10);
     this.world = scene.add.graphics().setDepth(1);
+    this.blackoutLayer = scene.add.graphics().setDepth(8);
     this.playerLayer = scene.add.graphics().setDepth(10);
     this.effectsLayer = scene.add.graphics().setDepth(11);
+    const parent = scene.game.canvas.parentElement ?? document.body;
+    this.endingOverlay = new BlueScreenOverlay(parent);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.endingOverlay.destroy();
+      this.destroyBlackoutViews();
+    });
   }
 
   consume(events: readonly GameEvent[], state: GameState): void {
@@ -99,17 +121,25 @@ export class GameRenderer {
     this.advanceEffects(frameDeltaMs);
     this.drawBackground(state);
     this.world.clear();
+    this.blackoutLayer.clear();
     this.playerLayer.clear();
     this.effectsLayer.clear();
 
     this.drawHazards(state);
     this.drawSequences(state);
     this.drawProjectiles(state);
+    this.drawApprovalGates(state);
+    this.drawRetryChains(state);
     this.syncProjectileLabels(state);
     this.syncHazardLabels(state);
     this.syncSequenceLabels(state);
+    this.syncApprovalGateLabels(state);
+    this.syncRetryChainLabels(state);
+    this.drawBlackouts(state);
+    this.syncBlackoutViews(state);
     this.drawPlayer(state);
     this.drawEffects();
+    this.endingOverlay.render(state.ending);
 
     if (this.hitFlashMs > 0) {
       const strength = this.hitFlashMs / 180;
@@ -123,6 +153,9 @@ export class GameRenderer {
     this.destroyRichLabelMap(this.projectileLabels);
     this.destroyRichLabelMap(this.hazardLabels);
     this.destroyRichLabelMap(this.sequenceLabels);
+    this.destroyRichLabelMap(this.approvalGateLabels);
+    this.destroyRichLabelMap(this.retryChainLabels);
+    this.destroyBlackoutViews();
     this.hitFlashMs = 0;
   }
 
@@ -353,11 +386,93 @@ export class GameRenderer {
     }
   }
 
+  private drawApprovalGates(state: GameState): void {
+    const tone = ATTACK_TONES.codex.value;
+
+    for (const gate of state.approvalGates) {
+      const displayGate = {
+        ...gate,
+        position: approvalGateDisplayPosition(gate, state.arena),
+      };
+      const telegraphing = gate.telegraphRemainingMs > 0;
+      const segments = approvalGateSegments(displayGate, state.arena);
+
+      for (const segment of segments) {
+        const x = segment.position.x - segment.hitbox.width / 2;
+        const y = segment.position.y - segment.hitbox.height / 2;
+        this.world.fillStyle(tone, telegraphing ? 0.018 : 0.08);
+        this.world.fillRect(x, y, segment.hitbox.width, segment.hitbox.height);
+        this.world.lineStyle(1, tone, telegraphing ? 0.42 : 0.88);
+        this.world.strokeRect(x, y, segment.hitbox.width, segment.hitbox.height);
+      }
+
+      const gapHalf = gate.gapSize / 2;
+      this.world.lineStyle(1, COLORS.ink, telegraphing ? 0.38 : 0.7);
+      if (Math.abs(gate.direction.x) > 0) {
+        const x = displayGate.position.x;
+        this.world.lineBetween(x - 7, gate.gapCenter - gapHalf, x + 7, gate.gapCenter - gapHalf);
+        this.world.lineBetween(x - 7, gate.gapCenter + gapHalf, x + 7, gate.gapCenter + gapHalf);
+      } else {
+        const y = displayGate.position.y;
+        this.world.lineBetween(gate.gapCenter - gapHalf, y - 7, gate.gapCenter - gapHalf, y + 7);
+        this.world.lineBetween(gate.gapCenter + gapHalf, y - 7, gate.gapCenter + gapHalf, y + 7);
+      }
+    }
+  }
+
+  private drawRetryChains(state: GameState): void {
+    const tone = ATTACK_TONES.codex.value;
+
+    for (const retry of state.retryChains) {
+      if (retry.telegraphRemainingMs > 0) {
+        const distance = Math.hypot(
+          retry.target.x - retry.position.x,
+          retry.target.y - retry.position.y,
+        );
+        this.drawDottedRay(
+          retry.position,
+          retry.velocity,
+          Math.min(112, distance),
+          tone,
+          0.34,
+          13,
+        );
+      } else {
+        this.world.lineStyle(1, tone, 0.44);
+        this.world.lineBetween(
+          retry.position.x - retry.velocity.x * 28,
+          retry.position.y - retry.velocity.y * 28,
+          retry.position.x - retry.velocity.x * 7,
+          retry.position.y - retry.velocity.y * 7,
+        );
+      }
+
+      this.world.fillStyle(tone, retry.telegraphRemainingMs > 0 ? 0.46 : 0.9);
+      this.world.fillRect(
+        Math.round(retry.position.x - retry.velocity.x * 7) - 1,
+        Math.round(retry.position.y - retry.velocity.y * 7) - 1,
+        3,
+        3,
+      );
+    }
+  }
+
   private drawPlayer(state: GameState): void {
     const x = Math.round(state.player.position.x);
     const y = Math.round(state.player.position.y);
 
-    this.playerLayer.fillStyle(COLORS.black, 1);
+    const insideBlackout = state.blackouts.some(
+      (blackout) =>
+        Math.abs(state.player.position.x - blackout.position.x) <=
+          blackout.hitbox.width / 2 &&
+        Math.abs(state.player.position.y - blackout.position.y) <=
+          blackout.hitbox.height / 2,
+    );
+
+    this.playerLayer.fillStyle(
+      insideBlackout ? COLORS.background : COLORS.black,
+      1,
+    );
     this.playerLayer.fillRect(x - 6, y - 6, 12, 12);
   }
 
@@ -517,6 +632,181 @@ export class GameRenderer {
     }
 
     this.removeInactiveRichLabels(this.sequenceLabels, activeIds);
+  }
+
+  private syncApprovalGateLabels(state: GameState): void {
+    const activeIds = new Set<number>();
+
+    for (const gate of state.approvalGates) {
+      const displayGate = {
+        ...gate,
+        position: approvalGateDisplayPosition(gate, state.arena),
+      };
+      const segments = approvalGateSegments(displayGate, state.arena);
+      const rotation = Math.abs(gate.direction.x) > 0 ? -Math.PI / 2 : 0;
+
+      for (let index = 0; index < segments.length; index += 1) {
+        const segment = segments[index]!;
+        const id = gate.id * 10 + index;
+        activeIds.add(id);
+        let view = this.approvalGateLabels.get(id);
+        if (!view) {
+          view = this.createRichLabel(6);
+          this.approvalGateLabels.set(id, view);
+        }
+        this.updateRichLabel(view, {
+          surface: "codex",
+          label: `[approval] ${segment.label}`,
+          fontFamily: FONTS.sans,
+          fontSize: 9,
+          fontStyle: "600",
+          letterSpacing: 0.1,
+        });
+        view.container
+          .setPosition(
+            Math.round(segment.position.x),
+            Math.round(segment.position.y),
+          )
+          .setRotation(rotation)
+          .setAlpha(gate.telegraphRemainingMs > 0 ? 0.52 : 0.96)
+          .setVisible(true);
+      }
+
+      const denyId = gate.id * 10 + 9;
+      activeIds.add(denyId);
+      let denyView = this.approvalGateLabels.get(denyId);
+      if (!denyView) {
+        denyView = this.createRichLabel(9);
+        this.approvalGateLabels.set(denyId, denyView);
+      }
+      this.updateRichLabel(denyView, {
+        surface: "codex",
+        label: "[approval] DENY",
+        fontFamily: FONTS.sans,
+        fontSize: 10,
+        fontStyle: "600",
+        letterSpacing: 0.1,
+      });
+      denyView.container
+        .setPosition(
+          Math.round(
+            Math.abs(gate.direction.x) > 0
+              ? displayGate.position.x
+              : gate.gapCenter,
+          ),
+          Math.round(
+            Math.abs(gate.direction.x) > 0
+              ? gate.gapCenter
+              : displayGate.position.y,
+          ),
+        )
+        .setRotation(rotation)
+        .setAlpha(gate.telegraphRemainingMs > 0 ? 0.64 : 1)
+        .setVisible(true);
+    }
+
+    this.removeInactiveRichLabels(this.approvalGateLabels, activeIds);
+  }
+
+  private syncRetryChainLabels(state: GameState): void {
+    const activeIds = new Set<number>();
+
+    for (const retry of state.retryChains) {
+      activeIds.add(retry.id);
+      let view = this.retryChainLabels.get(retry.id);
+      if (!view) {
+        view = this.createRichLabel(6);
+        this.retryChainLabels.set(retry.id, view);
+      }
+      this.updateRichLabel(view, {
+        surface: "codex",
+        label:
+          retry.attempt === 1
+            ? `[tool] retry ${retry.attempt}/${retry.totalAttempts}`
+            : `[tool] FAILED · retry ${retry.attempt}/${retry.totalAttempts}`,
+        fontFamily: FONTS.sans,
+        fontSize: 10,
+        fontStyle: "500",
+        letterSpacing: 0.1,
+      });
+      view.container
+        .setPosition(
+          Math.round(retry.position.x),
+          Math.round(retry.position.y),
+        )
+        .setRotation(this.readableProjectileRotation(retry.velocity))
+        .setAlpha(retry.telegraphRemainingMs > 0 ? 0.52 : 0.98)
+        .setVisible(true);
+    }
+
+    this.removeInactiveRichLabels(this.retryChainLabels, activeIds);
+  }
+
+  private drawBlackouts(state: GameState): void {
+    for (const blackout of state.blackouts) {
+      this.blackoutLayer.fillStyle(COLORS.black, 1);
+      this.blackoutLayer.fillRect(
+        blackout.position.x - blackout.hitbox.width / 2,
+        blackout.position.y - blackout.hitbox.height / 2,
+        blackout.hitbox.width,
+        blackout.hitbox.height,
+      );
+    }
+  }
+
+  private syncBlackoutViews(state: GameState): void {
+    const activeIds = new Set<number>();
+
+    for (const blackout of state.blackouts) {
+      activeIds.add(blackout.id);
+      let view = this.blackoutViews.get(blackout.id);
+      if (!view) {
+        view = {
+          command: this.scene.add
+            .text(0, 0, "$ rm *", {
+              color: TEXT_COLORS.surface,
+              fontFamily: FONTS.mono,
+              fontSize: "10px",
+            })
+            .setDepth(9),
+          status: this.scene.add
+            .text(0, 0, "", {
+              align: "center",
+              color: TEXT_COLORS.surface,
+              fontFamily: FONTS.mono,
+              fontSize: "10px",
+              fontStyle: "500",
+              lineSpacing: 5,
+            })
+            .setOrigin(0.5)
+            .setDepth(9),
+        };
+        this.blackoutViews.set(blackout.id, view);
+      }
+
+      const x = blackout.position.x - blackout.hitbox.width / 2;
+      const y = blackout.position.y - blackout.hitbox.height / 2;
+      const progress = Phaser.Math.Clamp(
+        1 - blackout.remainingMs / blackout.durationMs,
+        0,
+        1,
+      );
+      view.command.setPosition(Math.round(x + 12), Math.round(y + 10));
+      view.status
+        .setText(`BACKING UP...\n${Math.round(progress * 100)}%`)
+        .setPosition(
+          Math.round(blackout.position.x),
+          Math.round(blackout.position.y),
+        );
+    }
+
+    for (const [id, view] of this.blackoutViews) {
+      if (!activeIds.has(id)) {
+        view.command.destroy();
+        view.status.destroy();
+        this.blackoutViews.delete(id);
+      }
+    }
   }
 
   private createRichLabel(depth: number): RichLabelView {
@@ -872,5 +1162,13 @@ export class GameRenderer {
       view.container.destroy(true);
     }
     map.clear();
+  }
+
+  private destroyBlackoutViews(): void {
+    for (const view of this.blackoutViews.values()) {
+      view.command.destroy();
+      view.status.destroy();
+    }
+    this.blackoutViews.clear();
   }
 }

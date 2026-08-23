@@ -29,7 +29,8 @@ export type AttackPatternKind =
   | "reasoning-xhigh"
   | "parallel-agents"
   | "review-fix-loop"
-  | "usage-limit";
+  | "usage-limit"
+  | "wildcard-blackout";
 export type HitSource = ProjectileKind;
 export type AttackSurface = "terminal" | "browser" | "codex";
 
@@ -88,6 +89,42 @@ export interface AreaHazardState {
   remainingMs: number;
 }
 
+export interface ApprovalGateState {
+  id: number;
+  position: Vec2;
+  direction: Vec2;
+  gapCenter: number;
+  gapSize: number;
+  thickness: number;
+  speed: number;
+  telegraphRemainingMs: number;
+}
+
+export interface RetryChainState {
+  id: number;
+  position: Vec2;
+  target: Vec2;
+  velocity: Vec2;
+  hitbox: RectangleHitbox;
+  speed: number;
+  attempt: number;
+  totalAttempts: number;
+  telegraphRemainingMs: number;
+}
+
+export interface BlackoutState {
+  id: number;
+  position: Vec2;
+  hitbox: RectangleHitbox;
+  remainingMs: number;
+  durationMs: number;
+}
+
+export interface EndingState {
+  elapsedMs: number;
+  durationMs: number;
+}
+
 export interface AttackSequenceState {
   id: number;
   kind: SequenceKind;
@@ -110,6 +147,7 @@ export interface SpawnTimers {
   parallelAgentsMs: number;
   reviewLoopMs: number;
   usageLimitMs: number;
+  blackoutMs: number;
 }
 
 export interface GameState {
@@ -127,6 +165,10 @@ export interface GameState {
   projectiles: ProjectileState[];
   hazards: AreaHazardState[];
   sequences: AttackSequenceState[];
+  approvalGates: ApprovalGateState[];
+  retryChains: RetryChainState[];
+  blackouts: BlackoutState[];
+  ending: EndingState | null;
   spawn: SpawnTimers;
 }
 
@@ -148,5 +190,7 @@ export type GameEvent =
         | "parallel-agents";
     }
   | { type: "pattern-burst"; kind: SequenceKind; position: Vec2 }
+  | { type: "blackout-started"; position: Vec2 }
+  | { type: "ending-started" }
   | { type: "player-hit"; source: HitSource }
-  | { type: "run-ended"; finalScore: number; source: HitSource };
+  | { type: "run-ended"; finalScore: number; source: HitSource | null };

@@ -17,7 +17,7 @@ describe("game requirements", () => {
       GAMEPLAY.toolCallHitboxHeight,
     );
     expect(GAMEPLAY.playerRadius * 2).toBeLessThan(
-      GAMEPLAY.approvalHitboxHeight,
+      GAMEPLAY.approvalGateThickness,
     );
     expect(GAMEPLAY.maxProjectiles).toBe(56);
     expect(GAMEPLAY.playerSpeed).toBeGreaterThan(0);
@@ -25,11 +25,11 @@ describe("game requirements", () => {
 
   it("telegraphs every projectile family before it becomes lethal", () => {
     expect(GAMEPLAY.toolCallTelegraphMs).toBeGreaterThan(0);
-    expect(GAMEPLAY.approvalTelegraphMs).toBeGreaterThan(
+    expect(GAMEPLAY.approvalGateTelegraphMs).toBeGreaterThan(
       GAMEPLAY.toolCallTelegraphMs,
     );
     expect(GAMEPLAY.reasoningTelegraphMs).toBeGreaterThan(
-      GAMEPLAY.approvalTelegraphMs,
+      GAMEPLAY.approvalGateTelegraphMs,
     );
   });
 });
