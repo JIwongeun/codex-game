@@ -24,6 +24,8 @@ interface ParticleEffect extends Vec2 {
   ageMs: number;
   durationMs: number;
   size: number;
+  gravity: number;
+  color: number;
 }
 
 interface RichLabelView {
@@ -70,7 +72,7 @@ export class GameRenderer {
   consume(events: readonly GameEvent[], state: GameState): void {
     for (const event of events) {
       if (event.type === "hazard-activated") {
-        this.addBurst(event.position, 28, state.elapsedMs);
+        this.addContextBurst(event.position, state.elapsedMs);
       } else if (event.type === "pattern-burst") {
         this.addBurst(
           event.position,
@@ -776,7 +778,7 @@ export class GameRenderer {
     for (const particle of this.particles) {
       const alpha = 1 - particle.ageMs / particle.durationMs;
       const size = Math.max(1, Math.round(particle.size * alpha));
-      this.effectsLayer.fillStyle(COLORS.black, alpha);
+      this.effectsLayer.fillStyle(particle.color, alpha);
       this.effectsLayer.fillRect(
         Math.round(particle.x - size / 2),
         Math.round(particle.y - size / 2),
@@ -794,6 +796,7 @@ export class GameRenderer {
       particle.ageMs += safeDelta;
       particle.x += particle.velocity.x * (safeDelta / 1_000);
       particle.y += particle.velocity.y * (safeDelta / 1_000);
+      particle.velocity.y += particle.gravity * (safeDelta / 1_000);
     }
 
     for (let index = this.particles.length - 1; index >= 0; index -= 1) {
@@ -814,6 +817,26 @@ export class GameRenderer {
         ageMs: 0,
         durationMs: 300 + (index % 3) * 55,
         size: 5 + (index % 3),
+        gravity: 0,
+        color: COLORS.black,
+      });
+    }
+  }
+
+  private addContextBurst(position: Vec2, phase: number): void {
+    const count = 32;
+    for (let index = 0; index < count; index += 1) {
+      const angle = phase + (Math.PI * 2 * index) / count;
+      const speed = 105 + (index % 6) * 24;
+      this.particles.push({
+        ...position,
+        velocity: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
+        ageMs: 0,
+        durationMs: 640 + (index % 4) * 70,
+        size: 2 + (index % 3),
+        gravity: 520,
+        color:
+          index % 4 === 0 ? COLORS.black : ATTACK_TONES.codex.value,
       });
     }
   }

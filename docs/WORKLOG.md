@@ -8,7 +8,8 @@
 
 - context compaction 크기를 Stage 3의 `170→255px`, Stage 10의 `250→375px`로 가로·세로 각각 1.5배 확대하고 작은 viewport fit 상한도 `45%→67.5%`로 동일 비율 확대
 - warning의 보라색 전체 영역·상단 progress bar·수평 sweep을 제거하고, 고정 outer frame 안의 중첩 frame과 context row가 quadratic progress로 중심에 압축되도록 변경
-- compaction 실패 때 큰 frame 전체를 치명 영역으로 만들지 않고 `COMPACTION FAILED` square wave·particle과 `context-token` 12개, Stage 8의 16개, Stage 10의 20개를 방사형으로 생성
+- compaction 실패 때 큰 frame 전체를 치명 영역으로 만들지 않고 `COMPACTION FAILED` square wave와 `context-token` 12개, Stage 8의 16개, Stage 10의 20개를 서로 다른 속도로 튀긴 뒤 수평 감속·중력으로 포물선 낙하
+- compaction 전용 violet·black pixel splash 32개에도 중력을 적용해 물풍선이 터지고 아래로 후두둑 떨어지는 burst silhouette 구성
 - `context-token`은 `[tok] src/`, `diff`, `plan`, `128t`, `{...}` 같은 짧은 fragment와 별도 회전 hitbox·속도 curve를 가지며 실제 피격 원인을 `LOST CONTEXT TOKEN`으로 기록
 - hazard activation event에 실제 중심 좌표를 포함해 particle이 player 위치가 아니라 compaction 실패 위치에서 발생하도록 수정
 - 여덟 공격을 흐름 피하기·틈 선택·영역 이탈 뒤 파편 회피·박자 통과·safe sector 유지·corridor 추적·cell 전환·경계 출구 추적의 서로 다른 조작 판단으로 분리하는 mechanic matrix 기록
@@ -16,7 +17,8 @@
 ### 검증
 
 - compaction 시작·최대 크기, fragment 수·속도, 작은 viewport 67.5% fit, warning 뒤 전체 frame이 직접 피격을 만들지 않고 12개 token이 생성되는 회귀 테스트 추가
-- `pnpm check` 통과: typecheck, 12개 test file의 75개 test, production build, production verifier 완료
+- token의 초기 상향 이동 뒤 수평 감속과 중력으로 속도가 하향 전환되는 ballistic 회귀 테스트 추가
+- 최종 `pnpm check` 통과: typecheck, 12개 test file의 76개 test, production build, production verifier 완료
 - 새 context frame·압축 motion·token burst의 실제 가독성과 체감 난이도는 production 배포 후 사용자 플레이 확인 필요
 
 ## 2026-08-24 — BGM 음량과 original notification motif 보강

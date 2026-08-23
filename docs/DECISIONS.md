@@ -8,7 +8,7 @@
 - 상태: 확정, `CONTEXT COMPACTION` 적용 완료·나머지 패턴 순차 교체 예정
 - 배경: 여덟 공격의 이름과 문구는 달랐지만 실제 조작은 대부분 속도·조준 여부가 다른 직선 text projectile이었고, review와 usage는 둘 다 수렴 후 원형 발산이었다. Stage가 올라도 새 공격을 학습하는 대신 같은 탄을 더 많이 피하는 체감이 강했다.
 - 결정: 각 패턴은 흐름 피하기, 틈 선택, 영역 이탈 뒤 파편 회피, 박자 통과, safe sector 유지, 이동 corridor 추적, cell 전환, 경계 출구 추적 중 하나의 고유한 회피 행동을 소유한다. 문구를 제거해도 실루엣과 안전 공간이 같은 패턴은 합치거나 다시 설계한다. Stage 1–8은 새 문법을 하나씩 소개하고 Stage 9–10은 읽을 수 있는 예고 순서로 최대 세 고강도 문법을 조합한다.
-- 첫 적용: `CONTEXT COMPACTION` frame을 가로·세로 1.5배로 확대하고 전체 보라색 active 장판과 상단 progress bar를 제거한다. context row와 frame이 중심으로 압축된 뒤 `COMPACTION FAILED`와 함께 12–20개 `context-token`이 폭발하며, 큰 frame 자체가 아니라 token 파편이 실제 피격을 만든다.
+- 첫 적용: `CONTEXT COMPACTION` frame을 가로·세로 1.5배로 확대하고 전체 보라색 active 장판과 상단 progress bar를 제거한다. context row와 frame이 중심으로 압축된 뒤 `COMPACTION FAILED`와 함께 12–20개 `context-token`이 서로 다른 속도로 튀며, 수평 감속과 중력을 받아 아래로 쏟아진다. 큰 frame 자체가 아니라 이 ballistic token 파편이 실제 피격을 만든다.
 - 결과: context는 공간을 미리 비운 다음 radial 파편을 다시 읽는 2단 회피가 된다. `TOOL CALL STREAM` 외의 패턴도 단순 text projectile에서 shutter, pulse path, safe sector, corridor, diff cell, closing boundary로 순차 교체한다.
 
 ## D-030 — 실제 제품 알림음 대신 original system-notification motif를 사용한다

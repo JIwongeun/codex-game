@@ -37,6 +37,8 @@ export const GAMEPLAY = {
   contextTokenHitboxWidth: 44,
   contextTokenHitboxHeight: 13,
   contextTokenBurstRadius: 24,
+  contextTokenGravityPerSecond: 2.4,
+  contextTokenHorizontalDragPerSecond: 0.72,
   reasoningTelegraphMs: 2_100,
   reviewLoopConvergeMs: 1_450,
   usageLimitConvergeMs: 1_800,

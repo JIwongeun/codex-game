@@ -219,7 +219,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - TypeScript typecheck
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
-- 완전 랜덤 `tool-call`, snapshot `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` burst, 반복 `retry`, 장시간 예고 `reasoning`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
+- 완전 랜덤 `tool-call`, snapshot `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` ballistic burst·중력 낙하, 반복 `retry`, 장시간 예고 `reasoning`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
 - 회전한 text hitbox 충돌, 12초 단위 Stage 1–10 경계와 Stage 10 상한 테스트
 - `tool-call` 경로가 player 위치에 독립적이고 `approval`·`reasoning`이 예고 중 재조준하지 않는 회귀 테스트
 - 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트

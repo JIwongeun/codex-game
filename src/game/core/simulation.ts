@@ -290,6 +290,14 @@ function updateProjectiles(
     } else {
       projectile.position.x += projectile.velocity.x * projectile.speed * stepSeconds;
       projectile.position.y += projectile.velocity.y * projectile.speed * stepSeconds;
+      if (projectile.kind === "context-token") {
+        projectile.velocity.x *= Math.pow(
+          GAMEPLAY.contextTokenHorizontalDragPerSecond,
+          stepSeconds,
+        );
+        projectile.velocity.y +=
+          GAMEPLAY.contextTokenGravityPerSecond * stepSeconds;
+      }
     }
 
     if (isInsideProjectileBounds(state, projectile.position)) {
@@ -833,7 +841,7 @@ function spawnContextTokens(
         width: GAMEPLAY.contextTokenHitboxWidth,
         height: GAMEPLAY.contextTokenHitboxHeight,
       },
-      speed,
+      speed * (0.76 + (index % 5) * 0.07),
       0,
     );
   }

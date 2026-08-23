@@ -110,7 +110,7 @@
 |---|---|---|---|
 | Stage 1 | `TOOL CALL STREAM` | `$ rg --files -g AGENTS.md`, `[tool] rereading same file`, `ERR_*` 등 | player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge로 흐른다. 실제 작업 surface의 로그가 방향 예고 없이 화면을 가로지른다. |
 | Stage 2 | `APPROVAL REQUIRED` | `[approval] allow full access?`, `run outside sandbox?` 등 | 생성 순간 player 위치를 snapshot하고 짧은 점선 경로를 고정한 뒤 돌진한다. 승인 prompt를 피했더라도 같은 탄이 재조준하지 않는다. |
-| Stage 3 | `CONTEXT COMPACTION` | `[context] compacting 0–100%` → `COMPACTION FAILED` → `[tok] ...` | 기존 대비 가로·세로 1.5배인 snapshot frame 안에서 context row와 중첩 frame이 한 점으로 수축한다. 실패 순간 frame 전체가 장판으로 변하지 않고 12–20개의 짧은 token 파편이 방사형으로 폭발한다. |
+| Stage 3 | `CONTEXT COMPACTION` | `[context] compacting 0–100%` → `COMPACTION FAILED` → `[tok] ...` | 기존 대비 가로·세로 1.5배인 snapshot frame 안에서 context row와 중첩 frame이 한 점으로 수축한다. 실패 순간 frame 전체가 장판으로 변하지 않고 12–20개의 짧은 token 파편이 서로 다른 속도로 튄 뒤 수평 감속·중력을 받아 포물선으로 떨어진다. |
 | Stage 4 | `RETRY LOOP` | `[tool] retry 1/3`, `2/3`, `3/3` | 같은 snapshot을 향해 260ms 간격으로 같은 tool call을 반복한다. 후반에는 최대 5회다. |
 | Stage 5 | `REASONING: XHIGH` | `[effort] xhigh · thinking...` | 일반 조준보다 두 배 이상 오래 멈춰 있다가 snapshot을 향해 단발 초고속으로 이동한다. 기다림과 갑작스러운 응답이 한 행동이다. |
 | Stage 6 | `PARALLEL AGENTS` | `[agent 1] working`, `[agent 2] working` | 같은 snapshot을 향해 화면 반대편 agent 두 개가 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
@@ -127,7 +127,7 @@
 |---|---|---|---|
 | `TOOL CALL STREAM` | 실제 작업 문구가 임의 edge를 계속 가로지르는 유일한 일반 text 탄막 | 작은 방향 전환으로 흐름 피하기 | 현재 baseline 유지 |
 | `APPROVAL REQUIRED` | snapshot 주변을 permission shutter가 닫고 `DENY` 쪽 한 틈만 남김 | 안전 틈을 고르고 일찍 진입 | 교체 예정 |
-| `CONTEXT COMPACTION` | 넓은 context frame과 row가 중심으로 수축한 뒤 token 조각으로 폭발 | frame에서 이탈한 뒤 파편 사이를 다시 회피 | 이번 작업 적용 |
+| `CONTEXT COMPACTION` | 넓은 context frame과 row가 중심으로 수축한 뒤 token 조각이 물풍선처럼 튀고 아래로 쏟아짐 | frame에서 이탈한 뒤 낙하 파편 사이를 다시 회피 | 이번 작업 적용 |
 | `RETRY LOOP` | 하나의 고정 실행 경로를 terminal pulse가 같은 박자로 3–5회 재실행 | pulse 사이의 시간 틈 통과 | 교체 예정 |
 | `REASONING: XHIGH` | 긴 thinking arc가 회전하며 한 safe sector만 남기고 응답 wave로 전환 | safe sector 각도를 따라 이동 | 교체 예정 |
 | `PARALLEL AGENTS` | 여러 worktree window가 서로 다른 축에서 arena를 움직이는 통로로 분할 | 움직이는 corridor 사이를 따라가기 | 교체 예정 |

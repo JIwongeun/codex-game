@@ -453,6 +453,34 @@ describe("survival simulation", () => {
     expect(state.lastHitSource).toBeNull();
   });
 
+  it("makes burst context tokens arc outward and then fall", () => {
+    const state = playingState();
+    state.hazards = [hazard(state)];
+    state.player.position = { x: 5, y: 5 };
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS * 2);
+    const token = state.projectiles.find(
+      (candidate) => candidate.kind === "context-token",
+    );
+    expect(token).toBeDefined();
+    if (!token) {
+      return;
+    }
+
+    state.hazards = [];
+    state.projectiles = [token];
+    token.position = { x: 400, y: 200 };
+    token.velocity = { x: 1, y: -1 };
+    token.speed = 100;
+
+    stepGame(state, EMPTY_INPUT, 500);
+
+    expect(token.position.x).toBeGreaterThan(400);
+    expect(token.position.y).toBeLessThan(200);
+    expect(token.velocity.x).toBeLessThan(1);
+    expect(token.velocity.y).toBeGreaterThan(0);
+  });
+
   it("fits the enlarged context compaction to a small viewport", () => {
     const state = playingState(17, 375, 640);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
