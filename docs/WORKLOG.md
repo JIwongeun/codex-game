@@ -17,7 +17,7 @@
 - live resize 시 player, memory leak, context sweep를 새 경계에 맞추는 순수 simulation 경계 추가
 - `TAB STORM`을 같은 edge에서 들어오는 browser-tab volley와 점선 예고, presentation-only 잔상으로 교체
 - `POP-UP`을 window silhouette, dotted trajectory, target marker로 재설계
-- `MEMORY LEAK`을 회전 dashed rings와 orbit fragments로, `CONTEXT OVERFLOW`를 scan stripe band로 재설계
+- `MEMORY LEAK`을 회전 pixel rings와 orbit fragments로, `CONTEXT OVERFLOW`를 scan stripe band로 재설계
 - player triangle과 hitbox indicator를 모두 제거하고 브라우저 native cursor 자체만 플레이어로 표시
 - `Pretendard Variable` dynamic subset을 self-hosted build asset으로 추가하고 font load 뒤 Phaser를 boot하도록 변경
 - warm white/black base 위에 TAB blue, POP-UP amber, MEMORY LEAK violet, CONTEXT OVERFLOW red, running green의 의미 기반 accent palette 적용
@@ -30,12 +30,14 @@
 - Vitest 5 files, 31 tests 통과
 - direct pointer coordinate, viewport edge clamp, live resize, responsive arena, deterministic input stream, 모든 공격 단계와 개체 상한 검증
 - Worker/client production build 통과
-- source commit `5462b6f`를 Sites production version 3으로 owner-only 배포
+- source commit `07d703d`를 Sites production version 4로 owner-only 배포
+- production에서 1272×1272와 375×812 모두 Canvas rect가 viewport와 정확히 일치하고 body overflow가 없음을 확인
+- production에서 `Pretendard Variable` load, native `cursor: default`, Ready → Playing → Results, TAB blue trail, POP-UP amber warning과 square window를 확인
+- 개발 시간 점프에서 violet pixel-ring `MEMORY LEAK` warning을 확인하고 browser console error/warning이 없음을 확인
 - 배포 후 access mode `custom`, owner 1명, group 0개, 외부 방문자 0명 유지 확인
 
 ### 남은 작업
 
-- owner session의 실제 플레이로 cursor 감각, 공격 판독성, 작은 화면 HUD를 확인
 - 실제 플레이 결과로 공격 속도·간격·warning 시간을 조정
 
 ## 2026-08-23 — 흑백 브라우저 디자인과 무한 생존 코어 전환
