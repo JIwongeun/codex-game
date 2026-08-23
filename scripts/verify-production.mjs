@@ -33,6 +33,17 @@ if (
 }
 
 const html = await readFile("dist/client/index.html", "utf8");
+for (const requiredFaviconMarkup of [
+  'id="await-codex-favicon"',
+  'rel="icon"',
+  "data:image/svg+xml",
+]) {
+  if (!html.includes(requiredFaviconMarkup)) {
+    throw new Error(
+      `Initial HTML favicon is missing: ${requiredFaviconMarkup}`,
+    );
+  }
+}
 const publicOgUrl =
   "https://await-codex-context-overflow.jygjyg99.chatgpt.site/og.png";
 for (const requiredMetadata of [
@@ -86,7 +97,7 @@ if (ogStat.size > maximumSubmissionImageBytes) {
 }
 
 console.log(
-  `Production verified: ${clientFiles.length} client files, runtime favicon, ${width}x${height} OG image (${ogStat.size} bytes), no QA query.`,
+  `Production verified: ${clientFiles.length} client files, initial and runtime favicon, ${width}x${height} OG image (${ogStat.size} bytes), no QA query.`,
 );
 
 async function filesBelow(directory) {

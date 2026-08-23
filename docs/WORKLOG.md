@@ -2,6 +2,19 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — 첫 HTML favicon 404 제거
+
+### 배포 로그 진단
+
+- 최근 production Worker 오류 4건이 모두 게임 요청 실패가 아니라 JS 실행 전에 발생한 `/favicon.ico` 404임을 확인
+- HTML에 original context-loop mark의 inline SVG favicon을 선언해 문서 파싱 시점부터 icon URL을 제공
+- 게임 boot 후에는 기존 runtime-generated PNG favicon이 같은 link를 교체하는 동작을 유지
+
+### 검증 보강
+
+- production verifier가 initial HTML의 favicon id·rel·data URL과 runtime PNG 교체 코드를 모두 검사하도록 변경
+- 배포 후 root·favicon·OG·hashed asset 응답과 Worker 오류 로그를 다시 확인할 예정
+
 ## 2026-08-24 — 제출 썸네일 production gate 보강
 
 ### 검증 범위
