@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — BGM 음량과 original notification motif 보강
+
+### 구현
+
+- arpeggio lead gain을 `0.008→0.016`, bass를 `0.007→0.013`, pulse를 `0.0025→0.005`로 올려 기존보다 약 6dB 크게 조정
+- game elapsed stage가 처음 바뀌는 순간에만 짝수 stage delivery 2음·홀수 stage task completion 3음·Stage 10 completion 4음을 예약
+- compaction activation과 review burst에 error popup형 하강 cue, parallel agents에 push/webhook delivery형 cue를 추가
+- stage notification을 music gain으로 추적해 pause·game over·mute에서 BGM과 함께 즉시 끊고, pause 해제 때 현재 stage cue를 중복 재생하지 않도록 유지
+- 실제 Slack·Windows·macOS·ChatGPT 알림음과 sample은 사용하지 않고 E minor 음정·짧은 contour·Web Audio oscillator로 original motif 구성
+
+### 검증
+
+- 상승된 BGM gain이 effect peak보다 낮은지, stage 변경 cue가 한 번만 발생하는지, error·delivery event가 추가 oscillator layer를 생성하는지 unit test 추가
+- `pnpm check` 통과: typecheck, 12개 test file의 74개 test, production build, production verifier 완료
+- production 반영과 실제 청감 확인은 별도로 진행
+
 ## 2026-08-24 — command 공백과 Start ambient 진입 경로 수정
 
 ### 구현

@@ -96,10 +96,12 @@
 
 ### Sound
 
-- 첫 시작 click 또는 Space로 AudioContext를 연 뒤 original 32-step E minor arpeggio·bass·pulse loop를 저음량으로 재생한다. Stage 1의 132 BPM에서 stage마다 4 BPM씩 올라 Stage 10의 168 BPM에 고정된다.
+- 첫 시작 click 또는 Space로 AudioContext를 연 뒤 original 32-step E minor arpeggio·bass·pulse loop를 재생한다. 최초 저음량안보다 약 6dB 높여 gameplay 중 분명히 들리게 하되 warning·hit peak보다 낮게 유지한다. Stage 1의 132 BPM에서 stage마다 4 BPM씩 올라 Stage 10의 168 BPM에 고정된다.
 - BGM은 `playing`에서만 진행하고 game over·blur·hidden pause에서 즉시 멈춘다. 재시작과 명시적 pause 해제 뒤에는 첫 step부터 다시 시작한다.
 - `M`은 BGM과 효과음을 함께 음소거한다. 공격 warning·burst·hit 효과음이 BGM보다 항상 앞에서 들리도록 BGM gain을 낮게 유지한다.
 - 기본 `TOOL CALL STREAM`은 별도 SFX 없이 흘러가고, `APPROVAL`, `COMPACTION`, `RETRY`, `XHIGH`, `PARALLEL AGENTS`, `REVIEW`, `USAGE LIMIT`은 각각 prompt beep·impact·반복 click·charge·dual tone·review pair·low alarm으로 구분한다.
+- Stage가 바뀔 때는 push/webhook delivery를 연상시키는 2음과 agent task completion을 연상시키는 상승 3음을 번갈아 한 번만 재생하고 Stage 10은 4음으로 마감한다. compaction activation과 review 재발산에는 error popup형 하강음을, parallel agents에는 delivery cue를 겹친다.
+- Slack·Windows·macOS·ChatGPT의 실제 음원, sample과 고유 notification melody를 복제하지 않는다. 익숙한 짧은 attack·간격·상승/하강 contour만 E minor 기반 original motif로 재구성한다.
 - 외부 음원 파일과 음악 dependency를 사용하지 않고 Web Audio oscillator로 실시간 합성한다.
 
 ## 8개 Codex 경험 공격 패턴

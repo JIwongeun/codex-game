@@ -2,6 +2,14 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-030 — 실제 제품 알림음 대신 original system-notification motif를 사용한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, gain과 음정 간격은 플레이 테스트로 조정 가능
+- 배경: 개발자는 error popup, push/webhook delivery와 agent 작업 완료 알림에 즉시 반응하므로 이 청각 경험을 게임의 농담과 stage 보상으로 사용할 수 있다. 하지만 Slack·Windows·macOS·ChatGPT의 실제 sample이나 고유 melody를 복제하면 권리와 브랜드 혼동 위험이 생긴다.
+- 결정: BGM lead·bass gain을 기존보다 약 2배 올리고, 짝수 stage에는 original delivery 2음, 홀수 stage에는 E minor completion 3음, Stage 10에는 4음을 한 번만 재생한다. compaction·review에는 error popup형 하강 contour, parallel agents에는 delivery contour를 별도 oscillator 조합으로 사용한다.
+- 결과: 외부 audio asset과 새 dependency 없이 익숙한 notification 리듬을 전달한다. 모든 motif는 repository의 MIDI interval·oscillator·envelope 조합으로 직접 만들며 특정 제품 음원으로 표현하거나 홍보하지 않는다.
+
 ## D-029 — 저작권 독립적인 procedural BGM을 gameplay에 사용한다
 
 - 날짜: 2026-08-24

@@ -100,6 +100,36 @@ describe("SoundService", () => {
     expect(musicBpmAt(999_000)).toBe(168);
   });
 
+  it("keeps the louder music bed below effect-level gain", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    sound.syncMusic(true, 0);
+    const gains = FakeAudioContext.instances[0]?.gains.map(
+      (gain) => gain.gain.setValueAtTime.mock.calls[0]?.[0],
+    );
+
+    expect(gains).toContain(0.016);
+    expect(gains).toContain(0.013);
+    expect(Math.max(...(gains ?? [0]))).toBeLessThan(0.025);
+  });
+
+  it("plays one original notification motif when the stage changes", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    sound.syncMusic(true, 0);
+    const context = FakeAudioContext.instances[0];
+    const beforeStageChange = context?.oscillators.length ?? 0;
+
+    sound.syncMusic(true, 12_000);
+    const afterStageChange = context?.oscillators.length ?? 0;
+    expect(afterStageChange).toBeGreaterThanOrEqual(beforeStageChange + 2);
+
+    sound.syncMusic(true, 12_000);
+    expect(context?.oscillators).toHaveLength(afterStageChange);
+  });
+
   it("disconnects music on pause and restarts the step after resume", () => {
     const sound = new SoundService();
 
@@ -140,6 +170,19 @@ describe("SoundService", () => {
       sound.consume([event]);
       expect(context?.oscillators.length).toBeGreaterThan(before);
     }
+  });
+
+  it("layers notification-shaped cues onto error and delivery events", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    const context = FakeAudioContext.instances[0];
+    sound.consume([{ type: "hazard-activated", kind: "compaction" }]);
+    expect(context?.oscillators.length).toBeGreaterThanOrEqual(4);
+
+    const afterError = context?.oscillators.length ?? 0;
+    sound.consume([{ type: "pattern-warning", kind: "parallel-agents" }]);
+    expect(context?.oscillators.length).toBeGreaterThanOrEqual(afterError + 4);
   });
 
   it("plays after unmute and disconnects an active tone when muted again", () => {

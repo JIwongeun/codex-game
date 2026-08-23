@@ -27,7 +27,8 @@
 
 ## 오디오
 
-- 외부 음원 파일은 없다. `src/game/services/SoundService.ts`가 Web Audio oscillator로 warning, burst, hit tone을 runtime에 합성한다.
+- 외부 음원 파일은 없다. `src/game/services/SoundService.ts`가 Web Audio oscillator로 BGM, warning, burst, hit와 original system-notification motif를 runtime에 합성한다.
+- Slack·Windows·macOS·ChatGPT 등 제3자 제품의 notification sample과 고유 melody를 포함하거나 복제하지 않는다. delivery·completion·error를 연상시키는 일반적인 짧은 contour만 프로젝트 고유 음정과 envelope로 작성했다.
 
 ## 공개 정보 점검
 

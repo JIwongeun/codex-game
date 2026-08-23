@@ -108,7 +108,7 @@
 - 실제 Codex 사용자 경험에서 가져온 공격 패턴 8종과 수렴·분할 sequence
 - 12초 단위 Stage 1–10 난이도 상승과 공격 상한
 - 브라우저 로컬 최고 생존 기록
-- 음소거 가능한 기본 효과음
+- 음소거 가능한 procedural BGM과 공격·stage notification 효과음
 - 로그인 없는 public production URL과 검색 색인 차단
 
 ## 8. MVP 제외 범위

@@ -12,6 +12,11 @@ interface Tone {
 
 const MUSIC_BASE_BPM = 132;
 const MUSIC_BPM_PER_STAGE = 4;
+const MUSIC_GAIN = {
+  lead: 0.016,
+  bass: 0.013,
+  pulse: 0.005,
+} as const;
 const MUSIC_LEAD_MIDI: readonly (number | null)[] = [
   64,
   null,
@@ -53,6 +58,7 @@ export class SoundService {
   private readonly activeGains = new Set<GainNode>();
   private readonly activeMusicGains = new Set<GainNode>();
   private musicStep = 0;
+  private musicStage = 1;
   private nextMusicStepMs = 0;
   private musicRunning = false;
   private muted = false;
@@ -72,10 +78,15 @@ export class SoundService {
     }
 
     const safeElapsedMs = Math.max(0, elapsedMs);
+    const stage = musicStageAt(safeElapsedMs);
     if (!this.musicRunning) {
       this.musicRunning = true;
       this.musicStep = 0;
+      this.musicStage = stage;
       this.nextMusicStepMs = safeElapsedMs;
+    } else if (stage > this.musicStage) {
+      this.musicStage = stage;
+      this.playStageNotification(stage);
     }
 
     if (safeElapsedMs < this.nextMusicStepMs) {
@@ -98,7 +109,7 @@ export class SoundService {
           frequency,
           endFrequency: frequency,
           durationSeconds: 0.085,
-          gain: 0.008,
+          gain: MUSIC_GAIN.lead,
           wave: "triangle",
         },
         true,
@@ -115,7 +126,7 @@ export class SoundService {
           frequency,
           endFrequency: frequency * 0.98,
           durationSeconds: 0.18,
-          gain: 0.007,
+          gain: MUSIC_GAIN.bass,
           wave: "square",
         },
         true,
@@ -126,7 +137,7 @@ export class SoundService {
           frequency: 1_800,
           endFrequency: 800,
           durationSeconds: 0.025,
-          gain: 0.0025,
+          gain: MUSIC_GAIN.pulse,
           wave: "square",
         },
         true,
@@ -141,6 +152,7 @@ export class SoundService {
     }
     this.activeMusicGains.clear();
     this.musicStep = 0;
+    this.musicStage = 1;
     this.nextMusicStepMs = 0;
     this.musicRunning = false;
   }
@@ -204,6 +216,7 @@ export class SoundService {
           gain: 0.018,
           wave: "triangle",
         });
+        this.playErrorPopupNotification();
       } else if (event.type === "pattern-warning") {
         this.playPatternWarning(event.kind);
       } else if (event.type === "pattern-burst") {
@@ -214,6 +227,9 @@ export class SoundService {
           gain: 0.04,
           wave: "square",
         });
+        if (event.kind === "review-loop") {
+          this.playErrorPopupNotification(0.04);
+        }
       } else if (event.type === "player-hit") {
         this.play({
           frequency: 110,
@@ -342,6 +358,7 @@ export class SoundService {
         gain: 0.014,
         wave: "triangle",
       });
+      this.playDeliveryNotification(0.16);
       return;
     }
 
@@ -373,6 +390,101 @@ export class SoundService {
     });
   }
 
+  private playStageNotification(stage: number): void {
+    if (stage === GAMEPLAY.maxStage) {
+      this.playTaskCompleteNotification(0.22, true, true);
+      return;
+    }
+
+    if (stage % 2 === 0) {
+      this.playDeliveryNotification(0.22, true);
+    } else {
+      this.playTaskCompleteNotification(0.22, true);
+    }
+  }
+
+  private playDeliveryNotification(delaySeconds = 0, music = false): void {
+    this.play(
+      {
+        frequency: midiFrequency(76),
+        endFrequency: midiFrequency(76),
+        durationSeconds: 0.065,
+        gain: 0.022,
+        wave: "sine",
+        delaySeconds,
+      },
+      music,
+    );
+    this.play(
+      {
+        frequency: midiFrequency(83),
+        endFrequency: midiFrequency(83),
+        durationSeconds: 0.075,
+        gain: 0.022,
+        wave: "sine",
+        delaySeconds: delaySeconds + 0.085,
+      },
+      music,
+    );
+    this.play(
+      {
+        frequency: 2_200,
+        endFrequency: 1_500,
+        durationSeconds: 0.025,
+        gain: 0.005,
+        wave: "square",
+        delaySeconds,
+      },
+      music,
+    );
+  }
+
+  private playTaskCompleteNotification(
+    delaySeconds = 0,
+    music = false,
+    extended = false,
+  ): void {
+    const notes = extended ? [76, 79, 83, 88] : [76, 79, 83];
+    const delays = [0, 0.075, 0.16, 0.25];
+
+    for (let index = 0; index < notes.length; index += 1) {
+      const note = notes[index];
+      if (note === undefined) {
+        continue;
+      }
+      this.play(
+        {
+          frequency: midiFrequency(note),
+          endFrequency: midiFrequency(note),
+          durationSeconds: 0.08,
+          gain: 0.02,
+          wave: "sine",
+          delaySeconds: delaySeconds + (delays[index] ?? 0),
+        },
+        music,
+      );
+    }
+  }
+
+  private playErrorPopupNotification(delaySeconds = 0): void {
+    this.play({
+      frequency: midiFrequency(84),
+      endFrequency: midiFrequency(80),
+      durationSeconds: 0.055,
+      gain: 0.02,
+      wave: "triangle",
+      delaySeconds,
+    });
+    this.play({
+      frequency: midiFrequency(72),
+      endFrequency: midiFrequency(67),
+      durationSeconds: 0.12,
+      gain: 0.018,
+      wave: "square",
+      delaySeconds: delaySeconds + 0.055,
+    });
+  }
+
   private stopActiveTones(): void {
     for (const gain of this.activeGains) {
       gain.disconnect();
@@ -380,17 +492,21 @@ export class SoundService {
     this.activeGains.clear();
     this.activeMusicGains.clear();
     this.musicStep = 0;
+    this.musicStage = 1;
     this.nextMusicStepMs = 0;
     this.musicRunning = false;
   }
 }
 
 export function musicBpmAt(elapsedMs: number): number {
-  const stage = Math.min(
+  return MUSIC_BASE_BPM + (musicStageAt(elapsedMs) - 1) * MUSIC_BPM_PER_STAGE;
+}
+
+function musicStageAt(elapsedMs: number): number {
+  return Math.min(
     GAMEPLAY.maxStage,
     Math.floor(Math.max(0, elapsedMs) / GAMEPLAY.stageDurationMs) + 1,
   );
-  return MUSIC_BASE_BPM + (stage - 1) * MUSIC_BPM_PER_STAGE;
 }
 
 function midiFrequency(note: number): number {
