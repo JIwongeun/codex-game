@@ -154,4 +154,4 @@ Presentation은 판정을 만들지 않고 simulation state만 그린다. 문구
 - 상단 중앙 공격 설명이 없고 실제 공격 표현만으로 판독 가능하다.
 - 흰 task surface와 흑백 HUD, terminal·browser·Codex별 서체·glyph·의미색, 전체 viewport 규칙을 유지한다.
 - typecheck, deterministic simulation tests, seeded entity-cap soak와 production build가 통과한다.
-- owner-only production에서 사용자가 실제 가독성과 난이도를 확인한다.
+- public production URL에서 사용자가 실제 가독성과 난이도를 확인한다. 검색 색인은 차단하지만 URL 접근 자체는 공개다.

@@ -2,12 +2,12 @@
 
 Codex가 작업하는 동안 `>_` task node를 움직여 개발·vibe coding의 골칫거리를 피하는 무한 생존 웹 아케이드입니다. 한 번 맞으면 run이 끝나고 버틴 시간이 브라우저 로컬 최고 기록이 됩니다.
 
-현재 상태는 **처음부터 결과·재시작까지 플레이 가능한 owner-only 개발 빌드**입니다. 계정, 서버, 랭킹 없이 정적 웹 빌드만으로 실행됩니다.
+현재 상태는 **처음부터 결과·재시작까지 플레이 가능한 공개 링크 빌드**입니다. 계정, 서버, 랭킹 없이 정적 웹 빌드만으로 실행됩니다.
 
 ## 바로 플레이
 
 - 개발 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
-- 현재 Sites 소유자 1명만 접근할 수 있습니다. 제출 직전에 공개 접근으로 전환합니다.
+- 링크를 아는 사람은 로그인 없이 접속할 수 있습니다. 검색 색인은 HTML robots meta와 `X-Robots-Tag`로 차단하지만 URL 자체는 공개 접근입니다.
 - 개발자 PC를 켜 두거나 외부에 로컬 서버를 노출할 필요가 없습니다.
 
 ## 플레이

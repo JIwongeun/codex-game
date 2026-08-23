@@ -10,13 +10,14 @@
 
 1. 클라이언트만으로 핵심 게임 완성
 2. 로컬 최고점으로 전체 흐름 검증
-3. 소유자 전용 배포에서 QA, 제출 필수 자료 준비
+3. 검색 색인을 차단한 public URL에서 QA, 제출 필수 자료 준비
 4. 시간이 남을 때만 작은 HTTP API와 DB를 추가해 글로벌 랭킹 연결
 
-### 현재 비공개 개발 배포
+### 현재 공개 링크 배포
 
 - 플레이 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
-- HTTPS 정적 호스팅이 HTML, JavaScript, CSS를 전달하며 Sites 접근 정책은 `custom` 소유자 전용이다.
+- HTTPS 정적 호스팅이 HTML, JavaScript, CSS를 전달하며 Sites 접근 정책은 로그인 없는 `public`이다.
+- HTML robots meta와 모든 Worker 응답의 `X-Robots-Tag`는 `noindex, nofollow, noarchive`를 요청한다. 이는 검색 색인 억제일 뿐 인증이나 접근 차단이 아니다.
 - `worker/index.ts`는 `ASSETS` binding에 요청을 넘기는 얇은 배포 adapter이며 게임 로직이나 사용자 데이터를 처리하지 않는다.
 - `.openai/hosting.json`에는 Sites project 식별자만 있고 배포 credential이나 secret은 저장하지 않는다.
 - 현재 게임 자체의 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. 비공개 접근 인증은 Sites가 담당하며 브라우저 `localStorage`에는 해당 브라우저의 최고점만 저장한다.
@@ -237,7 +238,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 ## 10. 배포 원칙
 
 - core game은 정적 호스팅에 배포할 수 있어야 한다.
-- 개발 중에는 Sites `custom` 접근으로 소유자만 허용한다. 제출 직전에 `public`으로 바꾸고 로그인과 설치를 요구하지 않는지 재검증한다.
+- Sites `public` 접근을 유지해 개발 확인과 제출에 같은 URL을 사용한다. 로그인과 설치가 필요 없는지 별도 로그인 상태가 없는 브라우저에서 재검증한다.
 - production build의 source map과 환경 변수 노출을 확인한다.
 - 제출 전 시크릿 창과 다른 네트워크에서 링크를 직접 확인한다.
 - 현재 앱은 client-side router가 없는 단일 root 페이지다. 새 URL route를 추가할 때만 production host의 SPA fallback을 다시 검증한다.

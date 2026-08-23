@@ -109,7 +109,7 @@
 ## D-014 — 완성 전 Sites 접근을 소유자 전용으로 제한한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, 제출 직전 public으로 대체 예정
+- 상태: 대체됨 — D-026이 링크 공유와 제출을 위해 public 접근으로 전환
 - 배경: 사용자는 개발 중인 게임을 본인만 플레이하고 완성 후 공개하기를 요청했다.
 - 결정: Sites access mode를 `custom`으로 바꾸고 owner 외 사용자·그룹·외부 방문자 allowlist를 비운다. 별도의 클라이언트 비밀번호 gate는 우회 가능하므로 만들지 않는다.
 - 결과: 현재 production URL은 호스팅 owner만 접근한다. 최종 제출 전 access mode를 `public`으로 전환하고 익명 브라우저 접근을 다시 검증해야 한다.
@@ -201,3 +201,11 @@
 - 배경: 기존에는 피격 뒤 `Task interrupted.` 전용 Results overlay가 나타나 Start와 다른 정보 구조를 만들었다. 사용자는 시작에 필요한 정보와 결과를 하나의 기본 UI에서 확인하고, 실제 플레이 중에는 게임만 보이기를 요청했다.
 - 결정: 최초 `ready`와 game over 뒤 `results` phase는 모두 같은 `ReadyOverlay`를 표시한다. Start에는 objective, control, fail state, local best를 항상 두고 `results`일 때만 `LAST RUN`에 생존 시간과 피격 계열을 갱신한다. `Hud`는 `playing`에서만 표시하며 Results용 Graphics와 Text object는 제거한다. 내부 phase와 deterministic simulation은 변경하지 않는다.
 - 결과: 사용자가 보는 완전한 화면은 Start와 Game 두 개뿐이다. game over 즉시 Start가 돌아오고 클릭 또는 Space는 기존 `restartRun` 경로로 새 Game을 시작한다. Pause는 Game을 대체하지 않는 일시적인 blur 계층으로 남는다.
+
+## D-026 — 제출 URL을 로그인 없는 public 접근으로 전환한다
+
+- 날짜: 2026-08-23
+- 상태: 확정
+- 배경: owner-only `custom` 접근은 사용자가 매 변경 뒤 새로고침해 확인하고 링크를 심사위원·테스터에게 바로 공유하기에 불편했다. Sites에는 별도의 unlisted 또는 secret-link 접근 모드가 없고 `custom`과 `public`만 제공된다.
+- 결정: production Sites 접근을 `public`으로 전환한다. URL을 아는 방문자는 로그인·승인 없이 플레이할 수 있다. HTML에는 `noindex, nofollow, noarchive` robots meta를 넣고 Worker가 모든 응답에 같은 `X-Robots-Tag`를 추가해 검색 색인을 요청하지 않는다.
+- 결과: 같은 URL을 개발 확인과 대회 제출에 사용할 수 있다. `noindex`는 인증이나 접근 제어가 아니므로 URL을 전달받거나 발견한 사람의 접속을 차단하지 않으며, 이를 비공개 링크로 표현하지 않는다.

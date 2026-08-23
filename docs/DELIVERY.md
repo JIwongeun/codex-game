@@ -102,12 +102,12 @@
 
 ### 링크
 
-- [x] HTTPS — [현재 소유자 전용 개발 URL](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
-- [ ] 제출 직전 public 접근으로 전환
-- [ ] public URL에서 로그인과 승인 불필요
+- [x] HTTPS — [현재 공개 제출 URL](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
+- [x] public 접근으로 전환
+- [x] public URL에서 로그인과 승인 불필요
 - [x] 첫 로딩 후 오류 없음
 - [x] 조작법 표시
-- [ ] public 전환 후 별도 로그인 상태가 없는 브라우저에서 플레이
+- [ ] 별도 로그인 상태가 없는 브라우저에서 실제 플레이 확인
 - [ ] 다른 PC 또는 휴대폰 네트워크에서 접속
 
 ### 플레이

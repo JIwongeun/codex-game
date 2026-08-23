@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — 로그인 없는 공개 제출 URL
+
+### 접근과 검색 노출
+
+- HTML에 `noindex, nofollow, noarchive` robots meta 추가
+- Worker가 HTML과 asset을 포함한 모든 응답에 동일한 `X-Robots-Tag`를 추가하도록 변경
+- 검색 차단 header가 asset 응답 본문과 상태를 보존하는 회귀 테스트 추가
+- Sites access를 `custom` owner-only에서 로그인 없는 `public`으로 전환 예정
+
+### 검증
+
+- `pnpm check`: typecheck, 8 files / 48 tests, production build 통과
+- `git diff --check`: 통과
+- production 반영과 비로그인 HTTP 접근 확인 전
+
 ## 2026-08-23 — Start와 Game 두 화면으로 통합
 
 ### UI 흐름
