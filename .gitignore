@@ -11,4 +11,4 @@ Thumbs.db
 playwright-report/
 test-results/
 graphify-out/
-
+.wrangler/
