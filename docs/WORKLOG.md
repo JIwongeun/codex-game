@@ -20,7 +20,8 @@
 
 ### production 반영
 
-- 배포 전
+- 검증된 source commit `a60a4b1`을 Sites version 14로 기존 owner-only production URL에 배포
+- 배포 완료 뒤 access mode `custom`, owner 1명, group 0개, 외부 방문자 0명을 다시 확인
 
 ## 2026-08-23 — branded Ready surface와 ambient attack feed
 
