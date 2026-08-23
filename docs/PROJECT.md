@@ -51,7 +51,7 @@
 - `WASD`와 방향키를 동일한 8방향 입력으로 합치고, 440px/s 고정 속도로 이동한다.
 - 대각선 입력은 정규화해 직선보다 빠르지 않게 하며 가속과 관성은 사용하지 않는다.
 - 플레이어는 화면 경계를 넘지 않는다.
-- 화면에는 작은 검은 `>_` task node를 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
+- 화면에는 입력 방향 장식이 없는 작은 검은 terminal block caret을 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
 - 탭 blur/hidden pause 중에는 simulation과 타이머를 동결하고 held movement key를 초기화한다. 복귀 후 클릭 또는 Space로 재개한다.
 - 직선 공격은 보이는 명령어 외곽과 같은 방향으로 회전하는 사각 hitbox를 사용하고 player는 작은 원형 hitbox를 사용한다.
 - 프레임률과 관계없이 60 Hz 고정 timestep으로 이동과 충돌을 판정한다.
@@ -90,9 +90,9 @@
 - 브라우저 viewport 전체가 논리 화면이다. Phaser `RESIZE`로 창 크기 변경을 즉시 반영하며 고정 16:9 frame이나 letterbox를 만들지 않는다.
 - 순백 웹페이지와 흰 Canvas를 이어 붙여 별도 게임 프레임처럼 보이지 않게 한다.
 - 격자, 패널, 상단 점수 바, 장식용 배경은 사용하지 않는다.
-- white, black, gray만 사용한다. 공격은 색이 아니라 outline, fill density, hatch, marker, 흑백 반전으로 구분한다.
+- 바탕과 HUD는 white, black, gray를 유지한다. 공격은 실제 terminal 의미에 대응하는 command blue, success green, warning amber, error red, Codex·context violet만 제한적으로 쓰고 실루엣·예고·움직임도 함께 구분한다.
 - 둥근 card와 부드러운 장식을 피하고 각진 1px frame, square pixel, stepped trail, tool-call row로 개발 도구의 digital 질감을 만든다.
-- HUD와 overlay의 모든 텍스트는 `Pretendard Variable`을 사용하고 굵기·자간으로 정보 계층을 구분한다. 상단 중앙 공격명 announcement는 표시하지 않는다.
+- HUD와 overlay는 `Pretendard Variable`, 공격 문구는 11–13px system monospace를 사용한다. 상단 중앙 공격명 announcement는 표시하지 않는다.
 - 시작과 결과 화면은 Codex의 가상 task surface처럼 넓은 여백, 작은 상태 행, 건조한 실행 문구를 사용한다. 로고나 실제 제품 UI는 복제하지 않는다.
 - 탭 blur/hidden으로 멈춘 동안에는 결과 화면처럼 장면을 덮지 않는다. 마지막 게임 장면을 흐리게 남기고 중앙 pause 문구만 표시한다.
 - pause 중에는 마지막 장면과 player 위치를 blur 아래에 그대로 남기고 중앙 재개 문구만 표시한다.
@@ -102,7 +102,7 @@
 ## 7. MVP 포함 범위
 
 - Ready → Playing → Results → Retry 상태
-- 검은 `>_` task node의 WASD·방향키 8방향 이동
+- 작은 검은 terminal block caret의 WASD·방향키 8방향 이동
 - 한 번 피격 시 종료와 생존 시간 기록
 - 의미가 다른 공격 패턴 7종과 수렴·분할 sequence
 - 12초 단위 Stage 1–10 난이도 상승과 공격 상한

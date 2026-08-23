@@ -38,7 +38,7 @@ function projectile(
   return {
     id: 100,
     kind: "log",
-    label: "CI: FAILED",
+    label: "error: CI failed",
     position: { ...state.player.position },
     velocity: { x: 1, y: 0 },
     hitbox: {
@@ -74,7 +74,7 @@ function sequence(
   return {
     id: 300,
     kind: "fork-bomb",
-    label: "git branch --all",
+    label: "$ git branch --all",
     position: { x: 160, y: 140 },
     origins: [{ x: 0, y: 140 }],
     remainingMs: FIXED_STEP_MS,
@@ -225,27 +225,27 @@ describe("survival simulation", () => {
 
     expect(logLabels).toEqual(
       new Set([
-        "+ ONE MORE CHANGE",
-        "TESTS STILL RUNNING...",
-        "TOOL RETRY 3/3",
-        "WORKING TREE DIRTY",
-        "GIT COMMIT --AMEND",
-        "CI: FAILED",
-        "TS2322",
-        "CONTEXT LEFT: 12%",
-        "READING AGENTS.MD",
-        "CHECKING WORKSPACE...",
-        "FIXING ONE LAST TEST",
-        "PR #404",
-        "REBASE REQUIRED",
+        "+ one more change",
+        "$ pnpm test --watch",
+        "$ codex retry --last",
+        "warning: working tree dirty",
+        "$ git commit --amend",
+        "error: CI failed",
+        "error TS2322",
+        "[context] 12% left",
+        "$ cat AGENTS.md",
+        "$ codex inspect workspace",
+        "fixing one last test...",
+        "error: PR #404",
+        "git: rebase required",
       ]),
     );
     expect(reviewLabels).toEqual(
       new Set([
-        "APPROVAL REQUIRED",
-        "REQUEST CHANGES",
-        "NEEDS REBASE",
-        "RUN COMMAND?",
+        "[review] approval required",
+        "[review] changes requested",
+        "git: needs rebase",
+        "run command? [y/N]",
       ]),
     );
   });
@@ -334,7 +334,7 @@ describe("survival simulation", () => {
     state.projectiles = [
       projectile(state, {
         kind: "review",
-        label: "APPROVAL REQUIRED",
+        label: "[review] approval required",
         hitbox: {
           width: GAMEPLAY.reviewHitboxMinWidth,
           height: GAMEPLAY.reviewHitboxHeight,
@@ -450,9 +450,9 @@ describe("survival simulation", () => {
       (candidate) => candidate.kind === "retry",
     );
     expect(retries.map((candidate) => candidate.label)).toEqual([
-      "RETRY 1/3",
-      "RETRY 2/3",
-      "RETRY 3/3",
+      "retry 1/3",
+      "retry 2/3",
+      "retry 3/3",
     ]);
     expect(retries[0]!.telegraphRemainingMs).toBeLessThan(
       retries[1]!.telegraphRemainingMs,
@@ -481,8 +481,8 @@ describe("survival simulation", () => {
       (candidate) => candidate.kind === "race",
     );
     expect(race.map((candidate) => candidate.label)).toEqual([
-      "READ()",
-      "WRITE()",
+      "read()",
+      "write()",
     ]);
     expect(
       race[0]!.velocity.x * race[1]!.velocity.x +
@@ -494,7 +494,7 @@ describe("survival simulation", () => {
   });
 
   it.each([
-    ["fork-bomb", "branch", "BRANCH", 8],
+    ["fork-bomb", "branch", "branch", 8],
     ["merge-bug", "bug", "BUG!", 12],
   ] as const)(
     "turns %s convergence into a radial %s burst",
@@ -503,7 +503,10 @@ describe("survival simulation", () => {
       state.sequences = [
         sequence({
           kind: sequenceKind,
-          label: sequenceKind === "fork-bomb" ? "git branch --all" : "git merge",
+          label:
+            sequenceKind === "fork-bomb"
+              ? "$ git branch --all"
+              : "$ git merge",
           projectileCount: count,
         }),
       ];

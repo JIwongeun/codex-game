@@ -30,25 +30,25 @@ export type AttackPatternKind =
 export type HitSource = ProjectileKind | HazardKind;
 
 export type LogLabel =
-  | "+ ONE MORE CHANGE"
-  | "TESTS STILL RUNNING..."
-  | "TOOL RETRY 3/3"
-  | "WORKING TREE DIRTY"
-  | "GIT COMMIT --AMEND"
-  | "CI: FAILED"
-  | "TS2322"
-  | "CONTEXT LEFT: 12%"
-  | "READING AGENTS.MD"
-  | "CHECKING WORKSPACE..."
-  | "FIXING ONE LAST TEST"
-  | "PR #404"
-  | "REBASE REQUIRED";
+  | "+ one more change"
+  | "$ pnpm test --watch"
+  | "$ codex retry --last"
+  | "warning: working tree dirty"
+  | "$ git commit --amend"
+  | "error: CI failed"
+  | "error TS2322"
+  | "[context] 12% left"
+  | "$ cat AGENTS.md"
+  | "$ codex inspect workspace"
+  | "fixing one last test..."
+  | "error: PR #404"
+  | "git: rebase required";
 
 export type ReviewLabel =
-  | "APPROVAL REQUIRED"
-  | "REQUEST CHANGES"
-  | "NEEDS REBASE"
-  | "RUN COMMAND?";
+  | "[review] approval required"
+  | "[review] changes requested"
+  | "git: needs rebase"
+  | "run command? [y/N]";
 
 export type ProjectileLabel = LogLabel | ReviewLabel | string;
 export type HazardLabel = "CONTEXT MAX!";

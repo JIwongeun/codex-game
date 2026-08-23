@@ -161,3 +161,11 @@
 - 배경: 네 개의 작은 task chip·modal·band는 화면에서 일반 UI block처럼 보였고, 공격 이름을 다른 용어로 바꿔도 움직임이 성립해 개발 패러디의 개연성이 약했다. 긴 `merge-conflict` band는 `context-max` 영역 회피와 역할도 겹쳤다.
 - 결정: 투사체 block을 제거하고 명령어·상태 문구 자체를 진행 방향에 맞춰 회전시킨다. collision도 같은 방향의 oriented rectangle을 사용한다. 공격은 `LOG STREAM`, snapshot `REVIEW REQUEST`, 일점 `CONTEXT MAX`, 반복 `RETRY LOOP`, 분할 `FORK BOMB`, 교차 `RACE CONDITION`, 수렴 후 발산하는 `MERGE → BUG!`의 일곱 행동 패턴으로 나눈다. 기존 `merge-conflict` band는 제거한다. 12초 단위 Stage 1–10에서 Stage 7까지 패턴을 해금하고 Stage 8–10은 동시 수·속도·빈도·radial 탄 수를 올린다. Stage 10은 108초부터 최고 난이도에 고정한다.
 - 결과: `log`, `review`, `retry`, `branch`, `race`, `bug` projectile, `context-max` hazard, `fork-bomb`·`merge-bug` convergence sequence가 core state에서 분리된다. `RETRY`는 같은 snapshot을 시간차 반복하고, `READ()`와 `WRITE()`는 반대편에서 교차하며, `git branch --all`과 `git merge`는 각각 `BRANCH`와 `BUG!` radial projectile을 만든다. 상단 중앙 공격명 announcement는 제거하고 실제 공격 표현만으로 판독하게 한다.
+
+## D-021 — 공격을 작은 terminal output으로 축소하고 색은 의미에만 연결한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, 실제 플레이 가독성은 사용자 확인 후 미세 조정 가능
+- 배경: 14–20px 굵은 Pretendard 문구, 긴 점선 경로와 motion rail, 30×24 `>_` node와 방향 notch가 합쳐져 실제 terminal보다 회전하는 포스터와 거대한 UI 장식처럼 보였다.
+- 결정: 공격은 `$ command`, `error:`, `warning:`, `[review]`, `[context]` 형식의 11–13px monospace output으로 바꾼다. 색은 command blue, success green, warning amber, error red, Codex·context violet의 의미에만 대응한다. 예고선은 최대 132px, motion rail은 18–34px로 제한하며 hitbox도 실제 문구 크기에 맞춰 줄인다. player는 방향 notch·화살표·corner mark가 없는 8×14 block caret만 그린다.
+- 결과: 기본 바탕과 HUD는 흑백을 유지하면서 공격 정보만 terminal처럼 읽힌다. 공격 방향은 회전 문구와 짧은 예고선으로 알 수 있고, player visual에는 이동 방향 정보가 남지 않는다.

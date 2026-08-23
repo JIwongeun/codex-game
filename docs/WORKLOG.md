@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — terminal-scale 공격 표현과 block caret player 재설계
+
+### UI·연출
+
+- 14–20px 굵은 Pretendard 공격 문구를 11–13px system monospace의 `$ command`, `error:`, `warning:`, `[review]`, `[context]` 형식으로 축소
+- command blue, success green, warning amber, error red, Codex·context violet을 실제 terminal 의미에 대응시키고 흰 task surface와 HUD는 흑백 유지
+- viewport 전체를 가르던 점선 예고를 최대 132px, motion rail을 18–34px로 줄이고 수렴 sequence도 이동 문구 뒤의 짧은 trail만 표시
+- 공격 font 축소에 맞춰 log·review·retry·race·radial oriented hitbox를 함께 축소
+- 30×24 `>_` node, 방향 notch와 corner mark를 제거하고 방향과 무관한 최대 8×14 검은 block caret으로 player 교체
+
+### 자동 검증
+
+- TypeScript typecheck와 Vitest 6 files의 46 tests 통과
+- terminal phrase bank의 전체 seeded 선택 범위, 축소 hitbox 상한, retry·race·fork·merge label 전이를 회귀 테스트로 유지
+
 ## 2026-08-23 — 회전 text projectile, 7개 의미 기반 패턴과 Stage 1–10 재설계
 
 ### 게임 규칙

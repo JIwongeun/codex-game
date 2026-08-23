@@ -19,7 +19,16 @@ export const TEXT_COLORS = {
   surface: "#ffffff",
 } as const;
 
+export const TERMINAL_TONES = {
+  ink: { value: 0x4b4b48, text: "#4b4b48" },
+  command: { value: 0x246b92, text: "#246b92" },
+  success: { value: 0x287a50, text: "#287a50" },
+  warning: { value: 0x9a5b13, text: "#9a5b13" },
+  error: { value: 0xb83d45, text: "#b83d45" },
+  codex: { value: 0x6754a3, text: "#6754a3" },
+} as const;
+
 export const FONTS = {
-  mono: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  mono: 'ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
   sans: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 } as const;

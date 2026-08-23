@@ -30,25 +30,25 @@ import { difficultyAt } from "./rules";
 
 const PLAYER_START_DIRECTION: Vec2 = { x: 1, y: 0 };
 const LOG_LABELS: readonly LogLabel[] = [
-  "+ ONE MORE CHANGE",
-  "TESTS STILL RUNNING...",
-  "TOOL RETRY 3/3",
-  "WORKING TREE DIRTY",
-  "GIT COMMIT --AMEND",
-  "CI: FAILED",
-  "TS2322",
-  "CONTEXT LEFT: 12%",
-  "READING AGENTS.MD",
-  "CHECKING WORKSPACE...",
-  "FIXING ONE LAST TEST",
-  "PR #404",
-  "REBASE REQUIRED",
+  "+ one more change",
+  "$ pnpm test --watch",
+  "$ codex retry --last",
+  "warning: working tree dirty",
+  "$ git commit --amend",
+  "error: CI failed",
+  "error TS2322",
+  "[context] 12% left",
+  "$ cat AGENTS.md",
+  "$ codex inspect workspace",
+  "fixing one last test...",
+  "error: PR #404",
+  "git: rebase required",
 ];
 const REVIEW_LABELS: readonly ReviewLabel[] = [
-  "APPROVAL REQUIRED",
-  "REQUEST CHANGES",
-  "NEEDS REBASE",
-  "RUN COMMAND?",
+  "[review] approval required",
+  "[review] changes requested",
+  "git: needs rebase",
+  "run command? [y/N]",
 ];
 
 export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
@@ -300,7 +300,7 @@ function updateSequences(
     }
 
     const projectileKind = sequence.kind === "fork-bomb" ? "branch" : "bug";
-    const label = sequence.kind === "fork-bomb" ? "BRANCH" : "BUG!";
+    const label = sequence.kind === "fork-bomb" ? "branch" : "BUG!";
     spawnRadialProjectiles(
       state,
       projectileKind,
@@ -510,7 +510,7 @@ function spawnRetryLoop(state: GameState, count: number, speed: number): void {
   const target = { ...state.player.position };
 
   for (let index = 0; index < available; index += 1) {
-    const label = `RETRY ${index + 1}/${available}`;
+    const label = `retry ${index + 1}/${available}`;
     const offset = (index - (available - 1) / 2) * 24;
     const position = pointOnEdge(
       state.arena,
@@ -524,7 +524,7 @@ function spawnRetryLoop(state: GameState, count: number, speed: number): void {
       label,
       position,
       target,
-      { width: 116, height: 28 },
+      { width: 84, height: 18 },
       speed,
       520 + index * 260,
     );
@@ -567,20 +567,20 @@ function spawnRaceCondition(
     addProjectile(
       state,
       "race",
-      "READ()",
+      "read()",
       positions[0]!,
       pairTarget,
-      { width: 82, height: 28 },
+      { width: 58, height: 18 },
       speed,
       760 + index * 100,
     );
     addProjectile(
       state,
       "race",
-      "WRITE()",
+      "write()",
       positions[1]!,
       pairTarget,
-      { width: 92, height: 28 },
+      { width: 64, height: 18 },
       speed,
       760 + index * 100,
     );
@@ -628,7 +628,7 @@ function spawnSequence(
   state.sequences.push({
     id: takeEntityId(state),
     kind,
-    label: kind === "fork-bomb" ? "git branch --all" : "git merge",
+    label: kind === "fork-bomb" ? "$ git branch --all" : "$ git merge",
     position,
     origins,
     remainingMs: durationMs,
@@ -674,7 +674,7 @@ function spawnRadialProjectiles(
       position,
       target,
       {
-        width: kind === "branch" ? GAMEPLAY.fragmentHitboxWidth : 58,
+        width: kind === "branch" ? GAMEPLAY.fragmentHitboxWidth : 46,
         height: GAMEPLAY.fragmentHitboxHeight,
       },
       speed,
@@ -732,7 +732,7 @@ function labelHitboxWidth(
   minimum: number,
   maximum: number,
 ): number {
-  return Math.min(maximum, Math.max(minimum, 24 + label.length * 9));
+  return Math.min(maximum, Math.max(minimum, 18 + label.length * 7));
 }
 
 function pointOnEdge(

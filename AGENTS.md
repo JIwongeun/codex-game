@@ -6,8 +6,8 @@
 
 - 작업명: `await CODEX: CONTEXT//OVERFLOW`
 - 콘셉트: Codex에게 작업을 맡기고 기다리는 짧은 공백 동안 플레이하는 무한 생존 게임
-- 핵심 루프: `WASD` 또는 방향키로 `>_` task node를 이동 → 개발·Codex 작업 로그와 범위 오류를 회피 → 한 번 피격 시 종료 → 생존 기록 갱신
-- 시각 방향: Codex task surface를 연상시키는 흰 화면, 검정·회색만 사용, Pretendard Variable, 사각형과 선·문자·패턴 중심
+- 핵심 루프: `WASD` 또는 방향키로 작은 terminal block caret을 이동 → 개발·Codex 작업 로그와 범위 오류를 회피 → 한 번 피격 시 종료 → 생존 기록 갱신
+- 시각 방향: Codex task surface를 연상시키는 흰 화면과 흑백 HUD를 base로 삼고, 공격에만 terminal 의미색을 제한적으로 사용한다. UI는 Pretendard Variable, 공격은 11–13px monospace, 사각형과 선·문자·패턴 중심이다.
 - 제출 목표일: 2026-08-25, 공식 접수 종료일 2026-08-26은 장애 대응 버퍼로 취급
 
 ## 작업 시작 전에 읽을 문서
@@ -48,6 +48,8 @@
 - 사용자의 실제 파일, 앱 목록, Codex session 상태를 읽지 않는다.
 - Codex·vibe coding 문구는 패러디다. 실제 승인, context, test, repository 상태처럼 오인시키지 않는다.
 - OpenAI 로고, 상표, 캐릭터를 복제하지 않는다. 개발 도구의 구조적 인상만 사용한다.
+- 공격 색은 command blue, success green, warning amber, error red, Codex·context violet의 의미에만 연결하며 장식용 무작위 색을 만들지 않는다.
+- projectile 예고선은 132px, motion rail은 34px를 넘지 않는다. player에는 진행 방향 notch·화살표·corner mark를 추가하지 않는다.
 - 발표 문구는 사용자가 요청할 때만 작성한다.
 
 ## 기술 기준

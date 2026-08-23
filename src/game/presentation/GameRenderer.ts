@@ -8,7 +8,9 @@ import type {
   ProjectileState,
   Vec2,
 } from "../core/model";
-import { COLORS, FONTS, TEXT_COLORS } from "./theme";
+import { COLORS, FONTS, TERMINAL_TONES, TEXT_COLORS } from "./theme";
+
+type TerminalTone = (typeof TERMINAL_TONES)[keyof typeof TERMINAL_TONES];
 
 interface ParticleEffect extends Vec2 {
   velocity: Vec2;
@@ -116,23 +118,37 @@ export class GameRenderer {
         );
 
     this.world.fillStyle(
-      COLORS.black,
-      active ? 0.98 : 0.025 + progress * 0.035,
+      TERMINAL_TONES.codex.value,
+      active ? 0.94 : 0.02 + progress * 0.035,
     );
     this.world.fillRect(x, y, width, height);
 
     if (!active) {
-      this.drawCornerBrackets(x, y, width, height, COLORS.black, 1, 24);
-      this.world.fillStyle(COLORS.black, 0.9);
-      this.world.fillRect(x, y - 4, width * progress, 4);
-      this.world.fillStyle(COLORS.black, 0.2 + progress * 0.55);
-      this.world.fillRect(x, y + height * progress - 1, width, 2);
+      this.drawCornerBrackets(
+        x,
+        y,
+        width,
+        height,
+        TERMINAL_TONES.codex.value,
+        0.9,
+        18,
+      );
+      this.world.fillStyle(TERMINAL_TONES.codex.value, 0.82);
+      this.world.fillRect(x, y - 2, width * progress, 2);
+      this.world.fillStyle(
+        TERMINAL_TONES.codex.value,
+        0.14 + progress * 0.38,
+      );
+      this.world.fillRect(x, y + height * progress - 1, width, 1);
 
       const segments = 12;
       const segmentWidth = width / segments;
       for (let index = 0; index < segments; index += 1) {
         const filled = index / segments <= progress;
-        this.world.fillStyle(COLORS.black, filled ? 0.72 : 0.14);
+        this.world.fillStyle(
+          TERMINAL_TONES.codex.value,
+          filled ? 0.58 : 0.1,
+        );
         this.world.fillRect(
           x + index * segmentWidth + 1,
           y + height - 9,
@@ -143,13 +159,14 @@ export class GameRenderer {
       return;
     }
 
-    this.drawCornerBrackets(x, y, width, height, COLORS.surface, 0.95, 28);
+    this.drawCornerBrackets(x, y, width, height, COLORS.surface, 0.9, 20);
     this.drawHatchRect(x, y, width, height, 13, COLORS.surface, 0.2);
   }
 
   private drawProjectiles(state: GameState): void {
     for (const projectile of state.projectiles) {
       if (projectile.telegraphRemainingMs > 0) {
+        const tone = this.projectileTone(projectile);
         const progress = Phaser.Math.Clamp(
           1 - projectile.telegraphRemainingMs / 1_300,
           0,
@@ -158,23 +175,23 @@ export class GameRenderer {
         this.drawDottedRay(
           projectile.position,
           projectile.velocity,
-          Math.hypot(state.arena.width, state.arena.height) * 1.3,
-          COLORS.black,
-          0.28 + progress * 0.54,
-          projectile.kind === "log" ? 24 : 18,
+          Math.min(132, Math.max(72, projectile.hitbox.width * 0.72)),
+          tone.value,
+          0.12 + progress * 0.28,
+          projectile.kind === "log" ? 18 : 14,
         );
         continue;
       }
 
       const length =
         projectile.kind === "review" || projectile.kind === "race"
-          ? 96
+          ? 34
           : projectile.kind === "retry"
-            ? 76
+            ? 30
             : projectile.kind === "bug" || projectile.kind === "branch"
-              ? 34
-              : 54;
-      const alpha = projectile.kind === "bug" ? 0.8 : 0.54;
+              ? 18
+              : 24;
+      const alpha = projectile.kind === "bug" ? 0.48 : 0.28;
       this.drawMotionRail(projectile, length, alpha);
     }
   }
@@ -187,17 +204,30 @@ export class GameRenderer {
         1,
       );
       for (const origin of sequence.origins) {
-        this.world.lineStyle(1, COLORS.black, 0.16 + progress * 0.34);
+        const tone =
+          sequence.kind === "fork-bomb"
+            ? TERMINAL_TONES.success
+            : TERMINAL_TONES.error;
+        const position = {
+          x: Phaser.Math.Linear(origin.x, sequence.position.x, progress),
+          y: Phaser.Math.Linear(origin.y, sequence.position.y, progress),
+        };
+        const direction = directionBetweenPoints(origin, sequence.position);
+        this.world.lineStyle(1, tone.value, 0.16 + progress * 0.18);
         this.world.lineBetween(
-          origin.x,
-          origin.y,
-          sequence.position.x,
-          sequence.position.y,
+          position.x - direction.x * 26,
+          position.y - direction.y * 26,
+          position.x - direction.x * 6,
+          position.y - direction.y * 6,
         );
       }
 
-      const pulse = 10 + Math.floor(progress * 18);
-      this.world.lineStyle(2, COLORS.black, 0.6 + progress * 0.4);
+      const pulse = 8 + Math.floor(progress * 7);
+      const tone =
+        sequence.kind === "fork-bomb"
+          ? TERMINAL_TONES.success
+          : TERMINAL_TONES.error;
+      this.world.lineStyle(1, tone.value, 0.52 + progress * 0.32);
       this.world.lineBetween(
         sequence.position.x - pulse,
         sequence.position.y,
@@ -229,26 +259,12 @@ export class GameRenderer {
     const x = Math.round(state.player.position.x);
     const y = Math.round(state.player.position.y);
 
-    const blink = Math.floor(state.elapsedMs / 180) % 2 === 0;
-    const notchX = Math.round(x + state.player.direction.x * 20);
-    const notchY = Math.round(y + state.player.direction.y * 20);
-
+    const blink = Math.floor(state.elapsedMs / 420) % 2 === 0;
     this.playerLayer.fillStyle(COLORS.surface, 1);
-    this.playerLayer.fillRect(x - 17, y - 14, 34, 28);
+    this.playerLayer.fillRect(x - 6, y - 9, 12, 18);
     this.playerLayer.fillStyle(COLORS.black, 1);
-    this.playerLayer.fillRect(x - 15, y - 12, 30, 24);
-    this.playerLayer.lineStyle(3, COLORS.surface, 1);
-    this.playerLayer.lineBetween(x - 8, y - 6, x - 2, y);
-    this.playerLayer.lineBetween(x - 2, y, x - 8, y + 6);
-    this.playerLayer.lineBetween(x + 2, y + 6, x + (blink ? 10 : 7), y + 6);
-    this.playerLayer.fillStyle(COLORS.black, 1);
-    this.playerLayer.fillRect(notchX - 2, notchY - 2, 4, 4);
-
-    this.playerLayer.lineStyle(2, COLORS.black, 0.72);
-    this.playerLayer.lineBetween(x - 21, y - 16, x - 14, y - 16);
-    this.playerLayer.lineBetween(x - 21, y - 16, x - 21, y - 9);
-    this.playerLayer.lineBetween(x + 21, y + 16, x + 14, y + 16);
-    this.playerLayer.lineBetween(x + 21, y + 16, x + 21, y + 9);
+    const cursorWidth = blink ? 8 : 3;
+    this.playerLayer.fillRect(x - cursorWidth / 2, y - 7, cursorWidth, 14);
   }
 
   private syncProjectileLabels(state: GameState): void {
@@ -259,23 +275,21 @@ export class GameRenderer {
       let label = this.projectileLabels.get(projectile.id);
       if (!label) {
         const fontSize = this.projectileFontSize(projectile);
+        const tone = this.projectileTone(projectile);
         label = this.scene.add
           .text(0, 0, projectile.label, {
-            color: TEXT_COLORS.ink,
-            fontFamily: FONTS.sans,
+            color: tone.text,
+            fontFamily: FONTS.mono,
             fontSize: `${fontSize}px`,
-            fontStyle:
-              projectile.kind === "review" || projectile.kind === "bug"
-                ? "820"
-                : "720",
             stroke: TEXT_COLORS.surface,
-            strokeThickness: fontSize >= 19 ? 6 : 4,
+            strokeThickness: 2,
           })
           .setOrigin(0.5)
           .setDepth(6);
         this.projectileLabels.set(projectile.id, label);
       }
 
+      const tone = this.projectileTone(projectile);
       label
         .setText(projectile.label)
         .setPosition(
@@ -283,9 +297,9 @@ export class GameRenderer {
           Math.round(projectile.position.y),
         )
         .setRotation(this.readableProjectileRotation(projectile.velocity))
-        .setColor(TEXT_COLORS.ink)
-        .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.52 : 1)
-        .setScale(projectile.telegraphRemainingMs > 0 ? 0.94 : 1)
+        .setColor(tone.text)
+        .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.42 : 0.96)
+        .setScale(1)
         .setVisible(true);
     }
 
@@ -301,10 +315,11 @@ export class GameRenderer {
       if (!label) {
         label = this.scene.add
           .text(0, 0, "", {
-            color: TEXT_COLORS.ink,
-            fontFamily: FONTS.sans,
-            fontSize: "18px",
-            fontStyle: "800",
+            color: TERMINAL_TONES.codex.text,
+            fontFamily: FONTS.mono,
+            fontSize: "13px",
+            stroke: TEXT_COLORS.surface,
+            strokeThickness: 2,
           })
           .setOrigin(0.5)
           .setDepth(3);
@@ -321,15 +336,15 @@ export class GameRenderer {
             )
           : 1;
       const text = active
-        ? "CONTEXT // MAX"
-        : `CONTEXT // ${Math.round(progress * 100)}%`;
+        ? "[context] MAX"
+        : `[context] ${Math.round(progress * 100)}%`;
 
       label
         .setText(text)
         .setPosition(Math.round(hazard.position.x), Math.round(hazard.position.y))
         .setRotation(0)
-        .setColor(active ? TEXT_COLORS.surface : TEXT_COLORS.ink)
-        .setFontSize(22)
+        .setColor(active ? TEXT_COLORS.surface : TERMINAL_TONES.codex.text)
+        .setFontSize(13)
         .setAlpha(active ? 1 : 0.9)
         .setVisible(true);
     }
@@ -352,14 +367,17 @@ export class GameRenderer {
         activeIds.add(id);
         let label = this.sequenceLabels.get(id);
         if (!label) {
+          const tone =
+            sequence.kind === "fork-bomb"
+              ? TERMINAL_TONES.success
+              : TERMINAL_TONES.warning;
           label = this.scene.add
             .text(0, 0, "", {
-              color: TEXT_COLORS.ink,
-              fontFamily: FONTS.sans,
-              fontSize: sequence.kind === "fork-bomb" ? "18px" : "15px",
-              fontStyle: "780",
+              color: tone.text,
+              fontFamily: FONTS.mono,
+              fontSize: sequence.kind === "fork-bomb" ? "12px" : "11px",
               stroke: TEXT_COLORS.surface,
-              strokeThickness: 5,
+              strokeThickness: 2,
             })
             .setOrigin(0.5)
             .setDepth(5);
@@ -375,6 +393,11 @@ export class GameRenderer {
             sequence.kind === "fork-bomb"
               ? sequence.label
               : `change +${index + 1}`,
+          )
+          .setColor(
+            sequence.kind === "fork-bomb"
+              ? TERMINAL_TONES.success.text
+              : TERMINAL_TONES.warning.text,
           )
           .setPosition(Math.round(position.x), Math.round(position.y))
           .setRotation(
@@ -393,11 +416,10 @@ export class GameRenderer {
         coreLabel = this.scene.add
           .text(0, 0, "", {
             color: TEXT_COLORS.ink,
-            fontFamily: FONTS.sans,
-            fontSize: "17px",
-            fontStyle: "820",
+            fontFamily: FONTS.mono,
+            fontSize: "12px",
             stroke: TEXT_COLORS.surface,
-            strokeThickness: 5,
+            strokeThickness: 2,
           })
           .setOrigin(0.5)
           .setDepth(5);
@@ -406,8 +428,13 @@ export class GameRenderer {
       coreLabel
         .setText(
           sequence.kind === "fork-bomb"
-            ? `FORK ${Math.round(progress * 100)}%`
-            : `git merge // ${Math.round(progress * 100)}%`,
+            ? `fork: ${Math.round(progress * 100)}%`
+            : `$ git merge ${Math.round(progress * 100)}%`,
+        )
+        .setColor(
+          sequence.kind === "fork-bomb"
+            ? TERMINAL_TONES.success.text
+            : TERMINAL_TONES.error.text,
         )
         .setPosition(sequence.position.x, sequence.position.y + 34)
         .setVisible(true);
@@ -418,18 +445,57 @@ export class GameRenderer {
 
   private projectileFontSize(projectile: ProjectileState): number {
     if (projectile.kind === "review") {
-      return 20;
+      return 13;
     }
     if (projectile.kind === "retry" || projectile.kind === "race") {
-      return 18;
+      return 12;
     }
     if (projectile.kind === "bug") {
-      return 17;
+      return 13;
     }
     if (projectile.kind === "branch") {
-      return 14;
+      return 11;
     }
-    return 16;
+    return 12;
+  }
+
+  private projectileTone(projectile: ProjectileState): TerminalTone {
+    const label = projectile.label.toLowerCase();
+    if (
+      projectile.kind === "bug" ||
+      label.includes("error") ||
+      label.includes("failed") ||
+      label.includes("ts2322") ||
+      label.includes("pr #404")
+    ) {
+      return TERMINAL_TONES.error;
+    }
+    if (
+      projectile.kind === "retry" ||
+      label.includes("warning") ||
+      label.includes("rebase") ||
+      label.startsWith("write")
+    ) {
+      return TERMINAL_TONES.warning;
+    }
+    if (
+      projectile.kind === "review" ||
+      label.includes("context") ||
+      label.includes("codex")
+    ) {
+      return TERMINAL_TONES.codex;
+    }
+    if (
+      projectile.kind === "branch" ||
+      label.startsWith("+") ||
+      label.startsWith("read")
+    ) {
+      return TERMINAL_TONES.success;
+    }
+    if (label.startsWith("$")) {
+      return TERMINAL_TONES.command;
+    }
+    return TERMINAL_TONES.ink;
   }
 
   private readableProjectileRotation(direction: Vec2): number {
@@ -454,26 +520,14 @@ export class GameRenderer {
         projectile.velocity.y * (projectile.hitbox.width / 2 + 5),
     };
 
-    this.world.lineStyle(
-      projectile.kind === "review" ||
-        projectile.kind === "race" ||
-        projectile.kind === "bug"
-        ? 3
-        : 2,
-      COLORS.black,
-      alpha,
-    );
+    const tone = this.projectileTone(projectile);
+    this.world.lineStyle(1, tone.value, alpha);
     this.world.lineBetween(
       tailOrigin.x,
       tailOrigin.y,
       tailOrigin.x - projectile.velocity.x * length,
       tailOrigin.y - projectile.velocity.y * length,
     );
-
-    const endX = tailOrigin.x - projectile.velocity.x * length;
-    const endY = tailOrigin.y - projectile.velocity.y * length;
-    this.world.fillStyle(COLORS.black, alpha);
-    this.world.fillRect(Math.round(endX) - 2, Math.round(endY) - 2, 4, 4);
   }
 
   private drawDottedRay(
@@ -487,10 +541,10 @@ export class GameRenderer {
     this.world.fillStyle(color, alpha);
     for (let distance = 10; distance < length; distance += spacing) {
       this.world.fillRect(
-        Math.round(origin.x + direction.x * distance) - 1,
-        Math.round(origin.y + direction.y * distance) - 1,
-        3,
-        3,
+        Math.round(origin.x + direction.x * distance),
+        Math.round(origin.y + direction.y * distance),
+        2,
+        2,
       );
     }
   }
@@ -504,7 +558,7 @@ export class GameRenderer {
     alpha: number,
     size: number,
   ): void {
-    this.world.lineStyle(3, color, alpha);
+    this.world.lineStyle(1, color, alpha);
     this.world.lineBetween(x, y, x + size, y);
     this.world.lineBetween(x, y, x, y + size);
     this.world.lineBetween(x + width, y, x + width - size, y);
