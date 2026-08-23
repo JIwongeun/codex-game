@@ -90,8 +90,8 @@
 
 ### 화면 상태
 
-- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·local best와 하나의 실행 CTA로 구성한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 viewport 바깥에서 생성되어 반대 edge 바깥까지, 플레이보다 느린 34–56초 속도로 흐른다. 최초 진입에서도 animation 중간 지점부터 갑자기 나타나지 않는다.
-- Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 local best, 하단 조작과 fictional feed 고지만 유지한다.
+- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·session best와 하나의 실행 CTA로 구성한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 viewport 바깥에서 생성되어 반대 edge 바깥까지, 플레이보다 느린 34–56초 속도로 흐른다. 최초 진입에서도 animation 중간 지점부터 갑자기 나타나지 않는다.
+- Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 session best, 하단 이동·`Esc` 복귀·음소거 조작과 fictional feed 고지만 유지한다.
 - Pause는 별도 화면이 아니라 마지막 Game 장면 위의 일시적인 blur 계층이다.
 
 ### Sound
@@ -173,7 +173,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 - `core/simulation.ts`: seeded spawn, snapshot, 수렴·분할, 회전 충돌, entity cap
 - `presentation/attackText.ts`: terminal·browser·Codex label을 surface별 syntax token으로 분리하고 공통 색 역할 제공
 - `presentation/GameRenderer.ts`: token별 회전 텍스트, 경로, context progress, convergence와 particle 표현
-- `presentation/ReadyOverlay.ts`: 최초 진입과 game over가 공유하는 Start DOM layout, original game mark, last run·local best와 ambient attack feed
+- `presentation/ReadyOverlay.ts`: 최초 진입과 game over가 공유하는 Start DOM layout, original game mark, last run·session best와 ambient attack feed
 - `presentation/Hud.ts`: Game 화면의 stage·시간·best만 표시. 공격명 announcement와 별도 Results UI는 금지
 - `presentation/PauseOverlay.ts`: focus pause 표현
 - `runtime/FocusPauseController.ts`: blur·hidden에서 fixed-step backlog와 held input을 비우고 명시적 action 전까지 pause 유지

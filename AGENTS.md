@@ -40,6 +40,7 @@
 - 시간 제한은 없다. 한 번 피격되면 종료하며 생존 시간을 기록한다.
 - 조작은 `WASD`와 방향키다. 실제 OS cursor는 게임 판정에 사용하지 않는다.
 - 클릭 또는 Space는 시작·재시작·pause 해제에 사용한다.
+- `Esc`는 현재 run을 기록하지 않고 즉시 시작 대기 화면으로 돌아간다.
 - 사용자에게 보이는 완전한 화면은 시작 화면과 게임 화면 두 개뿐이다. 내부 `results` phase는 마지막 run 정보를 보존하는 논리 상태이며 별도 결과 화면을 만들지 않고 시작 화면에 `LAST RUN`과 피격 원인만 갱신한다.
 - blur/hidden pause에서는 simulation과 타이머를 멈추고 held movement key를 비운다.
 - 게임은 전체 browser viewport를 Phaser `RESIZE` arena로 사용한다.
@@ -71,7 +72,7 @@
 - `input/`: 키 입력과 lifecycle reset.
 - `presentation/`: Graphics/Text 렌더링과 HUD. 판정 상태를 변경하지 않는다.
 - `runtime/`: fixed timestep.
-- `services/`: local best와 sound.
+- `services/`: guest session best와 sound.
 - `scenes/`: 위 모듈을 연결하고 lifecycle과 event만 조정한다.
 
 기본 `tool-call` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `approval`과 `reasoning`은 생성 순간 player 위치를 snapshot하고 이후 재조준하지 않는다. 범위 공격은 warning 중 무해하고 active 단계에서만 치명적이어야 한다.

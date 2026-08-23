@@ -44,7 +44,8 @@
 - 첫 방문은 가입·로그인·닉네임 입력 없이 익명으로 시작
 - 이동은 `WASD` 또는 방향키 사용
 - 시작·재시작은 클릭 또는 Space
-- 종료 후 현재 생존 시간, 로컬 최고 기록, 회피 통계를 표시
+- `Esc`는 현재 run을 기록하지 않고 Start 대기화면으로 복귀
+- 종료 후 현재 생존 시간과 Guest session 최고 기록을 표시
 
 ### 이동과 판정
 
@@ -78,12 +79,14 @@
 
 ```text
 현재 점수 = 현재 run의 생존 밀리초
-로컬 최고 기록 = 같은 브라우저에서 가장 긴 생존 밀리초
+Guest session 최고 기록 = 현재 browser page session에서 가장 긴 생존 밀리초
 ```
 
 - 수집물, 점수 배율, 보너스 점수는 없다.
 - 운보다 궤적 판독과 작은 이동 정확도가 기록 차이를 만들어야 한다.
 - 개발 전용 시간 점프가 production 기록에 영향을 주지 않아야 한다.
+- Guest 최고 기록 하나만 `sessionStorage`에 저장한다.
+- 새로고침에서는 같은 Guest session 기록을 유지하지만 browser session이 끝나면 초기화한다.
 - 글로벌 랭킹을 나중에 구현하면 최고 생존 시간 하나만 반영한다.
 
 ## 6. 화면과 피드백
@@ -94,7 +97,7 @@
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 terminal의 monospace·ANSI 의미색, browser의 sans·page error glyph, Codex의 Pretendard·tool marker·context progress처럼 작업 출처별 문법을 사용한다.
 - 둥근 card와 부드러운 장식을 피하고 각진 1px frame, square pixel, stepped trail, tool-call row로 개발 도구의 digital 질감을 만든다.
 - HUD와 overlay는 `Pretendard Variable`을 사용한다. 공격은 surface에 따라 10–11px monospace 또는 Pretendard/system sans를 사용한다. 상단 중앙 공격명 announcement는 표시하지 않는다.
-- 사용자에게 보이는 완전한 화면은 Start와 Game 두 개뿐이다. Start는 최초 진입과 game over 뒤에 공유하며 original context-loop game mark, 상단 background task 상태, 큰 `Codex is working.` headline, objective·control·fail state·last run·local best와 하나의 실행 CTA로 구성한다. 뒤에는 실제 공격과 같은 token 문법과 edge-to-edge 진행 방향을 가진 저대비 terminal·browser·Codex 문구가 느린 속도로 화면을 가로지른다. 별도 Results 화면은 만들지 않는다.
+- 사용자에게 보이는 완전한 화면은 Start와 Game 두 개뿐이다. Start는 최초 진입과 game over 뒤에 공유하며 original context-loop game mark, 상단 background task 상태, 큰 `Codex is working.` headline, objective·control·fail state·last run·session best와 하나의 실행 CTA로 구성한다. 뒤에는 실제 공격과 같은 token 문법과 edge-to-edge 진행 방향을 가진 저대비 terminal·browser·Codex 문구가 느린 속도로 화면을 가로지른다. 별도 Results 화면은 만들지 않는다.
 - 탭 blur/hidden으로 멈춘 동안에는 결과 화면처럼 장면을 덮지 않는다. 마지막 게임 장면을 흐리게 남기고 중앙 pause 문구만 표시한다.
 - pause 중에는 마지막 장면과 player 위치를 blur 아래에 그대로 남기고 중앙 재개 문구만 표시한다.
 - 공격의 실루엣, 예고 범위, 실제 위험 범위를 명확히 구분한다.
@@ -107,7 +110,7 @@
 - 한 번 피격 시 종료와 생존 시간 기록
 - 실제 Codex 사용자 경험에서 가져온 공격 패턴 8종과 수렴·분할 sequence
 - 12초 단위 Stage 1–10 난이도 상승과 공격 상한
-- 브라우저 로컬 최고 생존 기록
+- browser session 한정 Guest 최고 생존 기록 하나
 - 음소거 가능한 procedural BGM과 공격·stage notification 효과음
 - 로그인 없는 public production URL과 검색 색인 차단
 

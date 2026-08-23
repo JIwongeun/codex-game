@@ -9,7 +9,7 @@
 개발 순서는 다음과 같다.
 
 1. 클라이언트만으로 핵심 게임 완성
-2. 로컬 최고점으로 전체 흐름 검증
+2. Guest session 최고점으로 전체 흐름 검증
 3. 검색 색인을 차단한 public URL에서 QA, 제출 필수 자료 준비
 4. 시간이 남을 때만 작은 HTTP API와 DB를 추가해 글로벌 랭킹 연결
 
@@ -20,7 +20,7 @@
 - HTML robots meta는 `noindex, nofollow, noarchive`를 요청한다. Worker도 같은 `X-Robots-Tag`를 설정하지만 Sites 외부 응답에서는 해당 header가 노출되지 않으므로 production 검색 제외는 HTML meta에 의존한다. 이는 검색 색인 억제일 뿐 인증이나 접근 차단이 아니다.
 - `worker/index.ts`는 `ASSETS` binding에 요청을 넘기는 얇은 배포 adapter이며 게임 로직이나 사용자 데이터를 처리하지 않는다.
 - `.openai/hosting.json`에는 Sites project 식별자만 있고 배포 credential이나 secret은 저장하지 않는다.
-- 현재 게임 자체의 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. Sites는 로그인 없는 공개 정적 페이지를 제공하며 브라우저 `localStorage`에는 해당 브라우저의 최고점만 저장한다.
+- 현재 게임 자체의 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. Sites는 로그인 없는 공개 정적 페이지를 제공하며 브라우저 `sessionStorage`에는 현재 Guest page session의 최고 기록 하나만 저장한다.
 - 따라서 제출 기간에 개발자 PC를 서버로 켜 두거나 공유기 port forwarding을 할 필요가 없다.
 
 production build는 `dist/client`의 정적 파일과 `dist/server`의 Worker bundle을 함께 만든다. `pnpm preview`는 같은 Worker/asset 경계를 로컬에서 확인하는 용도다.
@@ -44,7 +44,7 @@ React, 상태 관리 라이브러리, UI 컴포넌트 라이브러리는 사용�
 flowchart LR
     P["Player browser"] --> S["Static host: HTML / JS / assets"]
     P --> G["Phaser game client"]
-    G --> L["Local best score"]
+    G --> L["Guest session best"]
     G -. "HTTP only" .-> A["Leaderboard API"]
     A --> D["Scores database"]
 ```
@@ -107,8 +107,8 @@ flowchart LR
 
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
 - Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
-- Input: Phaser keyboard event를 정규화된 WASD·방향키 방향 intent로 변환하고 click·Space action 및 음소거를 분리한다. blur/hidden에서는 held movement key를 비운다.
-- Presentation: domain의 명시적 `ProjectileState.surface`를 읽고 `attackText.ts`가 한 label을 syntax token으로 나눈다. terminal은 Codex terminal 계열 monospace와 executable·parameter·string·output 색, browser는 system sans와 page glyph·error code·path, Codex는 Pretendard와 tool token·본문 문법으로 그린다. token Text를 묶은 회전 Container, 회전 사각 hitbox와 glyph 없는 12×12 black square player를 Canvas에 표시하고 Game HUD를 갱신한다. projectile·hazard·sequence label Container는 entity id 기반 bounded map으로 관리한다. `ReadyOverlay`는 최초 진입과 game over가 공유하는 Start layout, last run·local best와 같은 token 문법으로 label의 회전 외곽 길이를 측정한 뒤 viewport 바깥에서 반대편 바깥으로 흐르는 presentation-only ambient motion을 담당한다. DOM token은 공백을 보존하고 Phaser token은 terminal prompt 경계의 중복 stroke padding만 상쇄한다. `PauseOverlay`는 Game 위의 일시적인 blur 안내만 담당한다. 두 DOM 계층 모두 simulation state를 변경하지 않는다.
+- Input: Phaser keyboard event를 정규화된 WASD·방향키 방향 intent로 변환하고 click·Space action, `Esc` run 취소 및 음소거를 분리한다. blur/hidden에서는 held movement key를 비운다.
+- Presentation: domain의 명시적 `ProjectileState.surface`를 읽고 `attackText.ts`가 한 label을 syntax token으로 나눈다. terminal은 Codex terminal 계열 monospace와 executable·parameter·string·output 색, browser는 system sans와 page glyph·error code·path, Codex는 Pretendard와 tool token·본문 문법으로 그린다. token Text를 묶은 회전 Container, 회전 사각 hitbox와 glyph 없는 12×12 black square player를 Canvas에 표시하고 Game HUD를 갱신한다. projectile·hazard·sequence label Container는 entity id 기반 bounded map으로 관리한다. `ReadyOverlay`는 최초 진입과 game over가 공유하는 Start layout, last run·session best와 같은 token 문법으로 label의 회전 외곽 길이를 측정한 뒤 viewport 바깥에서 반대편 바깥으로 흐르는 presentation-only ambient motion을 담당한다. DOM token은 공백을 보존하고 Phaser token은 terminal prompt 경계의 중복 stroke padding만 상쇄한다. `PauseOverlay`는 Game 위의 일시적인 blur 안내만 담당한다. 두 DOM 계층 모두 simulation state를 변경하지 않는다.
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환한다. blur·hidden pause는 fixed-step backlog와 held input을 함께 비우고 focus 뒤에도 클릭 또는 Space 전까지 simulation을 재개하지 않는다. local font는 최대 1.5초만 기다리며 API 미지원·reject·timeout에서도 game boot를 계속한다.
 - Services: local storage와 Web Audio 효과음·procedural BGM. BGM sequencer는 game elapsed time의 16분음표 step에만 반응해 같은 frame step을 중복 재생하지 않으며, stage 경계를 한 번만 감지해 original delivery·completion motif를 예약한다. compaction·review·parallel event는 각각 error popup·delivery contour의 original cue를 합성한다. 실제 OS·협업 앱·OpenAI 제품 notification asset은 사용하지 않는다. mute·game over·blur·hidden에서는 active music gain을 즉시 disconnect한다. leaderboard HTTP는 실제 구현 시에만 추가
 
@@ -122,7 +122,7 @@ flowchart LR
 Boot → Start screen ⇄ Game screen
 ```
 
-내부 `ready | playing | results` phase는 최초 진입, 실행 중, 마지막 run이 있는 Start를 구분하기 위해 유지한다. `ready`와 `results`는 같은 `ReadyOverlay`를 표시하므로 별도 Results surface나 Scene은 없다. `results`에서 클릭 또는 Space를 누르면 새 state로 교체하고 바로 Game 화면으로 진입한다.
+내부 `ready | playing | results` phase는 최초 진입, 실행 중, 마지막 run이 있는 Start를 구분하기 위해 유지한다. `ready`와 `results`는 같은 `ReadyOverlay`를 표시하므로 별도 Results surface나 Scene은 없다. `results`에서 클릭 또는 Space를 누르면 새 state로 교체하고 바로 Game 화면으로 진입한다. `playing`에서 `Esc`를 누르면 run-ended event 없이 새 `ready` state로 교체하므로 취소한 생존 시간은 기록하지 않는다.
 
 ## 6. 후순위 글로벌 랭킹 서버
 
@@ -131,7 +131,7 @@ Boot → Start screen ⇄ Game screen
 ### 필요한 이유
 
 - 서로 다른 브라우저와 국가에서 같은 Top 10을 보기 위해 중앙 저장소가 필요하다.
-- `localStorage`는 같은 브라우저의 개인 최고점만 저장할 수 있다.
+- `sessionStorage`의 Guest 기록은 browser page session이 끝나면 초기화되므로 기기 간 기록 공유에는 중앙 저장소가 필요하다.
 
 ### 필요하지 않은 것
 
@@ -199,7 +199,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - 게임 시작은 API 응답을 기다리지 않는다.
 - 점수 제출은 결과 화면에서 비동기로 수행한다.
 - 실패하면 점수와 run 정보를 브라우저에 잠시 보관하고 재시도 버튼을 보여준다.
-- 조회 실패 시 로컬 최고점과 명확한 offline 상태를 보여준다.
+- 조회 실패 시 Guest session 최고점과 명확한 offline 상태를 보여준다.
 - 오류가 게임 캔버스 전체를 멈추게 하지 않는다.
 
 ## 8. 성능 원칙

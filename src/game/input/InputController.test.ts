@@ -75,7 +75,7 @@ describe("InputController keyboard input", () => {
     expect(input.keyboard.resetKeys).toHaveBeenCalledOnce();
   });
 
-  it("keeps click and Space as actions and M as the mute toggle", () => {
+  it("keeps click and Space as actions, Escape as exit, and M as mute", () => {
     const input = new TestInput();
     const controller = new InputController({ input } as unknown as Phaser.Scene);
 
@@ -85,6 +85,12 @@ describe("InputController keyboard input", () => {
 
     input.keyboard.emit("keydown", key("Space"));
     expect(controller.consumeAction()).toBe(true);
+
+    const escape = key("Escape");
+    input.keyboard.emit("keydown", escape);
+    expect(controller.consumeExit()).toBe(true);
+    expect(controller.consumeExit()).toBe(false);
+    expect(escape.preventDefault).toHaveBeenCalledOnce();
 
     input.keyboard.emit("keydown", key("KeyM"));
     expect(controller.consumeMuteToggle()).toBe(true);

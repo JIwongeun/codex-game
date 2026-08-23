@@ -16,7 +16,10 @@ import { PauseOverlay } from "../presentation/PauseOverlay";
 import { ReadyOverlay } from "../presentation/ReadyOverlay";
 import { FixedStepRunner } from "../runtime/FixedStepRunner";
 import { FocusPauseController } from "../runtime/FocusPauseController";
-import { readLocalBest, saveLocalBest } from "../services/localBest";
+import {
+  readGuestSessionBest,
+  saveGuestSessionBest,
+} from "../services/localBest";
 import { SoundService } from "../services/SoundService";
 
 export class GameScene extends Phaser.Scene {
@@ -52,7 +55,7 @@ export class GameScene extends Phaser.Scene {
       this.fixedStep,
       this.inputController,
     );
-    this.localBest = readLocalBest();
+    this.localBest = readGuestSessionBest();
 
     this.game.events.on(Phaser.Core.Events.BLUR, this.handleSuspend);
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.handleSuspend);
@@ -70,6 +73,15 @@ export class GameScene extends Phaser.Scene {
       if (!muted) {
         this.soundService.unlock();
       }
+    }
+
+    if (
+      this.inputController.consumeExit() &&
+      this.state.phase === "playing"
+    ) {
+      this.returnToReady();
+      this.renderFrame(0);
+      return;
     }
 
     if (this.state.phase === "ready") {
@@ -162,7 +174,7 @@ export class GameScene extends Phaser.Scene {
       } else if (event.type === "player-hit") {
         this.cameras.main.shake(180, 0.008, true);
       } else if (event.type === "run-ended") {
-        this.localBest = saveLocalBest(event.finalScore, this.localBest);
+        this.localBest = saveGuestSessionBest(event.finalScore, this.localBest);
         this.fixedStep.reset();
       }
     }
@@ -202,6 +214,18 @@ export class GameScene extends Phaser.Scene {
     } catch {
       return (Date.now() ^ Math.floor(performance.now() * 1_000)) >>> 0;
     }
+  }
+
+  private returnToReady(): void {
+    const { width, height } = this.state.arena;
+    if (this.focusPause.isPaused) {
+      this.focusPause.resume();
+    }
+    this.state = createGameState(this.createSeed(), width, height);
+    this.fixedStep.reset();
+    this.inputController.clearTransient();
+    this.gameRenderer.resetEffects();
+    this.cameras.main.resetFX();
   }
 
   private applyDevelopmentElapsedTime(): void {

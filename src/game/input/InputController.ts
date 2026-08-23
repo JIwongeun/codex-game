@@ -25,6 +25,7 @@ export class InputController {
   private readonly movementCodes = new Set<string>();
   private touchGesture: TouchGesture | null = null;
   private actionPending = false;
+  private exitPending = false;
   private muteTogglePending = false;
 
   constructor(private readonly scene: Phaser.Scene) {
@@ -72,8 +73,15 @@ export class InputController {
     return pending;
   }
 
+  consumeExit(): boolean {
+    const pending = this.exitPending;
+    this.exitPending = false;
+    return pending;
+  }
+
   clearTransient(): void {
     this.actionPending = false;
+    this.exitPending = false;
     this.muteTogglePending = false;
     this.touchGesture = null;
   }
@@ -138,7 +146,11 @@ export class InputController {
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (event.code === "Space" || MOVEMENT_CODES.has(event.code)) {
+    if (
+      event.code === "Space" ||
+      event.code === "Escape" ||
+      MOVEMENT_CODES.has(event.code)
+    ) {
       event.preventDefault();
     }
 
@@ -153,6 +165,8 @@ export class InputController {
 
     if (event.code === "Space") {
       this.actionPending = true;
+    } else if (event.code === "Escape") {
+      this.exitPending = true;
     } else if (event.code === "KeyM") {
       this.muteTogglePending = true;
     }

@@ -1,4 +1,4 @@
-export const LOCAL_BEST_KEY = "await-codex.best-survival-ms.v2";
+export const GUEST_SESSION_BEST_KEY = "await-codex.guest-session-best.v1";
 
 export interface ScoreStorage {
   getItem(key: string): string | null;
@@ -7,7 +7,7 @@ export interface ScoreStorage {
 
 function browserStorage(): ScoreStorage | null {
   try {
-    return window.localStorage;
+    return window.sessionStorage;
   } catch {
     return null;
   }
@@ -23,33 +23,32 @@ function sanitizeScore(value: unknown): number {
   return Math.floor(parsed);
 }
 
-export function readLocalBest(storage = browserStorage()): number {
+export function readGuestSessionBest(storage = browserStorage()): number {
   if (!storage) {
     return 0;
   }
 
   try {
-    return sanitizeScore(storage.getItem(LOCAL_BEST_KEY));
+    return sanitizeScore(storage.getItem(GUEST_SESSION_BEST_KEY));
   } catch {
     return 0;
   }
 }
 
-export function saveLocalBest(
+export function saveGuestSessionBest(
   score: number,
   currentBest: number,
   storage = browserStorage(),
 ): number {
-  const safeScore = sanitizeScore(score);
   const safeBest = sanitizeScore(currentBest);
-  const nextBest = Math.max(safeBest, safeScore);
+  const nextBest = Math.max(safeBest, sanitizeScore(score));
 
   if (!storage || nextBest <= safeBest) {
     return nextBest;
   }
 
   try {
-    storage.setItem(LOCAL_BEST_KEY, String(nextBest));
+    storage.setItem(GUEST_SESSION_BEST_KEY, String(nextBest));
   } catch {
     return nextBest;
   }

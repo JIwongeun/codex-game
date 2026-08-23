@@ -163,10 +163,10 @@ export class ReadyOverlay {
 
         <dl class="ready-spec">
           <div><dt>OBJECTIVE</dt><dd>SURVIVE THE QUEUE</dd></div>
-          <div><dt>CONTROL</dt><dd>WASD / ARROW KEYS</dd></div>
+          <div><dt>CONTROL</dt><dd>WASD / ARROWS · ESC TO EXIT</dd></div>
           <div><dt>FAIL STATE</dt><dd>ONE HIT</dd></div>
           <div><dt>LAST RUN</dt><dd data-ready-last-run>--:--.-- / NO RUN YET</dd></div>
-          <div><dt>LOCAL BEST</dt><dd data-ready-best>00:00.00</dd></div>
+          <div><dt>SESSION BEST</dt><dd data-ready-best>00:00.00</dd></div>
         </dl>
 
         <div class="ready-action">

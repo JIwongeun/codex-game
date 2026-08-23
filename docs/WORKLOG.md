@@ -2,6 +2,43 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — Guest 기록 이력 제거와 Esc 대기화면 복귀
+
+### 구현
+
+- Start 우측 `GUEST SESSION RECORDS` 목록과 순위·달성 시각 DOM, timestamp formatter, 전용 CSS를 제거
+- `sessionStorage` payload를 최대 8개 이력에서 `await-codex.guest-session-best.v1` 최고 생존 밀리초 하나로 축소하고 기존 이력 key는 읽거나 이관하지 않음
+- `InputController`에 repeat를 무시하는 edge-triggered `Escape` 입력을 추가하고 transient·suspend reset에서 함께 초기화
+- `playing` 중 `Esc` 입력 시 run-ended event 없이 새 `ready` state로 교체해 취소 run을 기록하지 않고 Start 대기화면으로 복귀
+- Start control, Game HUD와 pause 안내에 `Esc` 복귀 조작을 표시
+
+### 검증
+
+- 관련 `localBest`, `InputController`, `ReadyOverlay` 3개 test file의 14개 test 통과
+- 최종 `pnpm check` 통과: typecheck, 13개 test file의 82개 test, production build와 production verifier 완료
+- 로컬 browser에서 우측 기록 목록이 없는 Start 화면과 `Game → Esc → Start` 전환 확인
+- `Esc` 취소 뒤 `LAST RUN`은 `NO RUN YET`, 기존 `SESSION BEST`는 유지되어 취소 run이 기록되지 않음을 확인
+- browser warning/error log 0건 확인
+- 이번 작업은 production에 배포하지 않음
+
+## 2026-08-24 — Guest browser session 기록과 Start 우측 기록 목록
+
+### 구현
+
+- 기존 단일 `localStorage` 최고 기록 대신 현재 page session의 `sessionStorage`에 개인 최고 기록 갱신 이력만 저장하도록 변경
+- Guest 기록 payload를 version 1로 구분하고 생존 시간이 긴 순서로 최대 8개까지 보존하며, 각 기록에 달성 당시의 local timestamp를 함께 저장
+- Start 화면의 `LOCAL BEST`를 `SESSION BEST`로 바꾸고 desktop 우측에 순위·생존 시간·달성 시각을 표시하는 `GUEST SESSION RECORDS` 목록 추가
+- 새로고침에서는 기록을 유지하되 browser page session 종료 시 초기화하며, 기존 영구 `localStorage` 기록은 읽거나 이관하지 않도록 결정
+- storage 접근이 차단돼도 현재 실행의 메모리 기록과 게임 진행은 유지하고, 로그인·서버·global ranking·실제 Codex/ChatGPT 작업 연동은 이번 범위에서 제외
+
+### 검증
+
+- `localBest.test.ts`와 `ReadyOverlay.test.ts`의 12개 test 통과, Guest 변경 직후 TypeScript typecheck 통과
+- 로컬 browser에서 빈 목록 → 실제 run 종료 후 `00:14.13`과 달성 시각 추가 → 새로고침 후 동일 session 기록 유지 흐름 확인
+- desktop 1280×720에서 우측 목록의 배치와 빈 상태·기록 상태를 시각 확인하고 browser warning/error log 0건 확인
+- 최종 전체 `pnpm check`는 병행 중인 공격 리디자인의 `src/game/core/simulation.ts`가 아직 import하지 않은 `AttackSurface`를 참조해 typecheck 단계에서 중단; Guest 변경 범위의 실패는 확인되지 않음
+- 이번 작업은 production에 배포하지 않음
+
 ## 2026-08-24 — Context compaction token burst와 공격군 mechanic matrix 재설계
 
 ### 구현

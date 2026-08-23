@@ -71,7 +71,7 @@ export class Hud {
             .padStart(3, "0")} CLEARED`,
     );
     this.hintText.setText(
-      `WASD / ARROWS  MOVE   ·   M  ${muted ? "SOUND ON" : "MUTE"}`,
+      `WASD / ARROWS  MOVE   ·   ESC  EXIT   ·   M  ${muted ? "SOUND ON" : "MUTE"}`,
     );
     this.footerText.setText(
       state.arena.width < 640

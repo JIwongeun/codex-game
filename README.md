@@ -1,6 +1,6 @@
 # await CODEX: CONTEXT//OVERFLOW
 
-Codex가 작업하는 동안 `>_` task node를 움직여 개발·vibe coding의 골칫거리를 피하는 무한 생존 웹 아케이드입니다. 한 번 맞으면 run이 끝나고 버틴 시간이 브라우저 로컬 최고 기록이 됩니다.
+Codex가 작업하는 동안 `>_` task node를 움직여 개발·vibe coding의 골칫거리를 피하는 무한 생존 웹 아케이드입니다. 한 번 맞으면 run이 끝나고 버틴 시간이 현재 Guest browser session의 기록이 됩니다.
 
 현재 상태는 **처음부터 결과·재시작까지 플레이 가능한 공개 링크 빌드**입니다. 계정, 서버, 랭킹 없이 정적 웹 빌드만으로 실행됩니다.
 
@@ -14,6 +14,7 @@ Codex가 작업하는 동안 `>_` task node를 움직여 개발·vibe coding의 
 
 - 이동: `WASD` 또는 방향키
 - 시작·재시작·pause 해제: 클릭 또는 Space
+- run 취소 후 대기화면 복귀: `Esc`
 - 음소거: `M`
 - 목표: 회전 task log, snapshot review, `CONTEXT MAX`, retry·fork·race·merge→`BUG!` 패턴을 피하며 오래 생존
 - 한 판: 시간 제한 없이 한 번 피격될 때까지
