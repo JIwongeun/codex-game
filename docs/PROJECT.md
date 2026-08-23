@@ -2,7 +2,7 @@
 
 ## 1. 제품 정의
 
-`await CODEX: CONTEXT//OVERFLOW`는 AI 코딩 에이전트가 작업하는 동안 키보드로 검은 cursor avatar를 움직여 브라우저 요청과 오류를 피하고 최고 생존 기록에 도전하는 싱글플레이 웹 아케이드다.
+`await CODEX: CONTEXT//OVERFLOW`는 AI 코딩 에이전트가 작업하는 동안 키보드로 작은 `>_` task node를 움직여 개발·Codex 작업의 골칫거리를 피하고 최고 생존 기록에 도전하는 싱글플레이 웹 아케이드다.
 
 고전 플래시 게임 `죽림고수`의 핵심인 사방 공격, 작은 피격 판정, 생존 시간 경쟁, 즉시 재도전 감각을 근간으로 삼는다. 원작 캐릭터·배경·화살은 복제하지 않고 개발자와 브라우저라는 현재 콘셉트로 다시 설계한다.
 
@@ -22,11 +22,11 @@
 - 짧은 휴식 동안 설치 없이 게임을 하고 싶은 심사위원과 일반 사용자
 - Chrome 오프라인 공룡 게임처럼 브라우저와 한 몸인 미니게임을 좋아하는 플레이어
 
-개발자 농담을 모르더라도 “검은 cursor를 움직여 닿지 않고 오래 버틴다”는 규칙은 즉시 이해할 수 있어야 한다.
+개발자 농담을 모르더라도 “검은 `>_` node를 움직여 닿지 않고 오래 버틴다”는 규칙은 즉시 이해할 수 있어야 한다.
 
 ## 3. 핵심 경험
 
-플레이어는 Canvas가 직접 그리는 hard-edge 검은 cursor avatar다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 요청의 진행 방향과 범위 공격의 예고 표시를 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
+플레이어는 Canvas가 직접 그리는 hard-edge 검은 `>_` agent prompt다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 task log의 진행 방향과 `approval`, `context`, `merge` 범위 예고를 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
 
 핵심 감정은 다음 세 단계다.
 
@@ -51,19 +51,21 @@
 - `WASD`와 방향키를 동일한 8방향 입력으로 합치고, 440px/s 고정 속도로 이동한다.
 - 대각선 입력은 정규화해 직선보다 빠르지 않게 하며 가속과 관성은 사용하지 않는다.
 - 플레이어는 화면 경계를 넘지 않는다.
-- 화면에는 작은 검은 cursor silhouette를 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
+- 화면에는 작은 검은 `>_` task node를 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
 - 탭 blur/hidden pause 중에는 simulation과 타이머를 동결하고 held movement key를 초기화한다. 복귀 후 클릭 또는 Space로 재개한다.
-- `TAB`은 작은 브라우저 탭 형태이며 중심의 작은 원형 hitbox만 충돌한다.
+- 직선 공격은 보이는 task chip·review modal과 일치하는 사각 hitbox를 사용하고 player는 작은 원형 hitbox를 사용한다.
 - 프레임률과 관계없이 60 Hz 고정 timestep으로 이동과 충돌을 판정한다.
 
 ### 난이도 단계
 
 난이도는 생존 시간에 따라 연속적으로 상승하며 15초마다 HUD level이 오른다. 생성 간격과 속도는 최대 120초까지 증가한 뒤 안전한 상한에서 유지한다.
 
-1. `TAB STORM` — 시작부터 한쪽 화면 가장자리에서 브라우저 탭 군집이 짧은 점선 경로를 보인 뒤 player 방향으로 날아온다.
-2. `POP-UP` — 12초부터 창 형태의 요청이 붉은 점선 경로를 예고한 뒤 빠르게 돌진한다.
-3. `MEMORY LEAK` — 24초부터 회전하는 동심원과 조각으로 범위를 예고한 뒤 짧게 활성화한다.
-4. `CONTEXT OVERFLOW` — 42초부터 scan stripe가 있는 수평 또는 수직 범위가 예고 후 활성화한다.
+1. `ONE MORE CHANGE` — 시작부터 임의 edge에서 반대 edge로 개발·Codex log chip이 날아온다. player 좌표를 전혀 읽지 않는 완전 랜덤 기본 탄막이다.
+2. `APPROVAL REQUIRED` — 12초부터 approval·review modal이 생성 순간 player 위치만 snapshot하고 경로를 예고한 뒤 재조준 없이 돌진한다.
+3. `CONTEXT MAX` — 24초부터 고정 정사각 simulated context 영역이 `0% → MAX!`로 차오른 뒤 짧게 활성화한다.
+4. `MERGE CONFLICT` — 42초부터 conflict marker가 있는 임의 수평 또는 수직 band가 예고 후 활성화한다.
+
+같은 공격 계열 안에서도 label, hitbox 폭, 진입 edge, target edge, axis, pattern을 seed 기반으로 바꾼다. 고정 phrase bank에는 일반 개발 문구와 `context left`, `retrying tool`, `reading AGENTS.md`, `approval required` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
 
 예고 단계는 항상 무해하고, 활성화 단계만 피격을 발생시킨다. 공격 개체와 범위 수에는 명시적 상한을 둔다.
 
@@ -82,12 +84,12 @@
 ## 6. 화면과 피드백
 
 - 브라우저 viewport 전체가 논리 화면이다. Phaser `RESIZE`로 창 크기 변경을 즉시 반영하며 고정 16:9 frame이나 letterbox를 만들지 않는다.
-- 흰 웹페이지와 흰 Canvas를 이어 붙여 별도 게임 프레임처럼 보이지 않게 한다.
+- 순백 웹페이지와 흰 Canvas를 이어 붙여 별도 게임 프레임처럼 보이지 않게 한다.
 - 격자, 패널, 상단 점수 바, 장식용 배경은 사용하지 않는다.
-- 따뜻한 흰색과 검정을 기본 뼈대로 사용하되 전체를 흑백으로 제한하지 않는다. `TAB` 전기 파랑, `POP-UP` amber, `MEMORY LEAK` violet, `CONTEXT OVERFLOW` red처럼 공격 의미에 맞는 색을 선명하게 사용한다.
-- 둥근 card와 부드러운 장식을 피하고 각진 1px frame, square pixel, stepped trail로 개발 도구의 digital 질감을 만든다.
+- white, black, gray만 사용한다. 공격은 색이 아니라 outline, fill density, hatch, marker, 흑백 반전으로 구분한다.
+- 둥근 card와 부드러운 장식을 피하고 각진 1px frame, square pixel, stepped trail, tool-call row로 개발 도구의 digital 질감을 만든다.
 - HUD와 overlay의 모든 텍스트는 `Pretendard Variable`을 사용하고 굵기·자간으로 정보 계층을 구분한다.
-- 시작과 결과 화면은 브라우저 오류 페이지처럼 넓은 여백, 간결한 문장, 작은 상태 텍스트를 사용한다.
+- 시작과 결과 화면은 Codex의 가상 task surface처럼 넓은 여백, 작은 상태 행, 건조한 실행 문구를 사용한다. 로고나 실제 제품 UI는 복제하지 않는다.
 - 탭 blur/hidden으로 멈춘 동안에는 결과 화면처럼 장면을 덮지 않는다. 마지막 게임 장면을 흐리게 남기고 중앙 pause 문구만 표시한다.
 - pause 중에는 마지막 장면과 player 위치를 blur 아래에 그대로 남기고 중앙 재개 문구만 표시한다.
 - 공격의 실루엣, 예고 범위, 실제 위험 범위를 명확히 구분한다.
@@ -96,7 +98,7 @@
 ## 7. MVP 포함 범위
 
 - Ready → Playing → Results → Retry 상태
-- 검은 cursor avatar의 WASD·방향키 8방향 이동
+- 검은 `>_` task node의 WASD·방향키 8방향 이동
 - 한 번 피격 시 종료와 생존 시간 기록
 - 직선 공격 2종과 범위 공격 2종
 - 시간 기반 난이도 상승과 공격 상한

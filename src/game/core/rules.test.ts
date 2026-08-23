@@ -9,22 +9,22 @@ describe("survival rules", () => {
     const middle = difficultyAt(GAMEPLAY.difficultyRampMs / 2);
     const cap = difficultyAt(GAMEPLAY.difficultyRampMs * 2);
 
-    expect(start.tabSpeed).toBeLessThan(middle.tabSpeed);
-    expect(middle.tabSpeed).toBeLessThan(cap.tabSpeed);
-    expect(start.tabIntervalMs).toBeGreaterThan(middle.tabIntervalMs);
-    expect(middle.tabIntervalMs).toBeGreaterThan(cap.tabIntervalMs);
+    expect(start.logSpeed).toBeLessThan(middle.logSpeed);
+    expect(middle.logSpeed).toBeLessThan(cap.logSpeed);
+    expect(start.logIntervalMs).toBeGreaterThan(middle.logIntervalMs);
+    expect(middle.logIntervalMs).toBeGreaterThan(cap.logIntervalMs);
     expect(cap.progress).toBe(1);
-    expect(cap.tabBurst).toBe(4);
+    expect(cap.logBurst).toBe(4);
   });
 
-  it("unlocks stronger browser attacks in explicit stages", () => {
-    expect(difficultyAt(0).popupUnlocked).toBe(false);
-    expect(difficultyAt(GAMEPLAY.popupFirstSpawnMs).popupUnlocked).toBe(true);
-    expect(difficultyAt(GAMEPLAY.memoryLeakFirstSpawnMs).memoryLeakUnlocked).toBe(
-      true,
-    );
+  it("unlocks stronger developer-parody attacks in explicit stages", () => {
+    expect(difficultyAt(0).reviewUnlocked).toBe(false);
+    expect(difficultyAt(GAMEPLAY.reviewFirstSpawnMs).reviewUnlocked).toBe(true);
     expect(
-      difficultyAt(GAMEPLAY.contextSweepFirstSpawnMs).contextSweepUnlocked,
+      difficultyAt(GAMEPLAY.contextMaxFirstSpawnMs).contextMaxUnlocked,
+    ).toBe(true);
+    expect(
+      difficultyAt(GAMEPLAY.mergeConflictFirstSpawnMs).mergeConflictUnlocked,
     ).toBe(true);
   });
 

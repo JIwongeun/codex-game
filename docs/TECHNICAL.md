@@ -64,6 +64,8 @@ flowchart LR
 ├─ AGENTS.md
 ├─ README.md
 ├─ docs/
+│  ├─ DESIGN.md
+│  └─ ...
 ├─ public/                  # 실제 정적 에셋이 생길 때 사용
 ├─ src/
 │  ├─ main.ts
@@ -102,7 +104,7 @@ flowchart LR
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
 - Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
 - Input: Phaser keyboard event를 정규화된 WASD·방향키 방향 intent로 변환하고 click·Space action 및 음소거를 분리한다. blur/hidden에서는 held movement key를 비운다.
-- Presentation: domain state를 읽어 공격과 검은 cursor avatar를 Canvas에 그리고 HUD를 갱신한다. `PauseOverlay`는 blur 상태의 DOM 안내만 담당한다.
+- Presentation: domain state를 읽어 문자·사각 hitbox 기반 공격과 검은 `>_` task node를 Canvas에 그리고 HUD를 갱신한다. projectile·hazard Text object는 entity id 기반 bounded map으로 관리한다. `PauseOverlay`는 blur 상태의 DOM 안내만 담당한다.
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환
 - Services: local storage와 브라우저 효과음. leaderboard HTTP는 실제 구현 시에만 추가
 
@@ -202,8 +204,8 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - Phaser `RESIZE`로 브라우저 viewport 전체를 논리 arena로 사용한다. resize 시 player와 범위 공격을 새 경계 안으로 clamp한다.
 - update에서 반복 생성되는 객체를 피한다.
-- 직선 공격과 범위 공격 수에는 명시적 상한을 둔다.
-- 충돌 판정은 처음에는 단순 거리 검사로 시작하고 필요할 때 공간 분할을 검토한다.
+- 직선 공격은 최대 28개, 범위 공격은 최대 8개로 명시적 상한을 둔다.
+- player 원과 projectile·hazard의 axis-aligned rectangle 교차로 보이는 문자 chip·범위와 판정을 맞춘다. 현재 상한에서는 공간 분할을 추가하지 않는다.
 - 에셋은 브라우저 캐시가 가능한 정적 파일로 제공한다.
 - 개발자 도구를 열지 않아도 오류 상태를 알 수 있게 한다.
 - simulation은 60 Hz 고정 timestep으로만 전진한다. render delta는 100ms로 제한하고 한 frame에서 최대 6 tick만 처리한다.
@@ -215,7 +217,8 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - TypeScript typecheck
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
-- 직선 공격과 범위 공격의 예고·활성·피격 전이 테스트
+- 완전 랜덤 `log`, snapshot `review`, 정사각 `context-max`, band `merge-conflict`의 예고·활성·피격 전이 테스트
+- `log` 경로가 player 위치에 독립적이고 `review`가 예고 중 재조준하지 않는 회귀 테스트
 - 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트
 - production build
 

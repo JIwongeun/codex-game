@@ -49,8 +49,8 @@ export class SoundService {
         });
       } else if (event.type === "hazard-warning") {
         this.play({
-          frequency: event.kind === "context-sweep" ? 180 : 240,
-          endFrequency: event.kind === "context-sweep" ? 120 : 180,
+          frequency: event.kind === "merge-conflict" ? 180 : 240,
+          endFrequency: event.kind === "merge-conflict" ? 120 : 180,
           durationSeconds: 0.12,
           gain: 0.025,
           wave: "triangle",

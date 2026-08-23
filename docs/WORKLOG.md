@@ -2,6 +2,46 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — Codex task surface와 개발·vibe coding 공격 전면 재설계
+
+### 제품·문서
+
+- `docs/DESIGN.md`를 추가해 strict monochrome token, Ready·Playing·Pause·Results 화면, `>_` task node, 네 공격 계열, phrase bank, 공정성 불변식과 코드 책임을 장기 문맥으로 고정
+- 손상된 루트 `AGENTS.md`를 UTF-8 한국어 지침으로 복구하고 문서 읽기 순서, 서버·상표·실제 Codex 상태 비연동 제약, core와 presentation 경계를 현재 방향에 맞게 갱신
+- browser error page와 공격별 accent color 결정을 D-019의 Codex task surface와 white·black·gray 전용 언어로 대체
+
+### 게임 규칙
+
+- `tab/popup/memory-leak/context-sweep`를 `log/review/context-max/merge-conflict`로 의미 있게 rename
+- 기본 `log`는 player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge의 임의 지점으로 이동하도록 변경
+- `review`는 생성 순간 player 위치만 snapshot하고 950ms 예고 뒤 재조준 없이 돌진하도록 변경
+- `context-max`는 고정 정사각 영역이 simulated context를 채운 뒤 500ms 활성화하도록 변경
+- `merge-conflict`는 임의 수평·수직 viewport band가 conflict marker로 예고된 뒤 600ms 활성화하도록 변경
+- 개발·Codex·vibe coding 고정 phrase bank 17종을 seeded random으로 선택하고 label 길이에 맞는 bounded rectangle hitbox 사용
+- projectile 상한을 28개로 낮추고 120초까지 속도·간격·동시 수가 상승하는 단계적 난이도 유지
+
+### UI·연출
+
+- 모든 색상 token을 white, black, gray로 제한하고 hue 없이 outline, dash, hatch, fill progress, inverse state로 공격을 구분
+- player cursor silhouette를 흰 clearance가 있는 검은 `>_` agent prompt로 교체
+- Ready와 Results를 가상 task 실행·종료 report로, Playing HUD를 최소 task status와 timer로, Pause를 blur 위 `TASK SUSPENDED`로 통일
+- `FICTIONAL TASK FEED · NO WORKSPACE DATA IS READ` 고지를 표시해 실제 Codex session 상태로 오인되지 않게 함
+- projectile·hazard label Text 객체를 entity id 기반 bounded map으로 관리하고 재시작 때 presentation state를 정리
+
+### 자동 검증
+
+- `pnpm typecheck`: 통과
+- Vitest: 6 files, 36 tests 통과
+- production Worker/client build: 통과
+- 같은 seed에서 player 위치가 달라도 `log` projectile과 RNG state가 동일함을 회귀 테스트로 검증
+- `review` spawn snapshot과 예고 중 velocity 고정, rectangle collision, 네 attack family, 17개 phrase variant, responsive resize, seeded soak와 entity cap 검증
+- 알려진 비차단 경고: Phaser 포함 client chunk가 Vite 기본 500kB 경고를 넘으며 gzip 약 329kB
+
+### 다음 확인
+
+- owner-only production 배포 후 사용자가 문구 가독성, `>_` node 크기, 경고와 active의 판독성, 12·24·42초 난이도를 직접 확인
+- 실제 플레이 결과에 따라 속도·간격·범위 크기만 우선 조정하고 새로운 판정 kind는 기반 확인 뒤 추가
+
 ## 2026-08-23 — pointer 입력에서 WASD·방향키 이동으로 전환
 
 ### 구현

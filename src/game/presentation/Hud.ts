@@ -5,15 +5,14 @@ import { difficultyAt, formatSurvivalTime } from "../core/rules";
 import { COLORS, FONTS, TEXT_COLORS } from "./theme";
 
 const SOURCE_LABEL: Record<HitSource, string> = {
-  tab: "TAB STORM",
-  popup: "POP-UP",
-  "memory-leak": "MEMORY LEAK",
-  "context-sweep": "CONTEXT OVERFLOW",
+  log: "ONE MORE CHANGE",
+  review: "REVIEW REQUEST",
+  "context-max": "CONTEXT MAX",
+  "merge-conflict": "MERGE CONFLICT",
 };
 
 interface Announcement {
   text: string;
-  color: string;
   untilElapsedMs: number;
 }
 
@@ -24,6 +23,7 @@ export class Hud {
   private readonly timeText: Phaser.GameObjects.Text;
   private readonly bestText: Phaser.GameObjects.Text;
   private readonly hintText: Phaser.GameObjects.Text;
+  private readonly footerText: Phaser.GameObjects.Text;
   private readonly alertText: Phaser.GameObjects.Text;
   private readonly titleText: Phaser.GameObjects.Text;
   private readonly subtitleText: Phaser.GameObjects.Text;
@@ -33,48 +33,53 @@ export class Hud {
 
   constructor(scene: Phaser.Scene) {
     this.overlay = scene.add.graphics().setDepth(30);
-    this.brandText = this.text(scene, 0, 0, 15, TEXT_COLORS.ink)
+    this.brandText = this.text(scene, 0, 0, 14, TEXT_COLORS.ink)
       .setFontStyle("700")
-      .setLetterSpacing(0.8)
-      .setDepth(21);
-    this.statusText = this.text(scene, 0, 0, 12, TEXT_COLORS.success)
-      .setFontStyle("600")
+      .setLetterSpacing(0.7)
+      .setDepth(32);
+    this.statusText = this.text(scene, 0, 0, 11, TEXT_COLORS.muted)
+      .setFontStyle("620")
       .setLetterSpacing(0.6)
       .setDepth(21);
-    this.timeText = this.text(scene, 0, 0, 28, TEXT_COLORS.ink)
+    this.timeText = this.text(scene, 0, 0, 30, TEXT_COLORS.ink)
       .setFontStyle("680")
-      .setLetterSpacing(1)
+      .setLetterSpacing(0.7)
       .setOrigin(1, 0)
       .setDepth(21);
-    this.bestText = this.text(scene, 0, 0, 12, TEXT_COLORS.faint)
-      .setFontStyle("550")
+    this.bestText = this.text(scene, 0, 0, 11, TEXT_COLORS.faint)
+      .setFontStyle("560")
       .setLetterSpacing(0.5)
       .setOrigin(1, 0)
       .setDepth(21);
-    this.hintText = this.text(scene, 0, 0, 11, TEXT_COLORS.faint)
+    this.hintText = this.text(scene, 0, 0, 10, TEXT_COLORS.muted)
       .setFontStyle("580")
-      .setLetterSpacing(0.7)
+      .setLetterSpacing(0.6)
       .setOrigin(0, 1)
       .setDepth(21);
-    this.alertText = this.text(scene, 0, 0, 12, TEXT_COLORS.danger)
+    this.footerText = this.text(scene, 0, 0, 9, TEXT_COLORS.faint)
+      .setFontStyle("580")
+      .setLetterSpacing(0.55)
+      .setOrigin(1, 1)
+      .setDepth(32);
+    this.alertText = this.text(scene, 0, 0, 11, TEXT_COLORS.ink)
       .setFontStyle("700")
-      .setLetterSpacing(0.9)
+      .setLetterSpacing(0.75)
       .setOrigin(0.5, 0)
       .setDepth(22);
-    this.titleText = this.text(scene, 0, 0, 48, TEXT_COLORS.ink, FONTS.mono)
+    this.titleText = this.text(scene, 0, 0, 56, TEXT_COLORS.ink, FONTS.sans)
       .setFontStyle("720")
-      .setLetterSpacing(-0.8)
+      .setLetterSpacing(-1.2)
       .setDepth(31);
     this.subtitleText = this.text(scene, 0, 0, 18, TEXT_COLORS.muted, FONTS.sans)
-      .setFontStyle("520")
-      .setDepth(31);
-    this.detailText = this.text(scene, 0, 0, 16, TEXT_COLORS.ink, FONTS.sans)
       .setFontStyle("480")
-      .setLineSpacing(10)
       .setDepth(31);
-    this.actionText = this.text(scene, 0, 0, 14, TEXT_COLORS.accent, FONTS.mono)
-      .setFontStyle("680")
-      .setLetterSpacing(0.8)
+    this.detailText = this.text(scene, 0, 0, 14, TEXT_COLORS.ink, FONTS.sans)
+      .setFontStyle("500")
+      .setLineSpacing(9)
+      .setDepth(31);
+    this.actionText = this.text(scene, 0, 0, 13, TEXT_COLORS.ink, FONTS.sans)
+      .setFontStyle("700")
+      .setLetterSpacing(0.65)
       .setDepth(31);
   }
 
@@ -83,26 +88,18 @@ export class Hud {
       if (event.type === "hazard-warning") {
         this.announcement = {
           text:
-            event.kind === "memory-leak"
-              ? "MEMORY LEAK  ·  AREA LOCKING"
-              : "CONTEXT OVERFLOW  ·  CLEAR THE BAND",
-          color:
-            event.kind === "memory-leak"
-              ? TEXT_COLORS.memory
-              : TEXT_COLORS.danger,
-          untilElapsedMs: state.elapsedMs + 1_250,
+            event.kind === "context-max"
+              ? "[SIM CONTEXT]  FILLING TO MAX"
+              : "[MERGE]  CONFLICT BAND CLOSING",
+          untilElapsedMs: state.elapsedMs + 1_450,
         };
       } else if (event.type === "hazard-activated") {
         this.announcement = {
           text:
-            event.kind === "memory-leak"
-              ? "MEMORY LEAK  ·  ACTIVE"
-              : "CONTEXT OVERFLOW  ·  ACTIVE",
-          color:
-            event.kind === "memory-leak"
-              ? TEXT_COLORS.memory
-              : TEXT_COLORS.danger,
-          untilElapsedMs: state.elapsedMs + 650,
+            event.kind === "context-max"
+              ? "[SIM CONTEXT]  MAX!"
+              : "[MERGE]  CONFLICT ACTIVE",
+          untilElapsedMs: state.elapsedMs + 620,
         };
       } else if (event.type === "run-started") {
         this.announcement = null;
@@ -110,11 +107,7 @@ export class Hud {
     }
   }
 
-  render(
-    state: GameState,
-    localBest: number,
-    muted: boolean,
-  ): void {
+  render(state: GameState, localBest: number, muted: boolean): void {
     this.layout(state);
     const difficulty = difficultyAt(state.elapsedMs);
 
@@ -123,38 +116,43 @@ export class Hud {
     this.bestText.setText(`BEST  ${formatSurvivalTime(localBest)}`);
     this.statusText.setText(
       state.arena.width < 640
-        ? `L${difficulty.level.toString().padStart(2, "0")}  ·  ${state.attacksDodged
+        ? `■ SIM RUN  ·  LV.${difficulty.level.toString().padStart(2, "0")}`
+        : `■ TASK RUNNING  ·  SIM RUN  ·  LV.${difficulty.level
             .toString()
-            .padStart(3, "0")} CLEARED`
-        : `RUNNING  ·  L${difficulty.level.toString().padStart(2, "0")}  ·  ${state.attacksDodged
+            .padStart(2, "0")}  ·  ${state.attacksDodged
             .toString()
-            .padStart(3, "0")} REQUESTS CLEARED`,
+            .padStart(3, "0")} CLEARED`,
     );
     this.hintText.setText(
       `WASD / ARROWS  MOVE   ·   M  ${muted ? "SOUND ON" : "MUTE"}`,
+    );
+    this.footerText.setText(
+      state.arena.width < 640
+        ? "FICTIONAL TASK FEED"
+        : "FICTIONAL TASK FEED  ·  NO WORKSPACE DATA IS READ",
     );
     this.renderAnnouncement(state);
 
     if (state.phase === "ready") {
       this.showOverlay(
         state,
-        "await CODEX",
-        "Codex is taking longer than expected.",
-        `Move the black cursor with WASD or arrow keys.\nAvoid every tab, pop-up, and browser error.\nOne hit ends the run.\n\nLOCAL BEST  ${formatSurvivalTime(localBest)}`,
-        "CLICK / SPACE TO START",
+        "Codex is working.",
+        "Use the wait time.",
+        `>_  SURVIVE THE QUEUE\n\nMOVE                  WASD / ARROW KEYS\nFAIL CONDITION   ONE HIT\nLOCAL BEST          ${formatSurvivalTime(localBest)}`,
+        ">  CLICK / SPACE TO RUN  █",
       );
     } else if (state.phase === "results") {
       const source = state.lastHitSource
         ? SOURCE_LABEL[state.lastHitSource]
-        : "UNKNOWN ERROR";
+        : "UNKNOWN INTERRUPTION";
       this.showOverlay(
         state,
-        "Pointer crashed.",
-        `${source} interrupted the run.`,
-        `SURVIVED  ${formatSurvivalTime(state.elapsedMs)}\nLOCAL BEST  ${formatSurvivalTime(
+        "Task interrupted.",
+        `${source} reached the agent.`,
+        `ELAPSED             ${formatSurvivalTime(state.elapsedMs)}\nLOCAL BEST       ${formatSurvivalTime(
           localBest,
-        )}\n\n${state.attacksDodged} requests cleared\n${state.hazardsSurvived} area errors survived`,
-        "CLICK / SPACE TO TRY AGAIN",
+        )}\nTOOL CALLS       ${state.attacksDodged}\nAREA EVENTS    ${state.hazardsSurvived}\n\nerror: simulated process exited with code 1`,
+        ">  CLICK / SPACE TO RE-RUN  █",
       );
     } else {
       this.hideOverlay();
@@ -164,28 +162,25 @@ export class Hud {
   private layout(state: GameState): void {
     const { width, height } = state.arena;
     const compact = width < 640;
-    const padding = compact ? 20 : Math.min(44, Math.max(28, width * 0.035));
+    const padding = compact ? 20 : Math.min(48, Math.max(32, width * 0.035));
 
     this.brandText.setPosition(padding, padding);
-    this.statusText.setPosition(padding, padding + 27);
-    this.timeText.setPosition(width - padding, padding - 3);
-    this.bestText.setPosition(width - padding, padding + 34);
+    this.statusText.setPosition(padding, padding + 25);
+    this.timeText.setPosition(width - padding, padding - 5);
+    this.bestText.setPosition(width - padding, padding + 33);
     this.hintText.setPosition(padding, height - Math.max(16, padding * 0.55));
-    this.alertText.setPosition(width / 2, compact ? padding + 62 : padding + 4);
+    this.footerText.setPosition(
+      width - padding,
+      height - Math.max(16, padding * 0.55),
+    );
+    this.alertText.setPosition(width / 2, compact ? padding + 58 : padding + 2);
 
-    if (compact) {
-      this.brandText.setFontSize(13);
-      this.statusText.setFontSize(10);
-      this.timeText.setFontSize(21);
-      this.bestText.setFontSize(10);
-      this.hintText.setFontSize(9);
-    } else {
-      this.brandText.setFontSize(15);
-      this.statusText.setFontSize(12);
-      this.timeText.setFontSize(28);
-      this.bestText.setFontSize(12);
-      this.hintText.setFontSize(11);
-    }
+    this.brandText.setFontSize(compact ? 12 : 14);
+    this.statusText.setFontSize(compact ? 9 : 11);
+    this.timeText.setFontSize(compact ? 22 : 30);
+    this.bestText.setFontSize(compact ? 9 : 11);
+    this.hintText.setFontSize(compact ? 8 : 10);
+    this.footerText.setFontSize(compact ? 8 : 9);
   }
 
   private renderAnnouncement(state: GameState): void {
@@ -195,21 +190,17 @@ export class Hud {
     }
 
     if (this.announcement && state.elapsedMs <= this.announcement.untilElapsedMs) {
-      this.alertText
-        .setColor(this.announcement.color)
-        .setText(this.announcement.text)
-        .setVisible(true);
+      this.alertText.setText(this.announcement.text).setVisible(true);
       return;
     }
 
-    const popupIncoming = state.projectiles.some(
+    const incomingReview = state.projectiles.find(
       (projectile) =>
-        projectile.kind === "popup" && projectile.telegraphRemainingMs > 0,
+        projectile.kind === "review" && projectile.telegraphRemainingMs > 0,
     );
-    if (popupIncoming) {
+    if (incomingReview) {
       this.alertText
-        .setColor(TEXT_COLORS.popup)
-        .setText("POP-UP BLOCKER FAILED  ·  PATH LOCKED")
+        .setText(`[REVIEW]  ${incomingReview.label}  ·  PATH LOCKED`)
         .setVisible(true);
       return;
     }
@@ -228,17 +219,19 @@ export class Hud {
     const compact = width < 640;
     const contentX = compact
       ? 26
-      : Math.max(64, Math.min(220, Math.round(width * 0.16)));
+      : Math.max(72, Math.min(230, Math.round(width * 0.16)));
     const contentY = compact
-      ? Math.max(82, Math.round(height * 0.13))
-      : Math.max(108, Math.round(height * 0.18));
-    const wrapWidth = Math.max(250, Math.min(720, width - contentX - 28));
-    const titleSize = compact ? 34 : Math.min(50, Math.max(42, width / 24));
+      ? Math.max(116, Math.round(height * 0.16))
+      : Math.max(142, Math.round(height * 0.2));
+    const wrapWidth = Math.max(250, Math.min(760, width - contentX - 28));
+    const titleSize = compact ? 36 : Math.min(62, Math.max(50, width / 22));
 
     this.overlay.setVisible(true).clear();
-    this.overlay.fillStyle(COLORS.background, 0.985);
+    this.overlay.fillStyle(COLORS.background, 1);
     this.overlay.fillRect(0, 0, width, height);
-    this.drawBrokenPageIcon(contentX, contentY - 50);
+    this.overlay.lineStyle(1, COLORS.border, 1);
+    this.overlay.lineBetween(contentX, contentY - 36, Math.min(width - 26, contentX + 62), contentY - 36);
+    this.drawAgentPrompt(contentX, contentY - 70);
 
     this.titleText
       .setPosition(contentX, contentY)
@@ -247,47 +240,34 @@ export class Hud {
       .setText(title)
       .setVisible(true);
     this.subtitleText
-      .setPosition(contentX + 2, contentY + titleSize + 20)
+      .setPosition(contentX + 2, contentY + titleSize + 18)
       .setFontSize(compact ? 15 : 18)
       .setWordWrapWidth(wrapWidth)
       .setText(subtitle)
       .setVisible(true);
     this.detailText
-      .setPosition(contentX + 2, contentY + titleSize + 78)
-      .setFontSize(compact ? 14 : 16)
+      .setPosition(contentX + 2, contentY + titleSize + 80)
+      .setFontSize(compact ? 12 : 14)
       .setWordWrapWidth(wrapWidth)
       .setText(detail)
       .setVisible(true);
     this.actionText
       .setPosition(
         contentX + 2,
-        Math.min(height - 56, contentY + titleSize + (compact ? 275 : 300)),
+        Math.min(height - 66, contentY + titleSize + (compact ? 270 : 286)),
       )
-      .setFontSize(compact ? 12 : 14)
-      .setText(`//  ${action}`)
+      .setFontSize(compact ? 11 : 13)
+      .setText(action)
       .setVisible(true);
   }
 
-  private drawBrokenPageIcon(x: number, y: number): void {
-    this.overlay.lineStyle(2, COLORS.text, 0.92);
-    this.overlay.beginPath();
-    this.overlay.moveTo(x, y);
-    this.overlay.lineTo(x + 21, y);
-    this.overlay.lineTo(x + 30, y + 9);
-    this.overlay.lineTo(x + 30, y + 34);
-    this.overlay.lineTo(x, y + 34);
-    this.overlay.closePath();
-    this.overlay.strokePath();
-    this.overlay.lineStyle(2, COLORS.tab, 0.95);
-    this.overlay.lineBetween(x + 21, y, x + 21, y + 9);
-    this.overlay.lineBetween(x + 21, y + 9, x + 30, y + 9);
-    this.overlay.fillStyle(COLORS.tab, 0.95);
-    this.overlay.fillRect(x + 8, y + 15, 3, 3);
-    this.overlay.fillStyle(COLORS.popup, 0.95);
-    this.overlay.fillRect(x + 19, y + 15, 3, 3);
-    this.overlay.lineStyle(2, COLORS.context, 0.9);
-    this.overlay.lineBetween(x + 9, y + 27, x + 14, y + 23);
-    this.overlay.lineBetween(x + 14, y + 23, x + 21, y + 27);
+  private drawAgentPrompt(x: number, y: number): void {
+    this.overlay.fillStyle(COLORS.black, 1);
+    this.overlay.fillRect(x, y, 30, 20);
+    this.overlay.lineStyle(2, COLORS.surface, 1);
+    this.overlay.lineBetween(x + 7, y + 6, x + 11, y + 10);
+    this.overlay.lineBetween(x + 11, y + 10, x + 7, y + 14);
+    this.overlay.lineBetween(x + 15, y + 14, x + 22, y + 14);
   }
 
   private hideOverlay(): void {
@@ -304,7 +284,7 @@ export class Hud {
     y: number,
     size: number,
     color: string,
-    fontFamily: string = FONTS.mono,
+    fontFamily: string = FONTS.sans,
   ): Phaser.GameObjects.Text {
     return scene.add.text(x, y, "", {
       color,

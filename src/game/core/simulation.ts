@@ -3,7 +3,7 @@ import {
   DEFAULT_GAME_WIDTH,
   GAMEPLAY,
 } from "../constants";
-import { circlesOverlap, directionBetween, normalize } from "./math";
+import { circleOverlapsRectangle, directionBetween, normalize } from "./math";
 import type {
   AreaHazardState,
   ArenaBounds,
@@ -11,8 +11,12 @@ import type {
   GameState,
   HitSource,
   InputIntent,
+  LogLabel,
+  ProjectileLabel,
   ProjectileKind,
   ProjectileState,
+  RectangleHitbox,
+  ReviewLabel,
   SweepAxis,
   Vec2,
 } from "./model";
@@ -20,6 +24,27 @@ import { nextRandom, normalizeSeed } from "./random";
 import { difficultyAt } from "./rules";
 
 const PLAYER_START_DIRECTION: Vec2 = { x: 1, y: 0 };
+const LOG_LABELS: readonly LogLabel[] = [
+  "+ ONE MORE CHANGE",
+  "TESTS STILL RUNNING...",
+  "TOOL RETRY 3/3",
+  "WORKING TREE DIRTY",
+  "GIT COMMIT --AMEND",
+  "CI: FAILED",
+  "TS2322",
+  "CONTEXT LEFT: 12%",
+  "READING AGENTS.MD",
+  "CHECKING WORKSPACE...",
+  "FIXING ONE LAST TEST",
+  "PR #404",
+  "REBASE REQUIRED",
+];
+const REVIEW_LABELS: readonly ReviewLabel[] = [
+  "APPROVAL REQUIRED",
+  "REQUEST CHANGES",
+  "NEEDS REBASE",
+  "RUN COMMAND?",
+];
 
 export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
 
@@ -49,10 +74,10 @@ export function createGameState(
     projectiles: [],
     hazards: [],
     spawn: {
-      tabMs: GAMEPLAY.tabFirstSpawnMs,
-      popupMs: GAMEPLAY.popupFirstSpawnMs,
-      memoryLeakMs: GAMEPLAY.memoryLeakFirstSpawnMs,
-      contextSweepMs: GAMEPLAY.contextSweepFirstSpawnMs,
+      logMs: GAMEPLAY.logFirstSpawnMs,
+      reviewMs: GAMEPLAY.reviewFirstSpawnMs,
+      contextMaxMs: GAMEPLAY.contextMaxFirstSpawnMs,
+      mergeConflictMs: GAMEPLAY.mergeConflictFirstSpawnMs,
     },
   };
 }
@@ -89,11 +114,12 @@ export function resizeArena(
   );
 
   for (const hazard of state.hazards) {
-    if (hazard.kind === "memory-leak") {
-      hazard.radius = fitCircleRadius(hazard.radius, state.arena);
-      hazard.position = clampCircleCenter(
+    if (hazard.kind === "context-max") {
+      const size = fitSquareSize(hazard.hitbox.width, state.arena);
+      hazard.hitbox = { width: size, height: size };
+      hazard.position = clampRectangleCenter(
         hazard.position,
-        hazard.radius,
+        hazard.hitbox,
         state.arena,
       );
       continue;
@@ -101,8 +127,17 @@ export function resizeArena(
 
     const crossAxisSize =
       hazard.axis === "horizontal" ? state.arena.height : state.arena.width;
-    hazard.thickness = Math.min(hazard.thickness, crossAxisSize * 0.45);
-    hazard.position = clampSweepCenter(hazard, state.arena);
+    const currentThickness =
+      hazard.axis === "horizontal"
+        ? hazard.hitbox.height
+        : hazard.hitbox.width;
+    const thickness = Math.min(currentThickness, crossAxisSize * 0.45);
+    hazard.hitbox = mergeConflictHitbox(
+      hazard.axis ?? "horizontal",
+      thickness,
+      state.arena,
+    );
+    hazard.position = clampMergeConflictCenter(hazard, state.arena);
   }
 }
 
@@ -207,10 +242,6 @@ function updateProjectiles(
         0,
         projectile.telegraphRemainingMs - stepMs,
       );
-      projectile.velocity = directionBetween(
-        projectile.position,
-        state.player.position,
-      );
     } else {
       projectile.position.x += projectile.velocity.x * projectile.speed * stepSeconds;
       projectile.position.y += projectile.velocity.y * projectile.speed * stepSeconds;
@@ -244,9 +275,9 @@ function updateHazards(
     if (hazard.phase === "telegraph") {
       hazard.phase = "active";
       hazard.remainingMs =
-        hazard.kind === "memory-leak"
-          ? GAMEPLAY.memoryLeakActiveMs
-          : GAMEPLAY.contextSweepActiveMs;
+        hazard.kind === "context-max"
+          ? GAMEPLAY.contextMaxActiveMs
+          : GAMEPLAY.mergeConflictActiveMs;
       survivors.push(hazard);
       events.push({ type: "hazard-activated", kind: hazard.kind });
     } else {
@@ -263,37 +294,42 @@ function spawnScheduledAttacks(
   events: GameEvent[],
 ): void {
   const difficulty = difficultyAt(state.elapsedMs);
-  state.spawn.tabMs -= stepMs;
-  state.spawn.popupMs -= stepMs;
-  state.spawn.memoryLeakMs -= stepMs;
-  state.spawn.contextSweepMs -= stepMs;
+  state.spawn.logMs -= stepMs;
+  state.spawn.reviewMs -= stepMs;
+  state.spawn.contextMaxMs -= stepMs;
+  state.spawn.mergeConflictMs -= stepMs;
 
-  if (state.spawn.tabMs <= 0) {
-    spawnTabVolley(state, difficulty.tabBurst, difficulty.tabSpeed);
-    state.spawn.tabMs += difficulty.tabIntervalMs;
+  if (state.spawn.logMs <= 0) {
+    spawnLogVolley(state, difficulty.logBurst, difficulty.logSpeed);
+    state.spawn.logMs += difficulty.logIntervalMs;
   }
 
-  if (difficulty.popupUnlocked && state.spawn.popupMs <= 0) {
-    spawnPopup(state, difficulty.popupSpeed);
-    state.spawn.popupMs += difficulty.popupIntervalMs;
+  if (difficulty.reviewUnlocked && state.spawn.reviewMs <= 0) {
+    spawnReview(state, difficulty.reviewSpeed);
+    state.spawn.reviewMs += difficulty.reviewIntervalMs;
   }
 
-  if (difficulty.memoryLeakUnlocked && state.spawn.memoryLeakMs <= 0) {
-    if (spawnMemoryLeak(state, difficulty.memoryLeakRadius)) {
-      events.push({ type: "hazard-warning", kind: "memory-leak" });
+  if (difficulty.contextMaxUnlocked && state.spawn.contextMaxMs <= 0) {
+    if (spawnContextMax(state, difficulty.contextMaxSize)) {
+      events.push({ type: "hazard-warning", kind: "context-max" });
     }
-    state.spawn.memoryLeakMs += difficulty.memoryLeakIntervalMs;
+    state.spawn.contextMaxMs += difficulty.contextMaxIntervalMs;
   }
 
-  if (difficulty.contextSweepUnlocked && state.spawn.contextSweepMs <= 0) {
-    if (spawnContextSweep(state, difficulty.contextSweepThickness)) {
-      events.push({ type: "hazard-warning", kind: "context-sweep" });
+  if (
+    difficulty.mergeConflictUnlocked &&
+    state.spawn.mergeConflictMs <= 0
+  ) {
+    if (
+      spawnMergeConflict(state, difficulty.mergeConflictThickness)
+    ) {
+      events.push({ type: "hazard-warning", kind: "merge-conflict" });
     }
-    state.spawn.contextSweepMs += difficulty.contextSweepIntervalMs;
+    state.spawn.mergeConflictMs += difficulty.mergeConflictIntervalMs;
   }
 }
 
-function spawnTabVolley(state: GameState, count: number, speed: number): void {
+function spawnLogVolley(state: GameState, count: number, speed: number): void {
   const available = Math.min(
     count,
     GAMEPLAY.maxProjectiles - state.projectiles.length,
@@ -302,42 +338,41 @@ function spawnTabVolley(state: GameState, count: number, speed: number): void {
     return;
   }
 
-  const edge = Math.floor(randomBetween(state, 0, 4));
-  const alongSize = edge < 2 ? state.arena.height : state.arena.width;
-  const base = randomBetween(state, alongSize * 0.18, alongSize * 0.82);
-  const spacing = Math.min(38, Math.max(22, alongSize / 18));
-
   for (let index = 0; index < available; index += 1) {
-    const centeredIndex = index - (available - 1) / 2;
-    const along = clampAxis(base + centeredIndex * spacing, alongSize, 12);
-    const position = pointOnEdge(state.arena, edge, along, 20);
-    const target = {
-      x: clampAxis(
-        state.player.position.x +
-          (edge < 2 ? randomBetween(state, -32, 32) : centeredIndex * 18),
-        state.arena.width,
-        0,
-      ),
-      y: clampAxis(
-        state.player.position.y +
-          (edge < 2 ? centeredIndex * 18 : randomBetween(state, -32, 32)),
-        state.arena.height,
-        0,
-      ),
-    };
+    const sourceEdge = Math.floor(randomBetween(state, 0, 4));
+    const targetEdge = sourceEdge ^ 1;
+    const sourceAlongSize =
+      sourceEdge < 2 ? state.arena.height : state.arena.width;
+    const targetAlongSize =
+      targetEdge < 2 ? state.arena.height : state.arena.width;
+    const position = pointOnEdge(
+      state.arena,
+      sourceEdge,
+      randomBetween(state, sourceAlongSize * 0.08, sourceAlongSize * 0.92),
+      20,
+    );
+    const target = pointOnEdge(
+      state.arena,
+      targetEdge,
+      randomBetween(state, targetAlongSize * 0.08, targetAlongSize * 0.92),
+      20,
+    );
+    const label = randomLogLabel(state);
 
     addProjectile(
       state,
-      "tab",
+      "log",
+      label,
       position,
       target,
+      logHitbox(label),
       speed,
-      GAMEPLAY.tabTelegraphMs + index * 35,
+      GAMEPLAY.logTelegraphMs + index * 35,
     );
   }
 }
 
-function spawnPopup(state: GameState, speed: number): boolean {
+function spawnReview(state: GameState, speed: number): boolean {
   if (state.projectiles.length >= GAMEPLAY.maxProjectiles) {
     return false;
   }
@@ -350,26 +385,25 @@ function spawnPopup(state: GameState, speed: number): boolean {
     randomBetween(state, alongSize * 0.12, alongSize * 0.88),
     18,
   );
-  const target = {
-    x: clampAxis(
-      state.player.position.x + randomBetween(state, -24, 24),
-      state.arena.width,
-      0,
-    ),
-    y: clampAxis(
-      state.player.position.y + randomBetween(state, -24, 24),
-      state.arena.height,
-      0,
-    ),
-  };
+  const target = { ...state.player.position };
+  const label = randomReviewLabel(state);
 
   addProjectile(
     state,
-    "popup",
+    "review",
+    label,
     position,
     target,
+    {
+      width: labelHitboxWidth(
+        label,
+        GAMEPLAY.reviewHitboxMinWidth,
+        GAMEPLAY.reviewHitboxMaxWidth,
+      ),
+      height: GAMEPLAY.reviewHitboxHeight,
+    },
     speed,
-    GAMEPLAY.popupTelegraphMs,
+    GAMEPLAY.reviewTelegraphMs,
   );
   return true;
 }
@@ -377,21 +411,53 @@ function spawnPopup(state: GameState, speed: number): boolean {
 function addProjectile(
   state: GameState,
   kind: ProjectileKind,
+  label: ProjectileLabel,
   position: Vec2,
   target: Vec2,
+  hitbox: RectangleHitbox,
   speed: number,
   telegraphMs: number,
 ): void {
   state.projectiles.push({
     id: takeEntityId(state),
     kind,
+    label,
     position,
     velocity: directionBetween(position, target),
-    radius: kind === "tab" ? GAMEPLAY.projectileRadius : GAMEPLAY.popupRadius,
+    hitbox,
     speed,
     ageMs: 0,
     telegraphRemainingMs: telegraphMs,
   });
+}
+
+function randomLogLabel(state: GameState): LogLabel {
+  const index = Math.floor(randomBetween(state, 0, LOG_LABELS.length));
+  return LOG_LABELS[index] ?? LOG_LABELS[0];
+}
+
+function randomReviewLabel(state: GameState): ReviewLabel {
+  const index = Math.floor(randomBetween(state, 0, REVIEW_LABELS.length));
+  return REVIEW_LABELS[index] ?? REVIEW_LABELS[0];
+}
+
+function logHitbox(label: LogLabel): RectangleHitbox {
+  return {
+    width: labelHitboxWidth(
+      label,
+      GAMEPLAY.logHitboxMinWidth,
+      GAMEPLAY.logHitboxMaxWidth,
+    ),
+    height: GAMEPLAY.logHitboxHeight,
+  };
+}
+
+function labelHitboxWidth(
+  label: ProjectileLabel,
+  minimum: number,
+  maximum: number,
+): number {
+  return Math.min(maximum, Math.max(minimum, 18 + label.length * 6));
 }
 
 function pointOnEdge(
@@ -412,50 +478,54 @@ function pointOnEdge(
   return { x: along, y: arena.height + margin };
 }
 
-function spawnMemoryLeak(state: GameState, requestedRadius: number): boolean {
+function spawnContextMax(state: GameState, requestedSize: number): boolean {
   if (state.hazards.length >= GAMEPLAY.maxHazards) {
     return false;
   }
 
-  const radius = fitCircleRadius(requestedRadius, state.arena);
-  const position = clampCircleCenter(
-    {
-      x: state.player.position.x + randomBetween(state, -150, 150),
-      y: state.player.position.y + randomBetween(state, -125, 125),
-    },
-    radius,
+  const size = fitSquareSize(requestedSize, state.arena);
+  const hitbox = { width: size, height: size };
+  const position = clampRectangleCenter(
+    state.player.position,
+    hitbox,
     state.arena,
   );
 
   state.hazards.push({
     id: takeEntityId(state),
-    kind: "memory-leak",
+    kind: "context-max",
+    label: "CONTEXT MAX!",
     position,
-    radius,
+    hitbox,
     axis: null,
-    thickness: 0,
     phase: "telegraph",
-    remainingMs: GAMEPLAY.memoryLeakTelegraphMs,
+    remainingMs: GAMEPLAY.contextMaxTelegraphMs,
   });
   return true;
 }
 
-function fitCircleRadius(radius: number, arena: ArenaBounds): number {
-  return Math.min(radius, Math.max(18, Math.min(arena.width, arena.height) * 0.34));
+function fitSquareSize(size: number, arena: ArenaBounds): number {
+  return Math.max(
+    1,
+    Math.min(size, Math.min(arena.width, arena.height) * 0.45),
+  );
 }
 
-function clampCircleCenter(
+function clampRectangleCenter(
   position: Vec2,
-  radius: number,
+  hitbox: RectangleHitbox,
   arena: ArenaBounds,
 ): Vec2 {
   return {
-    x: clampAxis(position.x, arena.width, radius),
-    y: clampAxis(position.y, arena.height, radius),
+    x: clampAxis(position.x, arena.width, hitbox.width / 2),
+    y: clampAxis(position.y, arena.height, hitbox.height / 2),
   };
 }
 
-function spawnContextSweep(state: GameState, requestedThickness: number): boolean {
+function spawnMergeConflict(
+  state: GameState,
+  requestedThickness: number,
+): boolean {
   if (state.hazards.length >= GAMEPLAY.maxHazards) {
     return false;
   }
@@ -463,6 +533,7 @@ function spawnContextSweep(state: GameState, requestedThickness: number): boolea
   const axis: SweepAxis = randomBetween(state, 0, 1) < 0.5 ? "horizontal" : "vertical";
   const crossAxisSize = axis === "horizontal" ? state.arena.height : state.arena.width;
   const thickness = Math.min(requestedThickness, crossAxisSize * 0.45);
+  const hitbox = mergeConflictHitbox(axis, thickness, state.arena);
   const position =
     axis === "horizontal"
       ? {
@@ -476,28 +547,46 @@ function spawnContextSweep(state: GameState, requestedThickness: number): boolea
 
   state.hazards.push({
     id: takeEntityId(state),
-    kind: "context-sweep",
+    kind: "merge-conflict",
+    label: "MERGE CONFLICT",
     position,
-    radius: 0,
+    hitbox,
     axis,
-    thickness,
     phase: "telegraph",
-    remainingMs: GAMEPLAY.contextSweepTelegraphMs,
+    remainingMs: GAMEPLAY.mergeConflictTelegraphMs,
   });
   return true;
 }
 
-function clampSweepCenter(
+function mergeConflictHitbox(
+  axis: SweepAxis,
+  thickness: number,
+  arena: ArenaBounds,
+): RectangleHitbox {
+  return axis === "horizontal"
+    ? { width: arena.width, height: thickness }
+    : { width: thickness, height: arena.height };
+}
+
+function clampMergeConflictCenter(
   hazard: AreaHazardState,
   arena: ArenaBounds,
 ): Vec2 {
   return hazard.axis === "horizontal"
     ? {
         x: arena.width / 2,
-        y: clampAxis(hazard.position.y, arena.height, hazard.thickness / 2),
+        y: clampAxis(
+          hazard.position.y,
+          arena.height,
+          hazard.hitbox.height / 2,
+        ),
       }
     : {
-        x: clampAxis(hazard.position.x, arena.width, hazard.thickness / 2),
+        x: clampAxis(
+          hazard.position.x,
+          arena.width,
+          hazard.hitbox.width / 2,
+        ),
         y: arena.height / 2,
       };
 }
@@ -506,11 +595,11 @@ function findHitSource(state: GameState): HitSource | null {
   for (const projectile of state.projectiles) {
     if (
       projectile.telegraphRemainingMs <= 0 &&
-      circlesOverlap(
+      circleOverlapsRectangle(
         state.player.position,
         GAMEPLAY.playerRadius,
         projectile.position,
-        projectile.radius,
+        projectile.hitbox,
       )
     ) {
       return projectile.kind;
@@ -523,31 +612,18 @@ function findHitSource(state: GameState): HitSource | null {
     }
 
     if (
-      hazard.kind === "memory-leak" &&
-      circlesOverlap(
+      circleOverlapsRectangle(
         state.player.position,
         GAMEPLAY.playerRadius,
         hazard.position,
-        hazard.radius,
+        hazard.hitbox,
       )
     ) {
-      return hazard.kind;
-    }
-
-    if (hazard.kind === "context-sweep" && sweepTouchesPlayer(hazard, state.player.position)) {
       return hazard.kind;
     }
   }
 
   return null;
-}
-
-function sweepTouchesPlayer(hazard: AreaHazardState, player: Vec2): boolean {
-  const halfThickness = hazard.thickness / 2;
-
-  return hazard.axis === "horizontal"
-    ? Math.abs(player.y - hazard.position.y) <= halfThickness + GAMEPLAY.playerRadius
-    : Math.abs(player.x - hazard.position.x) <= halfThickness + GAMEPLAY.playerRadius;
 }
 
 function isInsideProjectileBounds(state: GameState, position: Vec2): boolean {

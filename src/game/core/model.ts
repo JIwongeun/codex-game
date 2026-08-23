@@ -9,11 +9,40 @@ export interface ArenaBounds {
 }
 
 export type GamePhase = "ready" | "playing" | "results";
-export type ProjectileKind = "tab" | "popup";
-export type HazardKind = "memory-leak" | "context-sweep";
+export type ProjectileKind = "log" | "review";
+export type HazardKind = "context-max" | "merge-conflict";
 export type HazardPhase = "telegraph" | "active";
 export type SweepAxis = "horizontal" | "vertical";
 export type HitSource = ProjectileKind | HazardKind;
+
+export type LogLabel =
+  | "+ ONE MORE CHANGE"
+  | "TESTS STILL RUNNING..."
+  | "TOOL RETRY 3/3"
+  | "WORKING TREE DIRTY"
+  | "GIT COMMIT --AMEND"
+  | "CI: FAILED"
+  | "TS2322"
+  | "CONTEXT LEFT: 12%"
+  | "READING AGENTS.MD"
+  | "CHECKING WORKSPACE..."
+  | "FIXING ONE LAST TEST"
+  | "PR #404"
+  | "REBASE REQUIRED";
+
+export type ReviewLabel =
+  | "APPROVAL REQUIRED"
+  | "REQUEST CHANGES"
+  | "NEEDS REBASE"
+  | "RUN COMMAND?";
+
+export type ProjectileLabel = LogLabel | ReviewLabel;
+export type HazardLabel = "CONTEXT MAX!" | "MERGE CONFLICT";
+
+export interface RectangleHitbox {
+  width: number;
+  height: number;
+}
 
 export interface PlayerState {
   position: Vec2;
@@ -23,9 +52,10 @@ export interface PlayerState {
 export interface ProjectileState {
   id: number;
   kind: ProjectileKind;
+  label: ProjectileLabel;
   position: Vec2;
   velocity: Vec2;
-  radius: number;
+  hitbox: RectangleHitbox;
   speed: number;
   ageMs: number;
   telegraphRemainingMs: number;
@@ -34,19 +64,19 @@ export interface ProjectileState {
 export interface AreaHazardState {
   id: number;
   kind: HazardKind;
+  label: HazardLabel;
   position: Vec2;
-  radius: number;
+  hitbox: RectangleHitbox;
   axis: SweepAxis | null;
-  thickness: number;
   phase: HazardPhase;
   remainingMs: number;
 }
 
 export interface SpawnTimers {
-  tabMs: number;
-  popupMs: number;
-  memoryLeakMs: number;
-  contextSweepMs: number;
+  logMs: number;
+  reviewMs: number;
+  contextMaxMs: number;
+  mergeConflictMs: number;
 }
 
 export interface GameState {

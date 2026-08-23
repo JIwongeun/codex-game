@@ -208,11 +208,11 @@ export class GameScene extends Phaser.Scene {
 
     this.state.elapsedMs = Math.floor(requestedSeconds * 1_000);
     this.state.score = this.state.elapsedMs;
-    this.state.spawn.tabMs = Math.min(this.state.spawn.tabMs, 250);
-    this.state.spawn.popupMs = Math.min(this.state.spawn.popupMs, 350);
-    this.state.spawn.memoryLeakMs = Math.min(this.state.spawn.memoryLeakMs, 450);
-    this.state.spawn.contextSweepMs = Math.min(
-      this.state.spawn.contextSweepMs,
+    this.state.spawn.logMs = Math.min(this.state.spawn.logMs, 250);
+    this.state.spawn.reviewMs = Math.min(this.state.spawn.reviewMs, 350);
+    this.state.spawn.contextMaxMs = Math.min(this.state.spawn.contextMaxMs, 450);
+    this.state.spawn.mergeConflictMs = Math.min(
+      this.state.spawn.mergeConflictMs,
       550,
     );
   }

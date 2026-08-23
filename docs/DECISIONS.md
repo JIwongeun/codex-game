@@ -93,7 +93,7 @@
 ## D-012 — 브라우저 오류 페이지와 한 몸인 흑백 시각 언어를 사용한다
 
 - 날짜: 2026-08-23
-- 상태: 확정
+- 상태: 대체됨, D-019가 browser error page 대신 Codex task surface를 사용
 - 배경: 기존 네온 격자, 상단 상태 바, 패널형 overlay가 일반적인 게임 UI처럼 보여 “Codex를 기다리는 브라우저 안의 게임”이라는 콘셉트를 약하게 만들었다.
 - 결정: 웹페이지와 Canvas를 흰색으로 연결하고 격자, 프레임, 점수 게이지, 카드형 modal을 제거한다. 검정·회색을 기본으로 링크 파랑과 위험 빨강만 사용한다. 시작·결과 화면은 넓은 여백과 브라우저 오류 문구 같은 타이포그래피를 사용한다.
 - 결과: 시각 token은 `presentation/theme.ts`에 모으고 renderer와 HUD가 공유한다. 실제 제품 로고나 Chrome 공룡 캐릭터는 복제하지 않는다.
@@ -117,7 +117,7 @@
 ## D-015 — 흑백 기반 위에 공격별 digital accent와 Pretendard Variable을 사용한다
 
 - 날짜: 2026-08-23
-- 상태: 확정
+- 상태: 일부 대체됨, D-019가 accent color를 제거하고 Pretendard Variable 규칙은 유지
 - 배경: 흰 화면과 검정 타이포만 강조한 1차 UI는 둥글고 무채색인 일반 웹 UI처럼 보여 개발 도구·픽셀·digital 콘셉트가 약했다. 사용자는 흑백은 base일 뿐 전체 palette 제한이 아니며 font는 Pretendard Variable이어야 한다고 명확히 했다.
 - 결정: warm white와 black을 base로 유지하되 `TAB` blue, `POP-UP` amber, `MEMORY LEAK` violet, `CONTEXT OVERFLOW` red, running status green을 사용한다. rounded rectangle과 smooth ring을 square frame, pixel ring, stepped trail로 바꾼다. 모든 Phaser HUD/overlay와 DOM fallback font는 self-hosted `Pretendard Variable`로 통일한다.
 - 결과: `pretendard@1.3.9`를 production dependency로 고정하고 dynamic unicode subset CSS를 bundle한다. font license는 OFL-1.1이다. 게임은 font load가 끝난 뒤 boot해 Phaser text texture에도 같은 face가 적용되도록 한다.
@@ -141,7 +141,15 @@
 ## D-018 — 플레이어 입력을 WASD·방향키로 단순화한다
 
 - 날짜: 2026-08-23
-- 상태: 확정, D-013·D-016·D-017의 pointer 입력 결정을 대체
+- 상태: 일부 대체됨, 입력 결정은 유지하고 D-019가 cursor silhouette 표현을 task node로 변경
 - 배경: 실제 OS pointer와 custom cursor 외형, pause 중 pointer 위치, 재개 gate를 동시에 관리하면 브라우저별 동작과 exploit을 계속 조정해야 한다. 사용자는 pointer 조작 대신 WASD와 방향키 조작으로 전환해 입력을 단순화하기로 했다.
 - 결정: 실제 OS cursor는 게임 판정에서 제외하고 항상 기본 모양을 사용한다. 플레이어는 Canvas가 직접 그리는 검은 cursor silhouette이며 `WASD`와 방향키로 440px/s 고정 속도의 8방향 이동을 한다. 대각선 입력은 정규화하고 가속·관성은 두지 않는다. click·Space는 시작·재시작·pause 해제 action으로 유지하며 blur/hidden에서 held movement key를 초기화한다.
 - 결과: `InputIntent`는 pointer position 대신 direction vector를 전달하고 60Hz simulation이 delta time으로 player를 이동·경계 clamp한다. `GameCursor`와 pause resume gate를 제거해 OS cursor 상태와 gameplay 좌표가 완전히 분리된다.
+
+## D-019 — Codex task surface와 개발·vibe coding 공격 언어를 사용한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, D-012의 browser error page, D-015의 accent palette, D-018의 cursor silhouette 표현을 대체
+- 배경: browser tab, pop-up, memory leak 중심 표현은 Codex를 기다리는 게임이라는 핵심 콘셉트와 개발자 공감을 충분히 전달하지 못했다. 색상별 공격도 사용자가 요청한 strict black-and-white 방향과 맞지 않았다.
+- 결정: 전체 화면을 white, black, gray만 쓰는 가상 Codex task surface로 바꾼다. player는 로고와 무관한 `>_` task node다. 공격은 `log`, `review`, `context-max`, `merge-conflict` 네 판정 계열로 구성하고 고정 phrase bank에서 일반 개발과 Codex·vibe coding 패러디를 seed 기반으로 선택한다. `log`는 player 좌표를 전혀 읽지 않고 임의 edge-to-edge로 이동하며, `review`만 생성 순간 위치를 snapshot하고 재조준하지 않는다.
+- 결과: 색 대신 task chip, approval modal, context fill, conflict band의 실루엣과 outline·hatch·inverse 단계로 위험을 구분한다. 실제 workspace, Codex session, context, approval 상태는 읽지 않으며 Ready와 HUD에 fictional simulation임을 명시한다. 새 공격 다양성은 우선 네 계열 안의 label·경로·pattern 변형으로 확보하고 새로운 판정 규칙이 필요할 때만 kind를 추가한다.

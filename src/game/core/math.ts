@@ -1,4 +1,4 @@
-import type { Vec2 } from "./model";
+import type { RectangleHitbox, Vec2 } from "./model";
 
 const TAU = Math.PI * 2;
 
@@ -58,6 +58,31 @@ export function circlesOverlap(
 ): boolean {
   const combinedRadius = firstRadius + secondRadius;
   return distanceSquared(first, second) <= combinedRadius * combinedRadius;
+}
+
+export function circleOverlapsRectangle(
+  circleCenter: Vec2,
+  circleRadius: number,
+  rectangleCenter: Vec2,
+  rectangle: RectangleHitbox,
+): boolean {
+  const halfWidth = rectangle.width / 2;
+  const halfHeight = rectangle.height / 2;
+  const nearestX = clamp(
+    circleCenter.x,
+    rectangleCenter.x - halfWidth,
+    rectangleCenter.x + halfWidth,
+  );
+  const nearestY = clamp(
+    circleCenter.y,
+    rectangleCenter.y - halfHeight,
+    rectangleCenter.y + halfHeight,
+  );
+
+  return (
+    distanceSquared(circleCenter, { x: nearestX, y: nearestY }) <=
+    circleRadius * circleRadius
+  );
 }
 
 export function wrap(value: number, minimum: number, maximum: number): number {

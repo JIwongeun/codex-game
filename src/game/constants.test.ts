@@ -12,17 +12,19 @@ describe("game requirements", () => {
     expect(DEFAULT_GAME_HEIGHT).toBeGreaterThan(0);
   });
 
-  it("keeps the player hitbox smaller than attack silhouettes", () => {
-    expect(GAMEPLAY.playerRadius).toBeLessThan(GAMEPLAY.projectileRadius);
-    expect(GAMEPLAY.playerRadius).toBeLessThan(GAMEPLAY.popupRadius);
-    expect(GAMEPLAY.maxProjectiles).toBeGreaterThan(100);
+  it("keeps the player hitbox smaller than rectangular attack silhouettes", () => {
+    expect(GAMEPLAY.playerRadius * 2).toBeLessThan(GAMEPLAY.logHitboxHeight);
+    expect(GAMEPLAY.playerRadius * 2).toBeLessThan(
+      GAMEPLAY.reviewHitboxHeight,
+    );
+    expect(GAMEPLAY.maxProjectiles).toBe(28);
     expect(GAMEPLAY.playerSpeed).toBeGreaterThan(0);
   });
 
   it("telegraphs every projectile family before it becomes lethal", () => {
-    expect(GAMEPLAY.tabTelegraphMs).toBeGreaterThan(0);
-    expect(GAMEPLAY.popupTelegraphMs).toBeGreaterThan(
-      GAMEPLAY.tabTelegraphMs,
+    expect(GAMEPLAY.logTelegraphMs).toBeGreaterThan(0);
+    expect(GAMEPLAY.reviewTelegraphMs).toBeGreaterThan(
+      GAMEPLAY.logTelegraphMs,
     );
   });
 });

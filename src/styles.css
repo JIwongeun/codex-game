@@ -1,6 +1,6 @@
 :root {
-  color: #202124;
-  background: #fbfbf8;
+  color: #171717;
+  background: #fff;
   font-family:
     "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
@@ -24,7 +24,7 @@ body,
 }
 
 body {
-  background: #fbfbf8;
+  background: #fff;
 }
 
 #app,
@@ -54,9 +54,9 @@ body {
   display: grid;
   place-items: center;
   pointer-events: none;
-  background: rgb(251 251 248 / 16%);
-  backdrop-filter: blur(7px) saturate(0.7);
-  -webkit-backdrop-filter: blur(7px) saturate(0.7);
+  background: rgb(255 255 255 / 16%);
+  backdrop-filter: blur(7px) grayscale(1);
+  -webkit-backdrop-filter: blur(7px) grayscale(1);
 }
 
 .pause-overlay[hidden] {
@@ -75,22 +75,23 @@ body {
 }
 
 .pause-overlay__title {
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  font-weight: 760;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-weight: 720;
+  letter-spacing: -0.035em;
 }
 
 .pause-overlay__time {
-  margin-top: 10px;
-  font-size: 0.875rem;
-  font-weight: 590;
-  letter-spacing: 0.08em;
+  margin-top: 12px;
+  color: #686868;
+  font-size: 0.75rem;
+  font-weight: 580;
+  letter-spacing: 0.075em;
 }
 
 .pause-overlay__action {
-  margin-top: 32px;
-  color: #1677ff;
+  margin-top: 36px;
+  color: #171717;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.065em;
 }

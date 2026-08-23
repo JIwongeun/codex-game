@@ -19,10 +19,10 @@ function playingState(seed = 1, width = 1280, height = 720): GameState {
   const state = createGameState(seed, width, height);
   startRun(state);
   state.spawn = {
-    tabMs: 1_000_000,
-    popupMs: 1_000_000,
-    memoryLeakMs: 1_000_000,
-    contextSweepMs: 1_000_000,
+    logMs: 1_000_000,
+    reviewMs: 1_000_000,
+    contextMaxMs: 1_000_000,
+    mergeConflictMs: 1_000_000,
   };
   return state;
 }
@@ -33,10 +33,14 @@ function projectile(
 ): ProjectileState {
   return {
     id: 100,
-    kind: "tab",
+    kind: "log",
+    label: "CI: FAILED",
     position: { ...state.player.position },
     velocity: { x: 1, y: 0 },
-    radius: GAMEPLAY.projectileRadius,
+    hitbox: {
+      width: GAMEPLAY.logHitboxMinWidth,
+      height: GAMEPLAY.logHitboxHeight,
+    },
     speed: 0,
     ageMs: 0,
     telegraphRemainingMs: 0,
@@ -50,11 +54,11 @@ function hazard(
 ): AreaHazardState {
   return {
     id: 200,
-    kind: "memory-leak",
+    kind: "context-max",
+    label: "CONTEXT MAX!",
     position: { ...state.player.position },
-    radius: 90,
+    hitbox: { width: 180, height: 180 },
     axis: null,
-    thickness: 0,
     phase: "telegraph",
     remainingMs: FIXED_STEP_MS * 2,
     ...overrides,
@@ -96,6 +100,135 @@ describe("survival simulation", () => {
     expect(first).toEqual(second);
   });
 
+  it("spawns log paths independently from the player position", () => {
+    const first = playingState(9, 800, 600);
+    const second = playingState(9, 800, 600);
+    first.player.position = { x: 100, y: 120 };
+    second.player.position = { x: 700, y: 480 };
+    first.spawn.logMs = 0;
+    second.spawn.logMs = 0;
+
+    stepGame(first, EMPTY_INPUT, FIXED_STEP_MS);
+    stepGame(second, EMPTY_INPUT, FIXED_STEP_MS);
+
+    expect(first.projectiles).toEqual(second.projectiles);
+    expect(first.rngState).toBe(second.rngState);
+
+    const spawned = first.projectiles[0];
+    expect(spawned?.kind).toBe("log");
+    if (!spawned) {
+      throw new Error("expected a log projectile");
+    }
+
+    const crossesViewport =
+      (spawned.position.x < 0 && spawned.velocity.x > 0) ||
+      (spawned.position.x > first.arena.width && spawned.velocity.x < 0) ||
+      (spawned.position.y < 0 && spawned.velocity.y > 0) ||
+      (spawned.position.y > first.arena.height && spawned.velocity.y < 0);
+    expect(crossesViewport).toBe(true);
+
+    const initialVelocity = { ...spawned.velocity };
+    first.player.position = { x: 400, y: 300 };
+    stepGame(first, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(spawned.velocity).toEqual(initialVelocity);
+  });
+
+  it("locks a review path to the spawn-time player snapshot", () => {
+    const state = playingState(17, 800, 600);
+    state.elapsedMs = GAMEPLAY.reviewFirstSpawnMs;
+    state.player.position = { x: 190, y: 430 };
+    state.spawn.reviewMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    const spawned = state.projectiles.find(
+      (candidate) => candidate.kind === "review",
+    );
+    expect(spawned).toBeDefined();
+    if (!spawned) {
+      throw new Error("expected a review projectile");
+    }
+
+    const snapshotDirection = {
+      x: state.player.position.x - spawned.position.x,
+      y: state.player.position.y - spawned.position.y,
+    };
+    const crossProduct =
+      snapshotDirection.x * spawned.velocity.y -
+      snapshotDirection.y * spawned.velocity.x;
+    expect(crossProduct).toBeCloseTo(0);
+
+    const initialVelocity = { ...spawned.velocity };
+    state.player.position = { x: 760, y: 40 };
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(spawned.velocity).toEqual(initialVelocity);
+    expect(spawned.hitbox.width).toBeGreaterThanOrEqual(
+      GAMEPLAY.reviewHitboxMinWidth,
+    );
+    expect(spawned.hitbox.width).toBeLessThanOrEqual(
+      GAMEPLAY.reviewHitboxMaxWidth,
+    );
+  });
+
+  it("selects seeded parody labels with bounded label-sized hitboxes", () => {
+    const logLabels = new Set<string>();
+    const reviewLabels = new Set<string>();
+
+    for (let seed = 1; seed <= 512; seed += 1) {
+      const state = playingState(seed, 800, 600);
+      state.elapsedMs = GAMEPLAY.reviewFirstSpawnMs;
+      state.spawn.logMs = 0;
+      state.spawn.reviewMs = 0;
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      for (const candidate of state.projectiles) {
+        if (candidate.kind === "log") {
+          logLabels.add(candidate.label);
+          expect(candidate.hitbox.width).toBeGreaterThanOrEqual(
+            GAMEPLAY.logHitboxMinWidth,
+          );
+          expect(candidate.hitbox.width).toBeLessThanOrEqual(
+            GAMEPLAY.logHitboxMaxWidth,
+          );
+        } else {
+          reviewLabels.add(candidate.label);
+          expect(candidate.hitbox.width).toBeGreaterThanOrEqual(
+            GAMEPLAY.reviewHitboxMinWidth,
+          );
+          expect(candidate.hitbox.width).toBeLessThanOrEqual(
+            GAMEPLAY.reviewHitboxMaxWidth,
+          );
+        }
+      }
+    }
+
+    expect(logLabels).toEqual(
+      new Set([
+        "+ ONE MORE CHANGE",
+        "TESTS STILL RUNNING...",
+        "TOOL RETRY 3/3",
+        "WORKING TREE DIRTY",
+        "GIT COMMIT --AMEND",
+        "CI: FAILED",
+        "TS2322",
+        "CONTEXT LEFT: 12%",
+        "READING AGENTS.MD",
+        "CHECKING WORKSPACE...",
+        "FIXING ONE LAST TEST",
+        "PR #404",
+        "REBASE REQUIRED",
+      ]),
+    );
+    expect(reviewLabels).toEqual(
+      new Set([
+        "APPROVAL REQUIRED",
+        "REQUEST CHANGES",
+        "NEEDS REBASE",
+        "RUN COMMAND?",
+      ]),
+    );
+  });
+
   it("moves at a fixed speed, normalizes diagonals, and clamps at viewport edges", () => {
     const state = playingState(1, 800, 600);
 
@@ -124,15 +257,15 @@ describe("survival simulation", () => {
     state.hazards = [
       hazard(state, {
         position: { x: 1_100, y: 650 },
-        radius: 140,
+        hitbox: { width: 280, height: 280 },
       }),
       hazard(state, {
         id: 201,
-        kind: "context-sweep",
+        kind: "merge-conflict",
+        label: "MERGE CONFLICT",
         position: { x: 1_100, y: 360 },
-        radius: 0,
         axis: "vertical",
-        thickness: 150,
+        hitbox: { width: 150, height: 720 },
       }),
     ];
 
@@ -146,9 +279,10 @@ describe("survival simulation", () => {
       640 - GAMEPLAY.playerRadius,
     );
     expect(state.hazards[0]!.position.x).toBeLessThanOrEqual(
-      375 - state.hazards[0]!.radius,
+      375 - state.hazards[0]!.hitbox.width / 2,
     );
     expect(state.hazards[1]!.position.x).toBeLessThanOrEqual(375);
+    expect(state.hazards[1]!.hitbox.height).toBe(640);
   });
 
   it("does not move without keyboard input", () => {
@@ -167,21 +301,25 @@ describe("survival simulation", () => {
     const events = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
 
     expect(state.phase).toBe("results");
-    expect(state.lastHitSource).toBe("tab");
-    expect(events).toContainEqual({ type: "player-hit", source: "tab" });
+    expect(state.lastHitSource).toBe("log");
+    expect(events).toContainEqual({ type: "player-hit", source: "log" });
     expect(events.at(-1)).toEqual({
       type: "run-ended",
       finalScore: state.score,
-      source: "tab",
+      source: "log",
     });
   });
 
-  it("keeps a pop-up harmless while telegraphing, then makes it lethal", () => {
+  it("keeps a review harmless while telegraphing, then makes it lethal", () => {
     const state = playingState();
     state.projectiles = [
       projectile(state, {
-        kind: "popup",
-        radius: GAMEPLAY.popupRadius,
+        kind: "review",
+        label: "APPROVAL REQUIRED",
+        hitbox: {
+          width: GAMEPLAY.reviewHitboxMinWidth,
+          height: GAMEPLAY.reviewHitboxHeight,
+        },
         telegraphRemainingMs: FIXED_STEP_MS * 2,
       }),
     ];
@@ -190,10 +328,10 @@ describe("survival simulation", () => {
     expect(state.phase).toBe("playing");
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(state.phase).toBe("results");
-    expect(state.lastHitSource).toBe("popup");
+    expect(state.lastHitSource).toBe("review");
   });
 
-  it("makes a memory leak lethal only after its warning expires", () => {
+  it("makes context max lethal only after its warning expires", () => {
     const state = playingState();
     state.hazards = [hazard(state)];
 
@@ -203,21 +341,24 @@ describe("survival simulation", () => {
 
     expect(events).toContainEqual({
       type: "hazard-activated",
-      kind: "memory-leak",
+      kind: "context-max",
     });
     expect(state.phase).toBe("results");
-    expect(state.lastHitSource).toBe("memory-leak");
+    expect(state.lastHitSource).toBe("context-max");
   });
 
-  it("detects active horizontal and vertical context sweep bands", () => {
+  it("detects active horizontal and vertical merge conflict bands", () => {
     for (const axis of ["horizontal", "vertical"] as const) {
       const state = playingState();
       state.hazards = [
         hazard(state, {
-          kind: "context-sweep",
-          radius: 0,
+          kind: "merge-conflict",
+          label: "MERGE CONFLICT",
           axis,
-          thickness: 100,
+          hitbox:
+            axis === "horizontal"
+              ? { width: state.arena.width, height: 100 }
+              : { width: 100, height: state.arena.height },
           phase: "active",
           remainingMs: 1_000,
         }),
@@ -225,18 +366,18 @@ describe("survival simulation", () => {
 
       stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
       expect(state.phase).toBe("results");
-      expect(state.lastHitSource).toBe("context-sweep");
+      expect(state.lastHitSource).toBe("merge-conflict");
     }
   });
 
   it("spawns every attack family after the late-game threshold", () => {
     const state = playingState(77, 900, 600);
-    state.elapsedMs = GAMEPLAY.contextSweepFirstSpawnMs;
+    state.elapsedMs = GAMEPLAY.mergeConflictFirstSpawnMs;
     state.spawn = {
-      tabMs: 0,
-      popupMs: 0,
-      memoryLeakMs: 0,
-      contextSweepMs: 0,
+      logMs: 0,
+      reviewMs: 0,
+      contextMaxMs: 0,
+      mergeConflictMs: 0,
     };
 
     const events = stepGame(
@@ -245,17 +386,17 @@ describe("survival simulation", () => {
       FIXED_STEP_MS,
     );
 
-    expect(state.projectiles.some((candidate) => candidate.kind === "tab")).toBe(
-      true,
-    );
-    expect(state.projectiles.some((candidate) => candidate.kind === "popup")).toBe(
-      true,
-    );
-    expect(state.hazards.some((candidate) => candidate.kind === "memory-leak")).toBe(
+    expect(state.projectiles.some((candidate) => candidate.kind === "log")).toBe(
       true,
     );
     expect(
-      state.hazards.some((candidate) => candidate.kind === "context-sweep"),
+      state.projectiles.some((candidate) => candidate.kind === "review"),
+    ).toBe(true);
+    expect(state.hazards.some((candidate) => candidate.kind === "context-max")).toBe(
+      true,
+    );
+    expect(
+      state.hazards.some((candidate) => candidate.kind === "merge-conflict"),
     ).toBe(true);
     expect(events.filter((event) => event.type === "hazard-warning")).toHaveLength(
       2,
