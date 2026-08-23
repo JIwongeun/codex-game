@@ -14,7 +14,8 @@
 
 - terminal prompt 결합과 나머지 syntax role을 presentation unit test로 고정
 - `pnpm check`: TypeScript typecheck, Vitest 12 files의 65 tests, Worker/client build와 production verifier 통과
-- production 배포 후 실제 응답과 bundle 반영은 별도로 확인 예정
+- Sites version 23 배포 후 root·새 hashed CSS·JavaScript가 HTTP 200으로 응답하고 opacity `0.16`과 terminal prompt token 결합이 bundle에 포함됨을 확인
+- 배포 직후 최근 production Worker 오류 로그 0건 확인
 
 ## 2026-08-24 — 첫 HTML favicon 404 제거
 
