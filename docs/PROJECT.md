@@ -62,7 +62,7 @@
 
 1. Stage 1 `TOOL CALL STREAM` — player 좌표와 무관하며 방향선도 없는 terminal·browser·Codex 작업 탄막
 2. Stage 2 `APPROVAL REQUIRED` — full access·sandbox·network 승인이 생성 순간 player 위치를 snapshot해 고정 조준
-3. Stage 3 `CONTEXT COMPACTION` — 지정 지점의 context frame이 안으로 압축된 뒤 `SUMMARY LOST` 영역 활성화
+3. Stage 3 `CONTEXT COMPACTION` — 넓은 context frame의 문장 조각이 중심으로 압축되고, 실패 순간 12–20개 token 파편이 사방으로 폭발
 4. Stage 4 `RETRY LOOP` — 같은 snapshot을 향한 3–5회 시간차 반복
 5. Stage 5 `REASONING: XHIGH` — 긴 thinking 예고 뒤 snapshot으로 발사되는 단발 초고속 응답
 6. Stage 6 `PARALLEL AGENTS` — 여러 agent가 반대편에서 같은 snapshot을 동시에 교차

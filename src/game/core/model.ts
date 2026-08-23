@@ -12,6 +12,7 @@ export type GamePhase = "ready" | "playing" | "results";
 export type ProjectileKind =
   | "tool-call"
   | "approval"
+  | "context-token"
   | "retry"
   | "reasoning"
   | "agent"
@@ -29,7 +30,7 @@ export type AttackPatternKind =
   | "parallel-agents"
   | "review-fix-loop"
   | "usage-limit";
-export type HitSource = ProjectileKind | HazardKind;
+export type HitSource = ProjectileKind;
 export type AttackSurface = "terminal" | "browser" | "codex";
 
 export type ToolCallLabel =
@@ -82,7 +83,7 @@ export type SequenceResultLabel =
   | "RESETS IN 4 DAYS";
 
 export type ProjectileLabel = ToolCallLabel | ApprovalLabel | string;
-export type HazardLabel = "CONTEXT COMPACTED";
+export type HazardLabel = "CONTEXT COMPACTION";
 
 export interface RectangleHitbox {
   width: number;
@@ -166,7 +167,7 @@ export interface InputIntent {
 export type GameEvent =
   | { type: "run-started" }
   | { type: "hazard-warning"; kind: HazardKind }
-  | { type: "hazard-activated"; kind: HazardKind }
+  | { type: "hazard-activated"; kind: HazardKind; position: Vec2 }
   | {
       type: "pattern-warning";
       kind:

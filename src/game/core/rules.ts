@@ -12,6 +12,8 @@ export interface Difficulty {
   compactionIntervalMs: number;
   compactionCount: number;
   compactionSize: number;
+  compactionFragmentCount: number;
+  compactionFragmentSpeed: number;
   retryLoopIntervalMs: number;
   retryLoopCount: number;
   reasoningIntervalMs: number;
@@ -57,7 +59,13 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     approvalSpeed: lerp(470, 740, progress),
     compactionIntervalMs: lerp(8_400, 4_200, progress),
     compactionCount: stage >= 10 ? 3 : stage >= 8 ? 2 : 1,
-    compactionSize: lerp(170, 250, progress),
+    compactionSize: lerp(
+      GAMEPLAY.compactionStartSize,
+      GAMEPLAY.compactionEndSize,
+      progress,
+    ),
+    compactionFragmentCount: stage >= 10 ? 20 : stage >= 8 ? 16 : 12,
+    compactionFragmentSpeed: lerp(300, 520, progress),
     retryLoopIntervalMs: lerp(9_800, 4_800, progress),
     retryLoopCount: stage >= 9 ? 5 : stage >= 6 ? 4 : 3,
     reasoningIntervalMs: lerp(11_500, 5_800, progress),

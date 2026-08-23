@@ -5,7 +5,6 @@ import {
 } from "../constants";
 import {
   circleOverlapsOrientedRectangle,
-  circleOverlapsRectangle,
   directionBetween,
   normalize,
 } from "./math";
@@ -85,6 +84,16 @@ const USAGE_LIMIT_RESULTS: readonly SequenceResultLabel[] = [
   "WEEKLY LIMIT REACHED",
   "RESETS IN 4 DAYS",
 ];
+const CONTEXT_TOKEN_LABELS = [
+  "[tok] src/",
+  "[tok] diff",
+  "[tok] plan",
+  "[tok] fix",
+  "[tok] 128t",
+  "[tok] {...}",
+  "[tok] =>",
+  "[tok] lost",
+] as const;
 
 export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
 
@@ -312,7 +321,18 @@ function updateHazards(
       hazard.phase = "active";
       hazard.remainingMs = GAMEPLAY.compactionActiveMs;
       survivors.push(hazard);
-      events.push({ type: "hazard-activated", kind: hazard.kind });
+      const difficulty = difficultyAt(state.elapsedMs);
+      spawnContextTokens(
+        state,
+        hazard.position,
+        difficulty.compactionFragmentCount,
+        difficulty.compactionFragmentSpeed,
+      );
+      events.push({
+        type: "hazard-activated",
+        kind: hazard.kind,
+        position: { ...hazard.position },
+      });
     } else {
       state.hazardsSurvived += 1;
     }
@@ -776,6 +796,49 @@ function spawnRadialProjectiles(
   }
 }
 
+function spawnContextTokens(
+  state: GameState,
+  center: Vec2,
+  count: number,
+  speed: number,
+): void {
+  const available = Math.min(
+    count,
+    GAMEPLAY.maxProjectiles - state.projectiles.length,
+  );
+  if (available <= 0) {
+    return;
+  }
+
+  const phase = randomBetween(state, 0, Math.PI * 2);
+  for (let index = 0; index < available; index += 1) {
+    const angle = phase + (Math.PI * 2 * index) / available;
+    const direction = { x: Math.cos(angle), y: Math.sin(angle) };
+    const position = {
+      x: center.x + direction.x * GAMEPLAY.contextTokenBurstRadius,
+      y: center.y + direction.y * GAMEPLAY.contextTokenBurstRadius,
+    };
+    const target = {
+      x: position.x + direction.x * 100,
+      y: position.y + direction.y * 100,
+    };
+    addProjectile(
+      state,
+      "context-token",
+      "codex",
+      CONTEXT_TOKEN_LABELS[index % CONTEXT_TOKEN_LABELS.length]!,
+      position,
+      target,
+      {
+        width: GAMEPLAY.contextTokenHitboxWidth,
+        height: GAMEPLAY.contextTokenHitboxHeight,
+      },
+      speed,
+      0,
+    );
+  }
+}
+
 function addProjectile(
   state: GameState,
   kind: ProjectileKind,
@@ -876,7 +939,7 @@ function spawnCompaction(
   state.hazards.push({
     id: takeEntityId(state),
     kind: "compaction",
-    label: "CONTEXT COMPACTED",
+    label: "CONTEXT COMPACTION",
     position,
     hitbox,
     phase: "telegraph",
@@ -893,7 +956,11 @@ function squareHitbox(size: number, arena: ArenaBounds): RectangleHitbox {
 function fitSquareSize(size: number, arena: ArenaBounds): number {
   return Math.max(
     1,
-    Math.min(size, Math.min(arena.width, arena.height) * 0.45),
+    Math.min(
+      size,
+      Math.min(arena.width, arena.height) *
+        GAMEPLAY.compactionMaxViewportRatio,
+    ),
   );
 }
 
@@ -941,23 +1008,6 @@ function findHitSource(state: GameState): HitSource | null {
       )
     ) {
       return projectile.kind;
-    }
-  }
-
-  for (const hazard of state.hazards) {
-    if (hazard.phase !== "active") {
-      continue;
-    }
-
-    if (
-      circleOverlapsRectangle(
-        state.player.position,
-        GAMEPLAY.playerRadius,
-        hazard.position,
-        hazard.hitbox,
-      )
-    ) {
-      return hazard.kind;
     }
   }
 

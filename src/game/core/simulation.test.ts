@@ -61,7 +61,7 @@ function hazard(
   return {
     id: 200,
     kind: "compaction",
-    label: "CONTEXT COMPACTED",
+    label: "CONTEXT COMPACTION",
     position: { ...state.player.position },
     hitbox: { width: 180, height: 180 },
     phase: "telegraph",
@@ -426,9 +426,11 @@ describe("survival simulation", () => {
     expect(state.lastHitSource).toBe("approval");
   });
 
-  it("makes context compaction lethal only after its warning expires", () => {
+  it("bursts context tokens instead of turning the full frame lethal", () => {
     const state = playingState();
     state.hazards = [hazard(state)];
+    state.player.position.x += 80;
+    state.player.position.y += 80;
 
     expect(stepGame(state, EMPTY_INPUT, FIXED_STEP_MS)).toEqual([]);
     expect(state.phase).toBe("playing");
@@ -437,9 +439,38 @@ describe("survival simulation", () => {
     expect(events).toContainEqual({
       type: "hazard-activated",
       kind: "compaction",
+      position: { x: 640, y: 360 },
     });
-    expect(state.phase).toBe("results");
-    expect(state.lastHitSource).toBe("compaction");
+    expect(
+      state.projectiles.filter(
+        (candidate) => candidate.kind === "context-token",
+      ),
+    ).toHaveLength(12);
+    expect(
+      state.projectiles.every((candidate) => candidate.surface === "codex"),
+    ).toBe(true);
+    expect(state.phase).toBe("playing");
+    expect(state.lastHitSource).toBeNull();
+  });
+
+  it("fits the enlarged context compaction to a small viewport", () => {
+    const state = playingState(17, 375, 640);
+    state.elapsedMs = GAMEPLAY.difficultyRampMs;
+    state.spawn.compactionMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    expect(state.hazards).toHaveLength(3);
+    for (const compaction of state.hazards) {
+      expect(compaction.hitbox.width).toBe(375 * 0.675);
+      expect(compaction.hitbox.height).toBe(375 * 0.675);
+      expect(compaction.position.x).toBeGreaterThanOrEqual(
+        compaction.hitbox.width / 2,
+      );
+      expect(compaction.position.x).toBeLessThanOrEqual(
+        state.arena.width - compaction.hitbox.width / 2,
+      );
+    }
   });
 
   it("matches projectile collision to its rotated text silhouette", () => {

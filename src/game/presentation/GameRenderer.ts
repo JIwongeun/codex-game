@@ -38,7 +38,6 @@ interface RichLabelStyle {
   fontSize: number;
   fontStyle: string;
   letterSpacing?: number;
-  colorOverride?: string;
 }
 
 function directionBetweenPoints(from: Vec2, to: Vec2): Vec2 {
@@ -71,7 +70,7 @@ export class GameRenderer {
   consume(events: readonly GameEvent[], state: GameState): void {
     for (const event of events) {
       if (event.type === "hazard-activated") {
-        this.addBurst(state.player.position, 7, state.elapsedMs);
+        this.addBurst(event.position, 28, state.elapsedMs);
       } else if (event.type === "pattern-burst") {
         this.addBurst(
           event.position,
@@ -138,53 +137,126 @@ export class GameRenderer {
           0,
           1,
         );
+    const tone = ATTACK_TONES.codex.value;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
 
-    this.world.fillStyle(
-      ATTACK_TONES.codex.value,
-      active ? 0.94 : 0.02 + progress * 0.035,
-    );
+    this.world.fillStyle(COLORS.ink, active ? 0.008 : 0.012 + progress * 0.012);
     this.world.fillRect(x, y, width, height);
 
     if (!active) {
-      this.drawCornerBrackets(
-        x,
-        y,
-        width,
-        height,
-        ATTACK_TONES.codex.value,
-        0.9,
-        18,
-      );
-      this.world.fillStyle(ATTACK_TONES.codex.value, 0.82);
-      this.world.fillRect(x, y - 2, width * progress, 2);
-      this.world.fillStyle(
-        ATTACK_TONES.codex.value,
-        0.14 + progress * 0.38,
-      );
-      this.world.fillRect(x, y + height * progress - 1, width, 1);
+      this.world.lineStyle(1, tone, 0.22 + progress * 0.26);
+      this.world.strokeRect(x, y, width, height);
+      this.drawCornerBrackets(x, y, width, height, tone, 0.86, 16);
+
+      const compression = Phaser.Math.Easing.Quadratic.In(progress);
 
       for (let index = 0; index < 5; index += 1) {
-        const inset = 8 + index * 9 + progress * 7;
-        if (width - inset * 2 <= 0 || height - inset * 2 <= 0) {
-          break;
-        }
+        const startInset = 12 + index * 12;
+        const startWidth = Math.max(12, width - startInset * 2);
+        const startHeight = Math.max(12, height - startInset * 2);
+        const frameWidth = Phaser.Math.Linear(
+          startWidth,
+          10 + index * 3,
+          compression,
+        );
+        const frameHeight = Phaser.Math.Linear(
+          startHeight,
+          10 + index * 3,
+          compression,
+        );
         this.world.lineStyle(
           1,
-          ATTACK_TONES.codex.value,
-          0.08 + progress * 0.12,
+          index % 2 === 0 ? tone : COLORS.muted,
+          0.12 + progress * 0.24,
         );
         this.world.strokeRect(
-          x + inset,
-          y + inset,
-          width - inset * 2,
-          height - inset * 2,
+          centerX - frameWidth / 2,
+          centerY - frameHeight / 2,
+          frameWidth,
+          frameHeight,
         );
       }
+
+      for (let index = 0; index < 7; index += 1) {
+        const lane = (index + 1) / 8;
+        const startX = centerX + ((index % 3) - 1) * width * 0.16;
+        const startY = y + height * lane;
+        const lineCenterX = Phaser.Math.Linear(startX, centerX, compression);
+        const lineY = Phaser.Math.Linear(
+          startY,
+          centerY + (index - 3) * 2,
+          compression,
+        );
+        const lineWidth = Phaser.Math.Linear(
+          width * (0.13 + (index % 3) * 0.035),
+          3 + (index % 2) * 2,
+          compression,
+        );
+        this.world.fillStyle(
+          index % 3 === 0 ? tone : COLORS.muted,
+          0.16 + progress * 0.28,
+        );
+        this.world.fillRect(
+          Math.round(lineCenterX - lineWidth / 2),
+          Math.round(lineY),
+          Math.max(2, Math.round(lineWidth)),
+          index % 3 === 0 ? 2 : 1,
+        );
+      }
+
+      const coreSize = 3 + Math.round(progress * 5);
+      this.world.fillStyle(tone, 0.52 + progress * 0.4);
+      this.world.fillRect(
+        Math.round(centerX - coreSize / 2),
+        Math.round(centerY - coreSize / 2),
+        coreSize,
+        coreSize,
+      );
       return;
     }
 
-    this.drawCornerBrackets(x, y, width, height, COLORS.surface, 0.9, 20);
-    this.drawHatchRect(x, y, width, height, 13, COLORS.surface, 0.2);
+    const burstProgress = Phaser.Math.Clamp(
+      1 - hazard.remainingMs / GAMEPLAY.compactionActiveMs,
+      0,
+      1,
+    );
+    const frameFade = 1 - burstProgress;
+    this.drawCornerBrackets(
+      x,
+      y,
+      width,
+      height,
+      tone,
+      0.18 + frameFade * 0.46,
+      20,
+    );
+
+    for (let index = 0; index < 3; index += 1) {
+      const ringProgress = Phaser.Math.Clamp(
+        burstProgress * 1.25 - index * 0.12,
+        0,
+        1,
+      );
+      const ringWidth = Phaser.Math.Linear(8, width * 1.08, ringProgress);
+      const ringHeight = Phaser.Math.Linear(8, height * 1.08, ringProgress);
+      this.world.lineStyle(1, tone, (1 - ringProgress) * 0.64);
+      this.world.strokeRect(
+        centerX - ringWidth / 2,
+        centerY - ringHeight / 2,
+        ringWidth,
+        ringHeight,
+      );
+    }
+
+    const failedCoreSize = Math.max(2, Math.round(10 * frameFade));
+    this.world.fillStyle(COLORS.ink, 0.92 * frameFade);
+    this.world.fillRect(
+      Math.round(centerX - failedCoreSize / 2),
+      Math.round(centerY - failedCoreSize / 2),
+      failedCoreSize,
+      failedCoreSize,
+    );
   }
 
   private drawProjectiles(state: GameState): void {
@@ -211,15 +283,17 @@ export class GameRenderer {
       }
 
       const length =
-        projectile.kind === "approval" || projectile.kind === "agent"
-          ? 28
-          : projectile.kind === "retry"
-            ? 24
-            : projectile.kind === "finding" || projectile.kind === "limit"
-              ? 14
-              : projectile.kind === "reasoning"
-                ? 28
-              : 20;
+        projectile.kind === "context-token"
+          ? 10
+          : projectile.kind === "approval" || projectile.kind === "agent"
+            ? 28
+            : projectile.kind === "retry"
+              ? 24
+              : projectile.kind === "finding" || projectile.kind === "limit"
+                ? 14
+                : projectile.kind === "reasoning"
+                  ? 28
+                  : 20;
       const alpha = projectile.kind === "limit" ? 0.48 : 0.28;
       this.drawMotionRail(projectile, length, alpha);
     }
@@ -344,8 +418,9 @@ export class GameRenderer {
             )
           : 1;
       const text = active
-        ? "[context] SUMMARY LOST"
-        : `[context] compacting ${Math.round(progress * 100)}%`;
+        ? "[context] COMPACTION FAILED"
+        : `[context] compacting · ${Math.round(progress * 100)}%`;
+      const rect = this.hazardRect(hazard);
 
       this.updateRichLabel(view, {
         surface: "codex",
@@ -353,12 +428,14 @@ export class GameRenderer {
         fontFamily: FONTS.sans,
         fontSize: 11,
         fontStyle: "500",
-        colorOverride: active ? TEXT_COLORS.surface : undefined,
       });
       view.container
-        .setPosition(Math.round(hazard.position.x), Math.round(hazard.position.y))
+        .setPosition(
+          Math.round(rect.x + 10),
+          Math.round(rect.y + rect.height - 16),
+        )
         .setRotation(0)
-        .setAlpha(active ? 1 : 0.9)
+        .setAlpha(active ? 1 : 0.82 + progress * 0.18)
         .setVisible(true);
     }
 
@@ -449,7 +526,6 @@ export class GameRenderer {
       style.fontSize,
       style.fontStyle,
       style.letterSpacing ?? 0,
-      style.colorOverride ?? "",
     ].join("|");
     if (view.signature === signature) {
       return;
@@ -461,7 +537,7 @@ export class GameRenderer {
     const pieces = tokens.map((part) =>
       this.scene.add
         .text(0, 0, part.text, {
-          color: style.colorOverride ?? attackTextColor(part.role),
+          color: attackTextColor(part.role),
           fontFamily: style.fontFamily,
           fontSize: `${style.fontSize}px`,
           fontStyle: style.fontStyle,
@@ -490,6 +566,9 @@ export class GameRenderer {
   private projectileFontSize(projectile: ProjectileState): number {
     if (projectile.kind === "approval" || projectile.kind === "reasoning") {
       return 11;
+    }
+    if (projectile.kind === "context-token") {
+      return 9;
     }
     if (projectile.kind === "retry" || projectile.kind === "agent") {
       return 10;
@@ -677,30 +756,6 @@ export class GameRenderer {
     this.world.lineBetween(x, y + height, x, y + height - size);
     this.world.lineBetween(x + width, y + height, x + width - size, y + height);
     this.world.lineBetween(x + width, y + height, x + width, y + height - size);
-  }
-
-  private drawHatchRect(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    spacing: number,
-    color: number,
-    alpha: number,
-  ): void {
-    this.world.lineStyle(1, color, alpha);
-    for (let diagonal = 0; diagonal <= width + height; diagonal += spacing) {
-      const startX = Math.max(0, diagonal - height);
-      const startY = diagonal - startX;
-      const endX = Math.min(width, diagonal);
-      const endY = diagonal - endX;
-      this.world.lineBetween(
-        x + startX,
-        y + startY,
-        x + endX,
-        y + endY,
-      );
-    }
   }
 
   private hazardRect(hazard: AreaHazardState): {

@@ -94,7 +94,7 @@ function pointOutsideViewport(
 const HIT_SOURCE_LABEL: Record<HitSource, string> = {
   "tool-call": "TOOL CALL",
   approval: "APPROVAL REQUIRED",
-  compaction: "CONTEXT COMPACTION",
+  "context-token": "LOST CONTEXT TOKEN",
   retry: "RETRY LOOP",
   reasoning: "XHIGH REASONING",
   agent: "PARALLEL AGENT",

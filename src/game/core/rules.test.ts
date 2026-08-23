@@ -28,6 +28,13 @@ describe("survival rules", () => {
     expect(cap.toolCallBurst).toBe(3);
     expect(start.compactionCount).toBe(1);
     expect(cap.compactionCount).toBe(3);
+    expect(start.compactionSize).toBe(255);
+    expect(cap.compactionSize).toBe(375);
+    expect(start.compactionFragmentCount).toBe(12);
+    expect(cap.compactionFragmentCount).toBe(20);
+    expect(start.compactionFragmentSpeed).toBeLessThan(
+      cap.compactionFragmentSpeed,
+    );
     expect(start.parallelAgentPairs).toBe(1);
     expect(cap.parallelAgentPairs).toBe(3);
     expect(cap.usageDrainCount).toBe(8);

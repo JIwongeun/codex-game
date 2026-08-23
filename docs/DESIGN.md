@@ -12,7 +12,7 @@
 
 - `APPROVAL REQUIRED`는 요청 시점의 player 위치를 snapshot하고 이후 재조준하지 않는다.
 - `RETRY`는 같은 snapshot과 같은 tool call을 시간차로 반복한다.
-- `CONTEXT COMPACTION`은 여러 context frame이 안으로 압축된 뒤 `SUMMARY LOST` 영역을 만든다.
+- `CONTEXT COMPACTION`은 넓은 frame 안의 context row를 한 점으로 압축한 뒤 실패하며 token 파편을 사방으로 잃어버린다.
 - `REASONING: XHIGH`는 긴 thinking 예고 뒤 한 번에 매우 빠르게 응답한다.
 - `PARALLEL AGENTS`는 같은 작업 지점을 화면 반대편에서 동시에 차지하려 한다.
 - `REVIEW / FIX LOOP`는 finding을 고친 직후 `ONE MORE ISSUE`를 전방위로 다시 만든다.
@@ -110,14 +110,31 @@
 |---|---|---|---|
 | Stage 1 | `TOOL CALL STREAM` | `$ rg --files -g AGENTS.md`, `[tool] rereading same file`, `ERR_*` 등 | player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge로 흐른다. 실제 작업 surface의 로그가 방향 예고 없이 화면을 가로지른다. |
 | Stage 2 | `APPROVAL REQUIRED` | `[approval] allow full access?`, `run outside sandbox?` 등 | 생성 순간 player 위치를 snapshot하고 짧은 점선 경로를 고정한 뒤 돌진한다. 승인 prompt를 피했더라도 같은 탄이 재조준하지 않는다. |
-| Stage 3 | `CONTEXT COMPACTION` | `[context] compacting 0–100%` → `SUMMARY LOST` | snapshot 지점의 정사각 frame이 안쪽으로 압축된 뒤 약 0.5초 활성화된다. 경고 중에는 무해하다. |
+| Stage 3 | `CONTEXT COMPACTION` | `[context] compacting 0–100%` → `COMPACTION FAILED` → `[tok] ...` | 기존 대비 가로·세로 1.5배인 snapshot frame 안에서 context row와 중첩 frame이 한 점으로 수축한다. 실패 순간 frame 전체가 장판으로 변하지 않고 12–20개의 짧은 token 파편이 방사형으로 폭발한다. |
 | Stage 4 | `RETRY LOOP` | `[tool] retry 1/3`, `2/3`, `3/3` | 같은 snapshot을 향해 260ms 간격으로 같은 tool call을 반복한다. 후반에는 최대 5회다. |
 | Stage 5 | `REASONING: XHIGH` | `[effort] xhigh · thinking...` | 일반 조준보다 두 배 이상 오래 멈춰 있다가 snapshot을 향해 단발 초고속으로 이동한다. 기다림과 갑작스러운 응답이 한 행동이다. |
 | Stage 6 | `PARALLEL AGENTS` | `[agent 1] working`, `[agent 2] working` | 같은 snapshot을 향해 화면 반대편 agent 두 개가 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
 | Stage 7 | `REVIEW / FIX LOOP` | 여러 `[review] Pn finding` → `[fix] ... reviewing again` → `ONE MORE ISSUE` | 네 finding이 한 지점으로 모이고, 수정 완료 순간 8–16개 새 issue가 원형 발산한다. 반복 review마다 새 문제를 찾는 경험을 행동으로 만든다. |
 | Stage 8 | `USAGE LIMIT` | 여러 `[usage] -N%` → `[usage] N% left` → `5H LIMIT REACHED`·`WEEKLY LIMIT REACHED`·`RESETS IN 4 DAYS` | 4–8개 usage 감소가 player snapshot으로 수렴하고, seed로 정해진 실제 limit 결말이 12–20개 탄으로 원형 발산한다. |
 
-`TOOL CALL`, `APPROVAL`, `RETRY`, `REASONING`, `AGENT`, `FINDING`, `LIMIT`은 각각 별도 projectile kind와 회전 사각 hitbox를 가진다. `COMPACTION`은 warning/active를 갖는 area hazard다. `REVIEW LOOP`와 `USAGE LIMIT`은 수렴 완료 시 projectile을 생성하는 sequence state다.
+`TOOL CALL`, `APPROVAL`, `CONTEXT TOKEN`, `RETRY`, `REASONING`, `AGENT`, `FINDING`, `LIMIT`은 각각 별도 projectile kind와 회전 사각 hitbox를 가진다. `COMPACTION` frame은 warning/failed visual state를 갖지만 큰 frame 자체는 치명 영역이 아니며, 실패 때 생성된 `CONTEXT TOKEN`이 실제 판정을 담당한다. `REVIEW LOOP`와 `USAGE LIMIT`은 수렴 완료 시 projectile을 생성하는 sequence state다.
+
+### 공격군 차별화 재설계 기준
+
+현재 구현은 이름이 여덟 개여도 직선 문구탄과 수렴 후 방사 탄에 지나치게 집중되어 있다. 아래 표는 속도·조준 여부가 아니라 플레이어에게 요구하는 회피 판단을 기준으로 한 교체 목표다. 이번 작업에서는 `CONTEXT COMPACTION`만 적용하며 나머지는 각 패턴을 하나씩 교체하면서 core test와 stage 조합을 갱신한다.
+
+| 패턴 | 고유 화면 문법 | 요구하는 회피 행동 | 상태 |
+|---|---|---|---|
+| `TOOL CALL STREAM` | 실제 작업 문구가 임의 edge를 계속 가로지르는 유일한 일반 text 탄막 | 작은 방향 전환으로 흐름 피하기 | 현재 baseline 유지 |
+| `APPROVAL REQUIRED` | snapshot 주변을 permission shutter가 닫고 `DENY` 쪽 한 틈만 남김 | 안전 틈을 고르고 일찍 진입 | 교체 예정 |
+| `CONTEXT COMPACTION` | 넓은 context frame과 row가 중심으로 수축한 뒤 token 조각으로 폭발 | frame에서 이탈한 뒤 파편 사이를 다시 회피 | 이번 작업 적용 |
+| `RETRY LOOP` | 하나의 고정 실행 경로를 terminal pulse가 같은 박자로 3–5회 재실행 | pulse 사이의 시간 틈 통과 | 교체 예정 |
+| `REASONING: XHIGH` | 긴 thinking arc가 회전하며 한 safe sector만 남기고 응답 wave로 전환 | safe sector 각도를 따라 이동 | 교체 예정 |
+| `PARALLEL AGENTS` | 여러 worktree window가 서로 다른 축에서 arena를 움직이는 통로로 분할 | 움직이는 corridor 사이를 따라가기 | 교체 예정 |
+| `REVIEW / FIX LOOP` | diff cell의 finding을 고치면 다음 pass에서 인접 cell이 새 위험으로 전환 | pass마다 안전 cell을 옮겨 타기 | 교체 예정 |
+| `USAGE LIMIT` | viewport 외곽 usage segment가 소진되며 세 벽이 닫히고 한 `RESET` window만 이동 | 닫히는 경계의 출구를 계속 추적 | 교체 예정 |
+
+문구를 지웠을 때 실루엣·타이밍·안전 공간이 같은 두 패턴은 같은 공격으로 간주하고 다시 설계한다. Stage 1–8은 새 회피 문법을 하나씩 학습시키고, Stage 9–10은 최대 세 종류의 고강도 패턴을 읽을 수 있는 예고 순서로 겹친다. 단순히 모든 timer를 동시에 울려 피할 수 없는 화면을 만드는 것은 난이도 상승으로 인정하지 않는다.
 
 ## 10단계 시간 곡선
 

@@ -153,7 +153,11 @@ describe("SoundService", () => {
     const events: readonly GameEvent[] = [
       { type: "pattern-warning", kind: "approval-required" },
       { type: "hazard-warning", kind: "compaction" },
-      { type: "hazard-activated", kind: "compaction" },
+      {
+        type: "hazard-activated",
+        kind: "compaction",
+        position: { x: 1, y: 1 },
+      },
       { type: "pattern-warning", kind: "retry-loop" },
       { type: "pattern-warning", kind: "reasoning-xhigh" },
       { type: "pattern-warning", kind: "parallel-agents" },
@@ -177,7 +181,13 @@ describe("SoundService", () => {
 
     sound.unlock();
     const context = FakeAudioContext.instances[0];
-    sound.consume([{ type: "hazard-activated", kind: "compaction" }]);
+    sound.consume([
+      {
+        type: "hazard-activated",
+        kind: "compaction",
+        position: { x: 1, y: 1 },
+      },
+    ]);
     expect(context?.oscillators.length).toBeGreaterThanOrEqual(4);
 
     const afterError = context?.oscillators.length ?? 0;

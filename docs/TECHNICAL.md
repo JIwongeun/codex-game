@@ -207,7 +207,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - Phaser `RESIZE`로 브라우저 viewport 전체를 논리 arena로 사용한다. resize 시 player와 범위 공격을 새 경계 안으로 clamp한다.
 - update에서 반복 생성되는 객체를 피한다.
 - 회전 text projectile은 최대 48개, context hazard와 convergence sequence는 각각 최대 4개로 명시적 상한을 둔다.
-- player 원과 projectile·hazard의 axis-aligned rectangle 교차로 보이는 문자 chip·범위와 판정을 맞춘다. 현재 상한에서는 공간 분할을 추가하지 않는다.
+- player 원과 회전 projectile rectangle의 교차로 보이는 token·문구와 판정을 맞춘다. compaction frame은 예고·실패 연출만 담당하고 실제 판정은 실패 순간 생성되는 `context-token` projectile이 담당한다. 현재 상한에서는 공간 분할을 추가하지 않는다.
 - 에셋은 브라우저 캐시가 가능한 정적 파일로 제공한다.
 - 개발자 도구를 열지 않아도 오류 상태를 알 수 있게 한다.
 - simulation은 60 Hz 고정 timestep으로만 전진한다. render delta는 100ms로 제한하고 한 frame에서 최대 6 tick만 처리한다.
@@ -219,7 +219,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - TypeScript typecheck
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
-- 완전 랜덤 `tool-call`, snapshot `approval`, 일점 `compaction`, 반복 `retry`, 장시간 예고 `reasoning`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
+- 완전 랜덤 `tool-call`, snapshot `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` burst, 반복 `retry`, 장시간 예고 `reasoning`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
 - 회전한 text hitbox 충돌, 12초 단위 Stage 1–10 경계와 Stage 10 상한 테스트
 - `tool-call` 경로가 player 위치에 독립적이고 `approval`·`reasoning`이 예고 중 재조준하지 않는 회귀 테스트
 - 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트
