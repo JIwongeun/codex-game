@@ -6,7 +6,7 @@ export const MAX_FRAME_DELTA_MS = 100;
 export const MAX_STEPS_PER_FRAME = 6;
 
 export const GAMEPLAY = {
-  playerRadius: 6,
+  playerRadius: 3,
   projectileMargin: 88,
   projectileRadius: 8,
   popupRadius: 14,

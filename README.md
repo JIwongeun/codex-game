@@ -56,6 +56,7 @@ pnpm check      # typecheck + test + build
 - TypeScript
 - Vite
 - Phaser 3
+- Pretendard Variable 1.3.9 (OFL-1.1)
 - Vitest
 - pnpm
 - Cloudflare Workers-compatible static hosting

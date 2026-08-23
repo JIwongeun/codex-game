@@ -33,7 +33,12 @@ export class GameRenderer {
   consume(events: readonly GameEvent[], state: GameState): void {
     for (const event of events) {
       if (event.type === "hazard-activated") {
-        this.addBurst(state.player.position, COLORS.muted, 8, state.elapsedMs);
+        this.addBurst(
+          state.player.position,
+          event.kind === "memory-leak" ? COLORS.memory : COLORS.context,
+          10,
+          state.elapsedMs,
+        );
       } else if (event.type === "player-hit") {
         this.hitFlashMs = 280;
         this.addBurst(state.player.position, COLORS.danger, 24, state.elapsedMs);
@@ -49,7 +54,6 @@ export class GameRenderer {
     this.drawHazards(state);
     this.drawProjectileTrails(state);
     this.drawProjectiles(state);
-    this.drawPointerHitbox(state);
     this.drawEffects();
 
     if (this.hitFlashMs > 0) {
@@ -86,12 +90,12 @@ export class GameRenderer {
       ? 1
       : 1 - hazard.remainingMs / GAMEPLAY.memoryLeakTelegraphMs;
     const pulse = 0.55 + Math.sin(elapsedMs / 65) * 0.18;
-    const color = active ? COLORS.danger : COLORS.leak;
+    const color = COLORS.memory;
 
     if (active) {
-      this.graphics.fillStyle(COLORS.danger, 0.1);
+      this.graphics.fillStyle(COLORS.memory, 0.12);
       this.graphics.fillCircle(hazard.position.x, hazard.position.y, hazard.radius);
-      this.graphics.fillStyle(COLORS.danger, 0.035);
+      this.graphics.fillStyle(COLORS.memory, 0.045);
       this.graphics.fillCircle(
         hazard.position.x,
         hazard.position.y,
@@ -99,7 +103,7 @@ export class GameRenderer {
       );
     }
 
-    this.drawDashedCircle(
+    this.drawPixelRing(
       hazard.position,
       hazard.radius,
       color,
@@ -107,7 +111,7 @@ export class GameRenderer {
       active ? 3 : 2,
       elapsedMs / 700,
     );
-    this.drawDashedCircle(
+    this.drawPixelRing(
       hazard.position,
       hazard.radius * (0.7 + warningProgress * 0.16),
       color,
@@ -130,7 +134,7 @@ export class GameRenderer {
     }
   }
 
-  private drawDashedCircle(
+  private drawPixelRing(
     center: Vec2,
     radius: number,
     color: number,
@@ -138,15 +142,15 @@ export class GameRenderer {
     width: number,
     rotation: number,
   ): void {
-    const segments = 48;
-    this.graphics.lineStyle(width, color, alpha);
+    const segments = Math.max(24, Math.round(radius / 2.5));
+    const size = Math.max(2, Math.round(width + 1));
+    this.graphics.fillStyle(color, alpha);
 
     for (let index = 0; index < segments; index += 2) {
-      const start = rotation + (Math.PI * 2 * index) / segments;
-      const end = rotation + (Math.PI * 2 * (index + 1)) / segments;
-      this.graphics.beginPath();
-      this.graphics.arc(center.x, center.y, radius, start, end, false);
-      this.graphics.strokePath();
+      const angle = rotation + (Math.PI * 2 * index) / segments;
+      const x = Math.round(center.x + Math.cos(angle) * radius);
+      const y = Math.round(center.y + Math.sin(angle) * radius);
+      this.graphics.fillRect(x - size / 2, y - size / 2, size, size);
     }
   }
 
@@ -167,7 +171,7 @@ export class GameRenderer {
       hazard.axis === "horizontal" ? hazard.thickness : state.arena.height;
 
     this.graphics.fillStyle(
-      active ? COLORS.danger : COLORS.text,
+      active ? COLORS.context : COLORS.text,
       active ? 0.09 : 0.018,
     );
     this.graphics.fillRect(x, y, width, height);
@@ -175,20 +179,20 @@ export class GameRenderer {
 
     this.graphics.lineStyle(
       active ? 3 : 1,
-      COLORS.danger,
+      COLORS.context,
       active ? 0.95 : pulse,
     );
     if (hazard.axis === "horizontal") {
       this.graphics.lineBetween(x, y, x + width, y);
       this.graphics.lineBetween(x, y + height, x + width, y + height);
       const scanX = ((state.elapsedMs / 2.4) % (width + 120)) - 60;
-      this.graphics.lineStyle(2, COLORS.danger, active ? 0.55 : 0.18);
+      this.graphics.lineStyle(2, COLORS.context, active ? 0.62 : 0.22);
       this.graphics.lineBetween(scanX, y, scanX + height, y + height);
     } else {
       this.graphics.lineBetween(x, y, x, y + height);
       this.graphics.lineBetween(x + width, y, x + width, y + height);
       const scanY = ((state.elapsedMs / 2.4) % (height + 120)) - 60;
-      this.graphics.lineStyle(2, COLORS.danger, active ? 0.55 : 0.18);
+      this.graphics.lineStyle(2, COLORS.context, active ? 0.62 : 0.22);
       this.graphics.lineBetween(x, scanY, x + width, scanY + width);
     }
   }
@@ -200,7 +204,7 @@ export class GameRenderer {
     height: number,
     alpha: number,
   ): void {
-    this.graphics.lineStyle(1, COLORS.danger, alpha);
+    this.graphics.lineStyle(1, COLORS.context, alpha);
     for (let diagonal = 0; diagonal <= width + height; diagonal += 24) {
       const startX = Math.max(0, diagonal - height);
       const endX = Math.min(width, diagonal);
@@ -229,8 +233,8 @@ export class GameRenderer {
         if (projectile.kind === "tab") {
           this.drawTabShape(point, projectile.velocity, alpha);
         } else {
-          this.graphics.lineStyle(1, COLORS.text, alpha);
-          this.graphics.strokeRoundedRect(point.x - 25, point.y - 16, 50, 32, 4);
+          this.graphics.lineStyle(1, COLORS.popup, alpha);
+          this.graphics.strokeRect(point.x - 27, point.y - 18, 54, 36);
         }
       }
     }
@@ -256,7 +260,7 @@ export class GameRenderer {
         projectile.position,
         projectile.velocity,
         Math.hypot(state.arena.width, state.arena.height),
-        COLORS.text,
+        COLORS.tab,
         alpha,
         34,
       );
@@ -279,8 +283,8 @@ export class GameRenderer {
       this.orientedPoint(position, velocity, 19, 8),
     ];
 
-    this.graphics.fillStyle(COLORS.background, Math.min(1, alpha + 0.1));
-    this.graphics.lineStyle(1.5, COLORS.text, alpha);
+    this.graphics.fillStyle(COLORS.surface, Math.min(1, alpha + 0.1));
+    this.graphics.lineStyle(1.5, COLORS.tab, alpha);
     this.graphics.beginPath();
     this.graphics.moveTo(points[0]!.x, points[0]!.y);
     for (let index = 1; index < points.length; index += 1) {
@@ -291,8 +295,8 @@ export class GameRenderer {
     this.graphics.strokePath();
 
     const favicon = this.orientedPoint(position, velocity, -10, 0);
-    this.graphics.fillStyle(COLORS.cyan, alpha * 0.9);
-    this.graphics.fillCircle(favicon.x, favicon.y, 2.4);
+    this.graphics.fillStyle(COLORS.success, alpha * 0.95);
+    this.graphics.fillRect(Math.round(favicon.x) - 2, Math.round(favicon.y) - 2, 4, 4);
     const closeA = this.orientedPoint(position, velocity, 11, -0.5);
     const closeB = this.orientedPoint(position, velocity, 15, 3.5);
     const closeC = this.orientedPoint(position, velocity, 15, -0.5);
@@ -312,7 +316,7 @@ export class GameRenderer {
         position,
         velocity,
         Math.hypot(state.arena.width, state.arena.height) * 1.25,
-        COLORS.danger,
+        COLORS.popup,
         pulse,
         24,
       );
@@ -320,28 +324,30 @@ export class GameRenderer {
         x: position.x + velocity.x * 110,
         y: position.y + velocity.y * 110,
       };
-      this.drawDashedCircle(destination, 13, COLORS.danger, pulse, 1, 0);
+      this.drawPixelRing(destination, 13, COLORS.popup, pulse, 1, 0);
     }
 
-    this.graphics.fillStyle(COLORS.text, telegraphing ? 0.05 : 0.1);
-    this.graphics.fillRoundedRect(position.x - 22, position.y - 11, 52, 34, 5);
-    this.graphics.fillStyle(COLORS.background, 1);
-    this.graphics.fillRoundedRect(position.x - 26, position.y - 17, 52, 34, 5);
+    this.graphics.fillStyle(COLORS.shadow, telegraphing ? 0.06 : 0.13);
+    this.graphics.fillRect(position.x - 21, position.y - 12, 54, 38);
+    this.graphics.fillStyle(COLORS.surface, 1);
+    this.graphics.fillRect(position.x - 27, position.y - 18, 54, 36);
     this.graphics.lineStyle(
       telegraphing ? 2 : 1.5,
-      telegraphing ? COLORS.danger : COLORS.text,
+      COLORS.popup,
       telegraphing ? pulse + 0.25 : 0.95,
     );
-    this.graphics.strokeRoundedRect(position.x - 26, position.y - 17, 52, 34, 5);
-    this.graphics.lineStyle(1, COLORS.border, 1);
-    this.graphics.lineBetween(position.x - 25, position.y - 7, position.x + 25, position.y - 7);
+    this.graphics.strokeRect(position.x - 27, position.y - 18, 54, 36);
+    this.graphics.fillStyle(COLORS.popup, 0.1);
+    this.graphics.fillRect(position.x - 26, position.y - 17, 52, 10);
+    this.graphics.lineStyle(1, COLORS.popup, 0.55);
+    this.graphics.lineBetween(position.x - 26, position.y - 7, position.x + 26, position.y - 7);
     this.graphics.fillStyle(COLORS.danger, 0.9);
-    this.graphics.fillCircle(position.x - 18, position.y - 12, 2.2);
+    this.graphics.fillRect(position.x - 21, position.y - 14, 4, 4);
     this.graphics.fillStyle(COLORS.text, 0.72);
-    this.graphics.fillRect(position.x - 17, position.y - 1, 26, 2);
-    this.graphics.fillStyle(COLORS.muted, 0.65);
-    this.graphics.fillRect(position.x - 17, position.y + 6, 17, 2);
-    this.graphics.lineStyle(1.5, COLORS.muted, 0.9);
+    this.graphics.fillRect(position.x - 20, position.y - 1, 28, 3);
+    this.graphics.fillStyle(COLORS.popup, 0.72);
+    this.graphics.fillRect(position.x - 20, position.y + 7, 18, 3);
+    this.graphics.lineStyle(1.5, COLORS.text, 0.8);
     this.graphics.lineBetween(position.x + 15, position.y - 14, position.x + 20, position.y - 9);
     this.graphics.lineBetween(position.x + 20, position.y - 14, position.x + 15, position.y - 9);
   }
@@ -374,19 +380,6 @@ export class GameRenderer {
       x: origin.x + direction.x * forward - direction.y * sideways,
       y: origin.y + direction.y * forward + direction.x * sideways,
     };
-  }
-
-  private drawPointerHitbox(state: GameState): void {
-    if (state.phase !== "playing") {
-      return;
-    }
-
-    const { position } = state.player;
-    const pulse = 0.22 + Math.sin(state.elapsedMs / 110) * 0.06;
-    this.graphics.lineStyle(1, COLORS.cyan, pulse);
-    this.graphics.strokeCircle(position.x, position.y, GAMEPLAY.playerRadius + 4);
-    this.graphics.fillStyle(COLORS.cyan, 0.8);
-    this.graphics.fillCircle(position.x, position.y, 1.7);
   }
 
   private drawEffects(): void {

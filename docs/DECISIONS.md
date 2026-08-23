@@ -103,7 +103,7 @@
 - 날짜: 2026-08-23
 - 상태: 확정
 - 배경: 고정 1280×720 `FIT` Canvas와 속도 기반 삼각형 추적은 브라우저 창이 잘려 보이고 커서와 플레이어 사이의 지연을 만들었다. 직선 화살과 단순한 원·band는 개발자 브라우저 콘셉트도 충분히 전달하지 못했다.
-- 결정: Phaser `RESIZE`로 현재 browser viewport 전체를 arena로 사용한다. 운영체제 native cursor hotspot을 플레이어 좌표에 직접 반영하고 키보드 방향 이동, 추적 속도, dead zone, 삼각형 캐릭터를 제거한다. 공격은 브라우저 탭 군집, pop-up 창, 동심원 memory leak, stripe context sweep로 표현하며 예고와 활성 상태를 시각적으로 분리한다.
+- 결정: Phaser `RESIZE`로 현재 browser viewport 전체를 arena로 사용한다. 운영체제 native cursor hotspot을 플레이어 좌표에 직접 반영하고 키보드 방향 이동, 추적 속도, dead zone, 삼각형 캐릭터와 별도 hitbox indicator를 제거한다. 화면에는 브라우저가 그리는 native cursor만 플레이어로 남긴다. 공격은 브라우저 탭 군집, pop-up 창, 동심원 memory leak, stripe context sweep로 표현하며 예고와 활성 상태를 시각적으로 분리한다.
 - 결과: `GameState`가 동적 arena 크기를 소유하고 resize를 순수 simulation 함수로 처리한다. renderer의 잔상은 presentation-only state로 유지해 판정 결정성을 해치지 않는다.
 
 ## D-014 — 완성 전 Sites 접근을 소유자 전용으로 제한한다
@@ -113,3 +113,11 @@
 - 배경: 사용자는 개발 중인 게임을 본인만 플레이하고 완성 후 공개하기를 요청했다.
 - 결정: Sites access mode를 `custom`으로 바꾸고 owner 외 사용자·그룹·외부 방문자 allowlist를 비운다. 별도의 클라이언트 비밀번호 gate는 우회 가능하므로 만들지 않는다.
 - 결과: 현재 production URL은 호스팅 owner만 접근한다. 최종 제출 전 access mode를 `public`으로 전환하고 익명 브라우저 접근을 다시 검증해야 한다.
+
+## D-015 — 흑백 기반 위에 공격별 digital accent와 Pretendard Variable을 사용한다
+
+- 날짜: 2026-08-23
+- 상태: 확정
+- 배경: 흰 화면과 검정 타이포만 강조한 1차 UI는 둥글고 무채색인 일반 웹 UI처럼 보여 개발 도구·픽셀·digital 콘셉트가 약했다. 사용자는 흑백은 base일 뿐 전체 palette 제한이 아니며 font는 Pretendard Variable이어야 한다고 명확히 했다.
+- 결정: warm white와 black을 base로 유지하되 `TAB` blue, `POP-UP` amber, `MEMORY LEAK` violet, `CONTEXT OVERFLOW` red, running status green을 사용한다. rounded rectangle과 smooth ring을 square frame, pixel ring, stepped trail로 바꾼다. 모든 Phaser HUD/overlay와 DOM fallback font는 self-hosted `Pretendard Variable`로 통일한다.
+- 결과: `pretendard@1.3.9`를 production dependency로 고정하고 dynamic unicode subset CSS를 bundle한다. font license는 OFL-1.1이다. 게임은 font load가 끝난 뒤 boot해 Phaser text texture에도 같은 face가 적용되도록 한다.

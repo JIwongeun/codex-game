@@ -7,10 +7,11 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   parent: "game-root",
   width: Math.max(1, window.innerWidth),
   height: Math.max(1, window.innerHeight),
-  backgroundColor: "#ffffff",
+  backgroundColor: "#fbfbf8",
   render: {
-    antialias: true,
-    roundPixels: false,
+    antialias: false,
+    pixelArt: true,
+    roundPixels: true,
   },
   scale: {
     mode: Phaser.Scale.RESIZE,

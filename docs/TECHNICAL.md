@@ -29,12 +29,13 @@ production build는 `dist/client`의 정적 파일과 `dist/server`의 Worker bu
 - TypeScript: 게임 규칙과 데이터 계약의 오류를 일찍 발견
 - Vite: 빠른 개발 서버와 정적 production 빌드
 - Phaser 3.90: 성숙한 Canvas/WebGL, 입력, 오디오, Scene 수명주기
+- Pretendard 1.3.9: OFL-1.1 variable font와 unicode-range dynamic subset 제공
 - Vitest: 생존 시간, 공격 단계, 예고/활성, 충돌, spawn 규칙 같은 순수 로직 단위 테스트
 - pnpm: 의존성 잠금과 재현 가능한 설치
 
 Phaser 4가 현재 배포되어 있어도 이번 3일 프로젝트에서는 API와 사례가 축적된 Phaser 3.90을 선택한다. 새로운 엔진 기능보다 예측 가능한 구현을 우선한다.
 
-React, 상태 관리 라이브러리, UI 컴포넌트 라이브러리는 사용하지 않는다. 게임은 캔버스와 최소 DOM으로 충분하다.
+React, 상태 관리 라이브러리, UI 컴포넌트 라이브러리는 사용하지 않는다. 게임은 캔버스와 최소 DOM으로 충분하다. Pretendard는 UI 프레임워크가 아니라 요청된 variable font를 self-hosted build asset으로 제공하기 위한 production dependency다.
 
 ## 3. 전체 구조
 

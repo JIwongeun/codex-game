@@ -18,7 +18,10 @@
 - `TAB STORM`을 같은 edge에서 들어오는 browser-tab volley와 점선 예고, presentation-only 잔상으로 교체
 - `POP-UP`을 window silhouette, dotted trajectory, target marker로 재설계
 - `MEMORY LEAK`을 회전 dashed rings와 orbit fragments로, `CONTEXT OVERFLOW`를 scan stripe band로 재설계
-- 별도 player triangle 대신 native cursor 아래에 작은 hitbox indicator만 표시
+- player triangle과 hitbox indicator를 모두 제거하고 브라우저 native cursor 자체만 플레이어로 표시
+- `Pretendard Variable` dynamic subset을 self-hosted build asset으로 추가하고 font load 뒤 Phaser를 boot하도록 변경
+- warm white/black base 위에 TAB blue, POP-UP amber, MEMORY LEAK violet, CONTEXT OVERFLOW red, running green의 의미 기반 accent palette 적용
+- rounded pop-up과 smooth circle을 square window, pixel ring, stepped trail로 바꿔 digital tool 질감 강화
 - HUD를 전체 viewport에 반응하는 최소 상태·시간·warning UI와 browser error page형 overlay로 재구성
 
 ### 검증

@@ -13,6 +13,7 @@ const SOURCE_LABEL: Record<HitSource, string> = {
 
 interface Announcement {
   text: string;
+  color: string;
   untilElapsedMs: number;
 }
 
@@ -32,28 +33,48 @@ export class Hud {
 
   constructor(scene: Phaser.Scene) {
     this.overlay = scene.add.graphics().setDepth(30);
-    this.brandText = this.text(scene, 0, 0, 15, TEXT_COLORS.ink).setDepth(21);
-    this.statusText = this.text(scene, 0, 0, 12, TEXT_COLORS.muted).setDepth(21);
+    this.brandText = this.text(scene, 0, 0, 15, TEXT_COLORS.ink)
+      .setFontStyle("700")
+      .setLetterSpacing(0.8)
+      .setDepth(21);
+    this.statusText = this.text(scene, 0, 0, 12, TEXT_COLORS.success)
+      .setFontStyle("600")
+      .setLetterSpacing(0.6)
+      .setDepth(21);
     this.timeText = this.text(scene, 0, 0, 28, TEXT_COLORS.ink)
+      .setFontStyle("680")
+      .setLetterSpacing(1)
       .setOrigin(1, 0)
       .setDepth(21);
     this.bestText = this.text(scene, 0, 0, 12, TEXT_COLORS.faint)
+      .setFontStyle("550")
+      .setLetterSpacing(0.5)
       .setOrigin(1, 0)
       .setDepth(21);
     this.hintText = this.text(scene, 0, 0, 11, TEXT_COLORS.faint)
+      .setFontStyle("580")
+      .setLetterSpacing(0.7)
       .setOrigin(0, 1)
       .setDepth(21);
     this.alertText = this.text(scene, 0, 0, 12, TEXT_COLORS.danger)
+      .setFontStyle("700")
+      .setLetterSpacing(0.9)
       .setOrigin(0.5, 0)
       .setDepth(22);
     this.titleText = this.text(scene, 0, 0, 48, TEXT_COLORS.ink, FONTS.mono)
+      .setFontStyle("720")
+      .setLetterSpacing(-0.8)
       .setDepth(31);
     this.subtitleText = this.text(scene, 0, 0, 18, TEXT_COLORS.muted, FONTS.sans)
+      .setFontStyle("520")
       .setDepth(31);
     this.detailText = this.text(scene, 0, 0, 16, TEXT_COLORS.ink, FONTS.sans)
+      .setFontStyle("480")
       .setLineSpacing(10)
       .setDepth(31);
     this.actionText = this.text(scene, 0, 0, 14, TEXT_COLORS.accent, FONTS.mono)
+      .setFontStyle("680")
+      .setLetterSpacing(0.8)
       .setDepth(31);
   }
 
@@ -65,6 +86,10 @@ export class Hud {
             event.kind === "memory-leak"
               ? "MEMORY LEAK  ·  AREA LOCKING"
               : "CONTEXT OVERFLOW  ·  CLEAR THE BAND",
+          color:
+            event.kind === "memory-leak"
+              ? TEXT_COLORS.memory
+              : TEXT_COLORS.danger,
           untilElapsedMs: state.elapsedMs + 1_250,
         };
       } else if (event.type === "hazard-activated") {
@@ -73,6 +98,10 @@ export class Hud {
             event.kind === "memory-leak"
               ? "MEMORY LEAK  ·  ACTIVE"
               : "CONTEXT OVERFLOW  ·  ACTIVE",
+          color:
+            event.kind === "memory-leak"
+              ? TEXT_COLORS.memory
+              : TEXT_COLORS.danger,
           untilElapsedMs: state.elapsedMs + 650,
         };
       } else if (event.type === "run-started") {
@@ -173,7 +202,10 @@ export class Hud {
     }
 
     if (this.announcement && state.elapsedMs <= this.announcement.untilElapsedMs) {
-      this.alertText.setText(this.announcement.text).setVisible(true);
+      this.alertText
+        .setColor(this.announcement.color)
+        .setText(this.announcement.text)
+        .setVisible(true);
       return;
     }
 
@@ -182,7 +214,10 @@ export class Hud {
         projectile.kind === "popup" && projectile.telegraphRemainingMs > 0,
     );
     if (popupIncoming) {
-      this.alertText.setText("POP-UP BLOCKER FAILED  ·  PATH LOCKED").setVisible(true);
+      this.alertText
+        .setColor(TEXT_COLORS.popup)
+        .setText("POP-UP BLOCKER FAILED  ·  PATH LOCKED")
+        .setVisible(true);
       return;
     }
 
@@ -236,7 +271,7 @@ export class Hud {
         Math.min(height - 56, contentY + titleSize + (compact ? 275 : 300)),
       )
       .setFontSize(compact ? 12 : 14)
-      .setText(`›  ${action}`)
+      .setText(`//  ${action}`)
       .setVisible(true);
   }
 
@@ -250,11 +285,14 @@ export class Hud {
     this.overlay.lineTo(x, y + 34);
     this.overlay.closePath();
     this.overlay.strokePath();
+    this.overlay.lineStyle(2, COLORS.tab, 0.95);
     this.overlay.lineBetween(x + 21, y, x + 21, y + 9);
     this.overlay.lineBetween(x + 21, y + 9, x + 30, y + 9);
-    this.overlay.fillStyle(COLORS.text, 0.9);
+    this.overlay.fillStyle(COLORS.tab, 0.95);
     this.overlay.fillRect(x + 8, y + 15, 3, 3);
+    this.overlay.fillStyle(COLORS.popup, 0.95);
     this.overlay.fillRect(x + 19, y + 15, 3, 3);
+    this.overlay.lineStyle(2, COLORS.context, 0.9);
     this.overlay.lineBetween(x + 9, y + 27, x + 14, y + 23);
     this.overlay.lineBetween(x + 14, y + 23, x + 21, y + 27);
   }

@@ -1,10 +1,12 @@
 :root {
   color: #202124;
-  background: #fff;
+  background: #fbfbf8;
   font-family:
-    "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -22,7 +24,7 @@ body,
 }
 
 body {
-  background: #fff;
+  background: #fbfbf8;
 }
 
 #app,
@@ -36,6 +38,7 @@ body {
   width: 100%;
   height: 100%;
   cursor: default;
+  image-rendering: pixelated;
   touch-action: none;
   user-select: none;
 }
