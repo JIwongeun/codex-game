@@ -1,21 +1,20 @@
 import Phaser from "phaser";
 
-import { GAME_HEIGHT, GAME_WIDTH } from "./constants";
 import { GameScene } from "./scenes/GameScene";
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: "game-root",
-  width: GAME_WIDTH,
-  height: GAME_HEIGHT,
+  width: Math.max(1, window.innerWidth),
+  height: Math.max(1, window.innerHeight),
   backgroundColor: "#ffffff",
   render: {
     antialias: true,
-    roundPixels: true,
+    roundPixels: false,
   },
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.NO_CENTER,
   },
   scene: [GameScene],
 };

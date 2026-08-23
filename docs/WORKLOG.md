@@ -2,6 +2,37 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — native cursor·전체 viewport·공격 UI 재설계
+
+### 접근 제어
+
+- Sites access mode를 `public`에서 `custom`으로 변경
+- 허용 사용자는 project owner 1명, 허용 group과 외부 방문자는 0명으로 확인
+- 최종 제출 직전 다시 public으로 전환해야 함을 DELIVERY와 DECISIONS에 기록
+
+### 구현
+
+- 속도 기반 삼각형 추적과 WASD/방향키 이동을 제거하고 native pointer 좌표를 player 좌표에 1:1 반영
+- 고정 1280×720 `FIT` Canvas를 Phaser `RESIZE` 전체 viewport arena로 전환
+- live resize 시 player, memory leak, context sweep를 새 경계에 맞추는 순수 simulation 경계 추가
+- `TAB STORM`을 같은 edge에서 들어오는 browser-tab volley와 점선 예고, presentation-only 잔상으로 교체
+- `POP-UP`을 window silhouette, dotted trajectory, target marker로 재설계
+- `MEMORY LEAK`을 회전 dashed rings와 orbit fragments로, `CONTEXT OVERFLOW`를 scan stripe band로 재설계
+- 별도 player triangle 대신 native cursor 아래에 작은 hitbox indicator만 표시
+- HUD를 전체 viewport에 반응하는 최소 상태·시간·warning UI와 browser error page형 overlay로 재구성
+
+### 검증
+
+- `pnpm typecheck` 통과
+- Vitest 5 files, 31 tests 통과
+- direct pointer coordinate, viewport edge clamp, live resize, responsive arena, deterministic input stream, 모든 공격 단계와 개체 상한 검증
+- Worker/client production build 통과
+
+### 남은 작업
+
+- 새 버전을 owner-only production으로 배포하고 실제 플레이 감각을 확인
+- 실제 플레이 결과로 공격 속도·간격·warning 시간을 조정
+
 ## 2026-08-23 — 흑백 브라우저 디자인과 무한 생존 코어 전환
 
 ### 제품 방향 변경

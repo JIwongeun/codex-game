@@ -10,16 +10,16 @@
 
 1. 클라이언트만으로 핵심 게임 완성
 2. 로컬 최고점으로 전체 흐름 검증
-3. 공개 배포, QA, 제출 필수 자료 준비
+3. 소유자 전용 배포에서 QA, 제출 필수 자료 준비
 4. 시간이 남을 때만 작은 HTTP API와 DB를 추가해 글로벌 랭킹 연결
 
-### 현재 공개 배포
+### 현재 비공개 개발 배포
 
 - 플레이 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
-- 공개 HTTPS 정적 호스팅이 HTML, JavaScript, CSS를 전달한다.
+- HTTPS 정적 호스팅이 HTML, JavaScript, CSS를 전달하며 Sites 접근 정책은 `custom` 소유자 전용이다.
 - `worker/index.ts`는 `ASSETS` binding에 요청을 넘기는 얇은 배포 adapter이며 게임 로직이나 사용자 데이터를 처리하지 않는다.
 - `.openai/hosting.json`에는 Sites project 식별자만 있고 배포 credential이나 secret은 저장하지 않는다.
-- 현재 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. 브라우저 `localStorage`에는 해당 브라우저의 최고점만 저장한다.
+- 현재 게임 자체의 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. 비공개 접근 인증은 Sites가 담당하며 브라우저 `localStorage`에는 해당 브라우저의 최고점만 저장한다.
 - 따라서 제출 기간에 개발자 PC를 서버로 켜 두거나 공유기 port forwarding을 할 필요가 없다.
 
 production build는 `dist/client`의 정적 파일과 `dist/server`의 Worker bundle을 함께 만든다. `pnpm preview`는 같은 Worker/asset 경계를 로컬에서 확인하는 용도다.
@@ -99,7 +99,7 @@ flowchart LR
 
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
 - Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
-- Input: Phaser 입력을 시작·재시작 action과 포인터 이동 방향으로 변환
+- Input: Phaser 입력을 시작·재시작 action과 native pointer의 현재 viewport 좌표로 변환
 - Presentation: domain state를 읽어 Canvas와 HUD만 갱신
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환
 - Services: local storage와 브라우저 효과음. leaderboard HTTP는 실제 구현 시에만 추가
@@ -198,7 +198,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 ## 8. 성능 원칙
 
-- 논리 해상도 1280×720, Phaser `FIT` 스케일을 사용한다.
+- Phaser `RESIZE`로 브라우저 viewport 전체를 논리 arena로 사용한다. resize 시 player와 범위 공격을 새 경계 안으로 clamp한다.
 - update에서 반복 생성되는 객체를 피한다.
 - 직선 공격과 범위 공격 수에는 명시적 상한을 둔다.
 - 충돌 판정은 처음에는 단순 거리 검사로 시작하고 필요할 때 공간 분할을 검토한다.
@@ -220,8 +220,8 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 ### 브라우저 확인
 
 - Chrome과 Edge 최신 버전
-- 1280×720 및 작은 노트북 화면
-- 마우스와 키보드
+- 1280×720, 작은 노트북, 세로형 모바일 viewport
+- native pointer 1:1 위치와 Space action
 - 탭이 background로 갔다 돌아온 뒤 타이머 폭주 여부
 - 랭킹을 구현한 경우의 API 연결 실패
 - 재시작 후 이전 게임 객체와 입력 listener가 남지 않는지
@@ -231,7 +231,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 ## 10. 배포 원칙
 
 - core game은 정적 호스팅에 배포할 수 있어야 한다.
-- 공개 HTTPS URL은 로그인과 설치를 요구하지 않는다.
+- 개발 중에는 Sites `custom` 접근으로 소유자만 허용한다. 제출 직전에 `public`으로 바꾸고 로그인과 설치를 요구하지 않는지 재검증한다.
 - production build의 source map과 환경 변수 노출을 확인한다.
 - 제출 전 시크릿 창과 다른 네트워크에서 링크를 직접 확인한다.
 - 현재 앱은 client-side router가 없는 단일 root 페이지다. 새 URL route를 추가할 때만 production host의 SPA fallback을 다시 검증한다.

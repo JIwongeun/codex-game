@@ -3,6 +3,11 @@ export interface Vec2 {
   y: number;
 }
 
+export interface ArenaBounds {
+  width: number;
+  height: number;
+}
+
 export type GamePhase = "ready" | "playing" | "results";
 export type ProjectileKind = "tab" | "popup";
 export type HazardKind = "memory-leak" | "context-sweep";
@@ -46,6 +51,7 @@ export interface SpawnTimers {
 
 export interface GameState {
   phase: GamePhase;
+  arena: ArenaBounds;
   seed: number;
   rngState: number;
   nextEntityId: number;
@@ -61,7 +67,7 @@ export interface GameState {
 }
 
 export interface InputIntent {
-  direction: Vec2 | null;
+  position: Vec2 | null;
 }
 
 export type GameEvent =

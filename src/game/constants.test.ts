@@ -1,14 +1,27 @@
 import { describe, expect, it } from "vitest";
 
-import { GAME_HEIGHT, GAME_WIDTH, GAMEPLAY } from "./constants";
+import {
+  DEFAULT_GAME_HEIGHT,
+  DEFAULT_GAME_WIDTH,
+  GAMEPLAY,
+} from "./constants";
 
 describe("game requirements", () => {
-  it("uses the submission-oriented 16:9 logical canvas", () => {
-    expect(GAME_WIDTH / GAME_HEIGHT).toBeCloseTo(16 / 9);
+  it("keeps fallback dimensions only for non-browser simulation contexts", () => {
+    expect(DEFAULT_GAME_WIDTH).toBeGreaterThan(0);
+    expect(DEFAULT_GAME_HEIGHT).toBeGreaterThan(0);
   });
 
-  it("keeps the pointer hitbox smaller than incoming attack silhouettes", () => {
-    expect(GAMEPLAY.playerRadius).toBeLessThan(GAMEPLAY.projectileRadius * 2);
+  it("keeps the native-pointer hitbox smaller than attack silhouettes", () => {
+    expect(GAMEPLAY.playerRadius).toBeLessThan(GAMEPLAY.projectileRadius);
+    expect(GAMEPLAY.playerRadius).toBeLessThan(GAMEPLAY.popupRadius);
     expect(GAMEPLAY.maxProjectiles).toBeGreaterThan(100);
+  });
+
+  it("telegraphs every projectile family before it becomes lethal", () => {
+    expect(GAMEPLAY.tabTelegraphMs).toBeGreaterThan(0);
+    expect(GAMEPLAY.popupTelegraphMs).toBeGreaterThan(
+      GAMEPLAY.tabTelegraphMs,
+    );
   });
 });

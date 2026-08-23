@@ -97,3 +97,19 @@
 - 배경: 기존 네온 격자, 상단 상태 바, 패널형 overlay가 일반적인 게임 UI처럼 보여 “Codex를 기다리는 브라우저 안의 게임”이라는 콘셉트를 약하게 만들었다.
 - 결정: 웹페이지와 Canvas를 흰색으로 연결하고 격자, 프레임, 점수 게이지, 카드형 modal을 제거한다. 검정·회색을 기본으로 링크 파랑과 위험 빨강만 사용한다. 시작·결과 화면은 넓은 여백과 브라우저 오류 문구 같은 타이포그래피를 사용한다.
 - 결과: 시각 token은 `presentation/theme.ts`에 모으고 renderer와 HUD가 공유한다. 실제 제품 로고나 Chrome 공룡 캐릭터는 복제하지 않는다.
+
+## D-013 — native cursor와 전체 viewport를 게임 규칙으로 사용한다
+
+- 날짜: 2026-08-23
+- 상태: 확정
+- 배경: 고정 1280×720 `FIT` Canvas와 속도 기반 삼각형 추적은 브라우저 창이 잘려 보이고 커서와 플레이어 사이의 지연을 만들었다. 직선 화살과 단순한 원·band는 개발자 브라우저 콘셉트도 충분히 전달하지 못했다.
+- 결정: Phaser `RESIZE`로 현재 browser viewport 전체를 arena로 사용한다. 운영체제 native cursor hotspot을 플레이어 좌표에 직접 반영하고 키보드 방향 이동, 추적 속도, dead zone, 삼각형 캐릭터를 제거한다. 공격은 브라우저 탭 군집, pop-up 창, 동심원 memory leak, stripe context sweep로 표현하며 예고와 활성 상태를 시각적으로 분리한다.
+- 결과: `GameState`가 동적 arena 크기를 소유하고 resize를 순수 simulation 함수로 처리한다. renderer의 잔상은 presentation-only state로 유지해 판정 결정성을 해치지 않는다.
+
+## D-014 — 완성 전 Sites 접근을 소유자 전용으로 제한한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, 제출 직전 public으로 대체 예정
+- 배경: 사용자는 개발 중인 게임을 본인만 플레이하고 완성 후 공개하기를 요청했다.
+- 결정: Sites access mode를 `custom`으로 바꾸고 owner 외 사용자·그룹·외부 방문자 allowlist를 비운다. 별도의 클라이언트 비밀번호 gate는 우회 가능하므로 만들지 않는다.
+- 결과: 현재 production URL은 호스팅 owner만 접근한다. 최종 제출 전 access mode를 `public`으로 전환하고 익명 브라우저 접근을 다시 검증해야 한다.

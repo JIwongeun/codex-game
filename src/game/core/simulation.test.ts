@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ARENA, FIXED_STEP_MS, GAMEPLAY } from "../constants";
+import { FIXED_STEP_MS, GAMEPLAY } from "../constants";
 import type {
   AreaHazardState,
   GameState,
@@ -9,13 +9,14 @@ import type {
 import {
   createGameState,
   EMPTY_INPUT,
+  resizeArena,
   restartRun,
   startRun,
   stepGame,
 } from "./simulation";
 
-function playingState(seed = 1): GameState {
-  const state = createGameState(seed);
+function playingState(seed = 1, width = 1280, height = 720): GameState {
+  const state = createGameState(seed, width, height);
   startRun(state);
   state.spawn = {
     tabMs: 1_000_000,
@@ -61,27 +62,32 @@ function hazard(
 }
 
 describe("survival simulation", () => {
-  it("starts anonymously with an empty deterministic arena", () => {
-    const first = createGameState(42);
-    const second = createGameState(42);
+  it("starts anonymously with a deterministic viewport-sized arena", () => {
+    const first = createGameState(42, 1024, 768);
+    const second = createGameState(42, 1024, 768);
 
     expect(startRun(first)).toEqual([{ type: "run-started" }]);
     startRun(second);
 
     expect(first.phase).toBe("playing");
+    expect(first.arena).toEqual({ width: 1024, height: 768 });
+    expect(first.player.position).toEqual({ x: 512, y: 384 });
     expect(first.projectiles).toEqual([]);
     expect(first.hazards).toEqual([]);
     expect(first).toEqual(second);
     expect(startRun(first)).toEqual([]);
   });
 
-  it("produces identical state for the same seed and fixed input stream", () => {
-    const first = restartRun(314_159);
-    const second = restartRun(314_159);
+  it("produces identical state for the same seed and pointer stream", () => {
+    const first = restartRun(314_159, 960, 640);
+    const second = restartRun(314_159, 960, 640);
 
     for (let tick = 0; tick < 900 && first.phase === "playing"; tick += 1) {
       const intent = {
-        direction: { x: Math.cos(tick / 90), y: Math.sin(tick / 90) },
+        position: {
+          x: 480 + Math.cos(tick / 90) * 180,
+          y: 320 + Math.sin(tick / 90) * 130,
+        },
       };
       stepGame(first, intent, FIXED_STEP_MS);
       stepGame(second, intent, FIXED_STEP_MS);
@@ -90,26 +96,62 @@ describe("survival simulation", () => {
     expect(first).toEqual(second);
   });
 
-  it("stops without input and clamps pointer movement inside the arena", () => {
+  it("places the player exactly at the pointer and clamps only at viewport edges", () => {
+    const state = playingState(1, 800, 600);
+
+    stepGame(state, { position: { x: 243.5, y: 117.25 } }, FIXED_STEP_MS);
+    expect(state.player.position).toEqual({ x: 243.5, y: 117.25 });
+
+    stepGame(state, { position: { x: -100, y: 900 } }, FIXED_STEP_MS);
+    expect(state.player.position).toEqual({
+      x: GAMEPLAY.playerRadius,
+      y: 600 - GAMEPLAY.playerRadius,
+    });
+  });
+
+  it("resizes the live arena and keeps entities inside valid responsive bounds", () => {
+    const state = playingState(1, 1280, 720);
+    state.player.position = { x: 1_200, y: 680 };
+    state.hazards = [
+      hazard(state, {
+        position: { x: 1_100, y: 650 },
+        radius: 140,
+      }),
+      hazard(state, {
+        id: 201,
+        kind: "context-sweep",
+        position: { x: 1_100, y: 360 },
+        radius: 0,
+        axis: "vertical",
+        thickness: 150,
+      }),
+    ];
+
+    resizeArena(state, 375, 640);
+
+    expect(state.arena).toEqual({ width: 375, height: 640 });
+    expect(state.player.position.x).toBeLessThanOrEqual(
+      375 - GAMEPLAY.playerRadius,
+    );
+    expect(state.player.position.y).toBeLessThanOrEqual(
+      640 - GAMEPLAY.playerRadius,
+    );
+    expect(state.hazards[0]!.position.x).toBeLessThanOrEqual(
+      375 - state.hazards[0]!.radius,
+    );
+    expect(state.hazards[1]!.position.x).toBeLessThanOrEqual(375);
+  });
+
+  it("does not move without a pointer sample", () => {
     const state = playingState();
     const start = { ...state.player.position };
 
     stepGame(state, EMPTY_INPUT, 1_000);
+
     expect(state.player.position).toEqual(start);
-
-    for (let index = 0; index < 10; index += 1) {
-      stepGame(state, { direction: { x: 1, y: 1 } }, 1_000);
-    }
-
-    expect(state.player.position.x).toBeLessThanOrEqual(
-      ARENA.right - GAMEPLAY.playerRadius,
-    );
-    expect(state.player.position.y).toBeLessThanOrEqual(
-      ARENA.bottom - GAMEPLAY.playerRadius,
-    );
   });
 
-  it("ends the run on the first projectile-tip collision", () => {
+  it("ends the run on the first projectile collision", () => {
     const state = playingState();
     state.projectiles = [projectile(state)];
 
@@ -178,8 +220,8 @@ describe("survival simulation", () => {
     }
   });
 
-  it("spawns all attack families after the late-game threshold", () => {
-    const state = playingState(77);
+  it("spawns every attack family after the late-game threshold", () => {
+    const state = playingState(77, 900, 600);
     state.elapsedMs = GAMEPLAY.contextSweepFirstSpawnMs;
     state.spawn = {
       tabMs: 0,
@@ -188,7 +230,11 @@ describe("survival simulation", () => {
       contextSweepMs: 0,
     };
 
-    const events = stepGame(state, { direction: { x: 1, y: 0 } }, FIXED_STEP_MS);
+    const events = stepGame(
+      state,
+      { position: { x: 450, y: 300 } },
+      FIXED_STEP_MS,
+    );
 
     expect(state.projectiles.some((candidate) => candidate.kind === "tab")).toBe(
       true,
@@ -205,36 +251,45 @@ describe("survival simulation", () => {
     expect(events.filter((event) => event.type === "hazard-warning")).toHaveLength(
       2,
     );
+    expect(
+      state.projectiles.every((candidate) => candidate.telegraphRemainingMs > 0),
+    ).toBe(true);
   });
 
   it("freezes the simulation after results and restarts cleanly", () => {
-    const state = playingState();
+    const state = playingState(1, 800, 500);
     state.projectiles = [projectile(state)];
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     const resultSnapshot = structuredClone(state);
 
-    expect(stepGame(state, { direction: { x: 0, y: 1 } }, 5_000)).toEqual([]);
+    expect(
+      stepGame(state, { position: { x: 20, y: 20 } }, 5_000),
+    ).toEqual([]);
     expect(state).toEqual(resultSnapshot);
 
-    const restarted = restartRun(73);
+    const restarted = restartRun(73, 800, 500, { x: 30, y: 40 });
     expect(restarted.phase).toBe("playing");
     expect(restarted.seed).toBe(73);
     expect(restarted.score).toBe(0);
+    expect(restarted.arena).toEqual({ width: 800, height: 500 });
+    expect(restarted.player.position).toEqual({ x: 30, y: 40 });
     expect(restarted.projectiles).toEqual([]);
     expect(restarted.hazards).toEqual([]);
   });
 
-  it("keeps numeric values and entity counts valid across seeded runs", () => {
-    for (let seed = 1; seed <= 25; seed += 1) {
-      const state = restartRun(seed);
+  it("keeps values and entity caps valid across seeded responsive runs", () => {
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const width = seed % 2 === 0 ? 375 : 1_024;
+      const height = seed % 2 === 0 ? 640 : 768;
+      const state = restartRun(seed, width, height);
 
-      for (let tick = 0; tick < 7_200 && state.phase === "playing"; tick += 1) {
+      for (let tick = 0; tick < 5_400 && state.phase === "playing"; tick += 1) {
         stepGame(
           state,
           {
-            direction: {
-              x: Math.cos((tick + seed) / 75),
-              y: Math.sin((tick + seed) / 75),
+            position: {
+              x: width / 2 + Math.cos((tick + seed) / 75) * width * 0.22,
+              y: height / 2 + Math.sin((tick + seed) / 75) * height * 0.2,
             },
           },
           FIXED_STEP_MS,

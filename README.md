@@ -2,17 +2,17 @@
 
 Codex가 작업하는 동안 마우스 포인터로 브라우저 요청과 오류를 피하는 무한 생존 아케이드 게임입니다. 한 번 맞으면 run이 끝나고, 버틴 시간이 로컬 최고 기록이 됩니다.
 
-현재 상태는 **처음부터 결과·재시작까지 플레이 가능한 1차 MVP 기반**입니다. 로그인, 서버, 랭킹 없이 정적 웹 빌드만으로 실행됩니다.
+현재 상태는 **처음부터 결과·재시작까지 플레이 가능한 개발 빌드**입니다. 게임 계정, 서버, 랭킹 없이 정적 웹 빌드만으로 실행되며 완성 전까지 호스팅 접근은 소유자에게만 열려 있습니다.
 
 ## 바로 플레이
 
-- 공개 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
-- 계정 생성, 로그인, 설치 없이 링크를 열고 클릭 또는 Space로 시작합니다.
-- 제출용 게임은 공개 호스팅에서 실행되므로 개발자 PC를 켜 두거나 외부에 노출할 필요가 없습니다.
+- 개발 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
+- 현재 Sites 소유자 1명만 접근할 수 있습니다. 제출 직전에 공개 접근으로 전환합니다.
+- 호스팅된 빌드이므로 개발자 PC를 켜 두거나 외부에 노출할 필요가 없습니다.
 
 ## 플레이
 
-- 이동: 마우스 또는 WASD/방향키
+- 이동: 브라우저의 실제 마우스 포인터가 곧 플레이어이며 커서 좌표를 1:1로 사용
 - 시작·재시작: 클릭 또는 Space
 - 목표: 사방에서 날아오는 `TAB`과 `POP-UP`, 예고 후 발동하는 `MEMORY LEAK`과 `CONTEXT OVERFLOW`를 회피
 - 한 판: 시간 제한 없이 한 번 피격될 때까지
@@ -60,6 +60,6 @@ pnpm check      # typecheck + test + build
 - pnpm
 - Cloudflare Workers-compatible static hosting
 
-게임 판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 입력, renderer, HUD, fixed-step runtime, local storage, 효과음은 각각 별도 모듈이며 `pnpm check`에서 typecheck, 28개 단위 테스트, production build를 함께 검증합니다.
+게임 판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 입력, renderer, HUD, fixed-step runtime, local storage, 효과음은 각각 별도 모듈이며 `pnpm check`에서 typecheck, 31개 단위 테스트, production build를 함께 검증합니다.
 
 개발 서버에서 `?qaElapsedSeconds=45`를 붙이면 `MEMORY LEAK`과 `CONTEXT OVERFLOW`가 해제된 후반 난이도를 바로 확인할 수 있습니다. 이 옵션은 production build에서는 무시됩니다.

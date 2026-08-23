@@ -1,7 +1,5 @@
 import Phaser from "phaser";
 
-import { GAMEPLAY } from "../constants";
-import { normalize } from "../core/math";
 import type { Vec2 } from "../core/model";
 
 interface TouchGesture {
@@ -13,17 +11,6 @@ interface TouchGesture {
 
 export class InputController {
   private readonly keyboard: Phaser.Input.Keyboard.KeyboardPlugin | null;
-  private readonly movementKeys: {
-    up: Phaser.Input.Keyboard.Key | null;
-    down: Phaser.Input.Keyboard.Key | null;
-    left: Phaser.Input.Keyboard.Key | null;
-    right: Phaser.Input.Keyboard.Key | null;
-    w: Phaser.Input.Keyboard.Key | null;
-    a: Phaser.Input.Keyboard.Key | null;
-    s: Phaser.Input.Keyboard.Key | null;
-    d: Phaser.Input.Keyboard.Key | null;
-  };
-
   private pointerTarget: Vec2 | null = null;
   private touchGesture: TouchGesture | null = null;
   private actionPending = false;
@@ -31,16 +18,6 @@ export class InputController {
 
   constructor(private readonly scene: Phaser.Scene) {
     this.keyboard = scene.input.keyboard;
-    this.movementKeys = {
-      up: this.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
-      down: this.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
-      left: this.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
-      right: this.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
-      w: this.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      a: this.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      s: this.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      d: this.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-    };
 
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown);
     scene.input.on(Phaser.Input.Events.POINTER_MOVE, this.handlePointerMove);
@@ -55,40 +32,8 @@ export class InputController {
     );
   }
 
-  direction(playerPosition: Vec2, currentDirection: Vec2): Vec2 | null {
-    const left = this.isDown(this.movementKeys.left) || this.isDown(this.movementKeys.a);
-    const right =
-      this.isDown(this.movementKeys.right) || this.isDown(this.movementKeys.d);
-    const up = this.isDown(this.movementKeys.up) || this.isDown(this.movementKeys.w);
-    const down = this.isDown(this.movementKeys.down) || this.isDown(this.movementKeys.s);
-    const keyboardActive = left || right || up || down;
-
-    if (keyboardActive) {
-      const keyboardDirection = {
-        x: Number(right) - Number(left),
-        y: Number(down) - Number(up),
-      };
-
-      if (keyboardDirection.x === 0 && keyboardDirection.y === 0) {
-        return null;
-      }
-
-      return normalize(keyboardDirection, currentDirection);
-    }
-
-    if (!this.pointerTarget) {
-      return null;
-    }
-
-    const pointerDirection = {
-      x: this.pointerTarget.x - playerPosition.x,
-      y: this.pointerTarget.y - playerPosition.y,
-    };
-
-    return Math.hypot(pointerDirection.x, pointerDirection.y) >=
-      GAMEPLAY.pointerDeadZone
-      ? normalize(pointerDirection, currentDirection)
-      : null;
+  position(): Vec2 | null {
+    return this.pointerTarget ? { ...this.pointerTarget } : null;
   }
 
   consumeAction(): boolean {
@@ -134,14 +79,6 @@ export class InputController {
     );
   }
 
-  private addKey(keyCode: number): Phaser.Input.Keyboard.Key | null {
-    return this.keyboard?.addKey(keyCode) ?? null;
-  }
-
-  private isDown(key: Phaser.Input.Keyboard.Key | null): boolean {
-    return key?.isDown ?? false;
-  }
-
   private readonly handlePointerDown = (pointer: Phaser.Input.Pointer): void => {
     this.updatePointerTarget(pointer);
 
@@ -184,13 +121,7 @@ export class InputController {
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (
-      event.code === "Space" ||
-      event.code === "ArrowUp" ||
-      event.code === "ArrowDown" ||
-      event.code === "ArrowLeft" ||
-      event.code === "ArrowRight"
-    ) {
+    if (event.code === "Space") {
       event.preventDefault();
     }
 
