@@ -5,7 +5,7 @@
 이 저장소는 OpenAI Game Builders Seoul 2026 Track 1 제출작을 위한 브라우저 게임이다.
 
 - 작업명: `await CODEX: CONTEXT//OVERFLOW`
-- 콘셉트: Codex에게 작업을 맡기고 기다리는 짧은 공백 동안 플레이하는 무한 생존 게임
+- 콘셉트: Codex에게 작업을 맡기고 기다리는 짧은 공백 동안 플레이하는 고난도 생존 게임
 - 핵심 루프: `WASD` 또는 방향키로 작은 정사각형 agent node를 이동 → 개발·Codex 작업 로그와 범위 오류를 회피 → 한 번 피격 시 종료 → 생존 기록 갱신
 - 시각 방향: Codex task surface를 연상시키는 흰 화면과 흑백 HUD를 base로 삼되, 공격은 출처에 따라 terminal·browser·Codex의 서체·문구·glyph·색 문법을 각각 사용한다. 시작 화면은 original context-loop mark, 상단 task status와 저대비 ambient attack feed로 게임의 정체성을 먼저 전달한다. 사각형과 선·문자·패턴 중심이다.
 - 제출 목표일: 2026-08-25, 공식 접수 종료일 2026-08-26은 장애 대응 버퍼로 취급
@@ -37,7 +37,7 @@
 
 - 현재 배포는 대회 제출과 링크 공유를 위해 로그인 없는 `public` 접근을 사용한다. URL을 아는 사람은 누구나 접속할 수 있으므로 비밀 접근으로 표현하지 않으며 HTML robots meta로 검색 색인만 억제한다.
 - 첫 방문자는 계정, 닉네임, 프로필 생성 없이 게스트로 시작한다.
-- 시간 제한은 없다. 한 번 피격되면 종료하며 생존 시간을 기록한다.
+- 한 번 피격되면 종료하며 생존 시간을 기록한다. 4분을 버티면 task-crash ending 뒤 정상 완주로 종료한다.
 - 조작은 `WASD`와 방향키다. 실제 OS cursor는 게임 판정에 사용하지 않는다.
 - 클릭 또는 Space는 시작·재시작·pause 해제에 사용한다.
 - `Esc`는 현재 run을 기록하지 않고 즉시 시작 대기 화면으로 돌아간다.
@@ -75,7 +75,7 @@
 - `services/`: guest session best와 sound.
 - `scenes/`: 위 모듈을 연결하고 lifecycle과 event만 조정한다.
 
-기본 `tool-call` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `approval`과 `reasoning`은 생성 순간 player 위치를 snapshot하고 이후 재조준하지 않는다. 범위 공격은 warning 중 무해하고 active 단계에서만 치명적이어야 한다.
+기본 `tool-call` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `approval`은 생성 순간 player 축 위치에서 1.05초 안에 도달 가능한 gap을 고정하고, `reasoning`은 생성 순간 center와 safe sector를 고정한다. `retry`만 각 실패 뒤 다음 attempt의 player 위치를 새로 snapshot하며 한 attempt 중에는 재조준하지 않는다. 특수 패턴 onset은 최소 360ms 떨어뜨리고 동시에 살아 있는 서로 다른 major family는 세 개를 넘기지 않는다. 범위 공격과 blackout은 warning 중 무해하며 active 단계에서만 판정 또는 시야 차단을 만든다. blackout을 빠져나온 projectile에는 180ms reveal grace를 적용한다.
 
 ## 범위 제한
 
@@ -109,7 +109,9 @@ pnpm check
 - WASD·방향키 이동과 대각선 속도 정규화
 - viewport resize 중 player와 hazard 경계 유효성
 - `tool-call` 경로가 player 위치와 무관함
-- `approval`과 `reasoning`이 snapshot 조준 뒤 재조준하지 않음
+- `approval` gap 도달 가능성, `reasoning` safe sector 고정과 `retry` attempt 단위 snapshot
+- major pattern onset 360ms 간격과 동시 major family 3개 상한
+- `rm *` blackout 720ms warning 뒤에만 시야 차단
 - 범위 공격 warning 무해·active 치명
 - blur/hidden pause와 held-key reset
 - 개발 전용 `?qaElapsedSeconds=84` Stage 8 조합 공격 확인

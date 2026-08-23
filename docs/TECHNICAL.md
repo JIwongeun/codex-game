@@ -17,8 +17,8 @@
 
 - 플레이 URL: [https://await-codex-context-overflow.jygjyg99.chatgpt.site](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
 - HTTPS 정적 호스팅이 HTML, JavaScript, CSS를 전달하며 Sites 접근 정책은 로그인 없는 `public`이다.
-- HTML robots meta는 `noindex, nofollow, noarchive`를 요청한다. Worker도 같은 `X-Robots-Tag`를 설정하지만 Sites 외부 응답에서는 해당 header가 노출되지 않으므로 production 검색 제외는 HTML meta에 의존한다. 이는 검색 색인 억제일 뿐 인증이나 접근 차단이 아니다.
-- `worker/index.ts`는 `ASSETS` binding에 요청을 넘기는 얇은 배포 adapter이며 게임 로직이나 사용자 데이터를 처리하지 않는다.
+- HTML robots meta와 Worker `X-Robots-Tag`가 함께 `noindex, nofollow, noarchive`를 요청한다. 이는 검색 색인 억제일 뿐 인증이나 접근 차단이 아니다.
+- asset routing은 `run_worker_first: true`를 사용한다. `worker/index.ts`는 `ASSETS` 응답을 그대로 전달하면서 CSP, `nosniff`, no-referrer, 제한된 Permissions Policy와 robots header를 모든 HTML·asset 응답에 추가하며 게임 로직이나 사용자 데이터를 처리하지 않는다. 대회 페이지 iframe 호환성을 위해 `frame-ancestors`와 `X-Frame-Options`는 설정하지 않는다.
 - `.openai/hosting.json`에는 Sites project 식별자만 있고 배포 credential이나 secret은 저장하지 않는다.
 - 현재 게임 자체의 API, DB, WebSocket, 사용자 계정, 서버 session은 없다. Sites는 로그인 없는 공개 정적 페이지를 제공하며 브라우저 `sessionStorage`에는 현재 Guest page session의 최고 기록 하나만 저장한다.
 - 따라서 제출 기간에 개발자 PC를 서버로 켜 두거나 공유기 port forwarding을 할 필요가 없다.
@@ -28,11 +28,11 @@ production build는 `dist/client`의 정적 파일과 `dist/server`의 Worker bu
 ## 2. 기술 스택
 
 - TypeScript: 게임 규칙과 데이터 계약의 오류를 일찍 발견
-- Vite: 빠른 개발 서버와 정적 production 빌드
+- Vite 8.2.2와 Cloudflare Vite plugin 1.53.1: 빠른 개발 서버, 정적 production 빌드와 Worker-first asset routing
 - Phaser 3.90: 성숙한 Canvas/WebGL, 입력, 오디오, Scene 수명주기
 - Pretendard 1.3.9: OFL-1.1 variable font와 unicode-range dynamic subset 제공
 - Vitest: 생존 시간, 공격 단계, 예고/활성, 충돌, spawn 규칙 같은 순수 로직 단위 테스트
-- pnpm: 의존성 잠금과 재현 가능한 설치
+- pnpm과 Wrangler 4.125.0: 의존성 잠금, 재현 가능한 설치와 알려진 dev/prod advisory 0건 유지
 
 Phaser 4가 현재 배포되어 있어도 이번 3일 프로젝트에서는 API와 사례가 축적된 Phaser 3.90을 선택한다. 새로운 엔진 기능보다 예측 가능한 구현을 우선한다.
 
@@ -106,11 +106,11 @@ flowchart LR
 핵심 루프 구현 시 다음 책임을 기준으로 파일을 나눈다. 파일이 하나뿐인 책임을 위해 빈 추상 계층을 미리 만들지는 않는다.
 
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
-- Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
+- Domain logic: 생존 시간, 난이도, 직선 공격, 전용 gate·wave·sequence, 충돌과 major-pattern fairness scheduler
 - Input: Phaser keyboard event를 정규화된 WASD·방향키 방향 intent로 변환하고 click·Space action, `Esc` run 취소 및 음소거를 분리한다. blur/hidden에서는 held movement key를 비운다.
 - Presentation: domain의 명시적 `ProjectileState.surface`를 읽고 `attackText.ts`가 한 label을 syntax token으로 나눈다. terminal은 Codex terminal 계열 monospace와 executable·parameter·string·output 색, browser는 system sans와 page glyph·error code·path, Codex는 Pretendard와 tool token·본문 문법으로 그린다. token Text를 묶은 회전 Container, 회전 사각 hitbox와 glyph 없는 12×12 black square player를 Canvas에 표시하고 Game HUD를 갱신한다. projectile·hazard·sequence label Container는 entity id 기반 bounded map으로 관리한다. `ReadyOverlay`는 최초 진입과 game over가 공유하는 Start layout, last run·session best와 같은 token 문법으로 label의 회전 외곽 길이를 측정한 뒤 viewport 바깥에서 반대편 바깥으로 흐르는 presentation-only ambient motion을 담당한다. DOM token은 공백을 보존하고 Phaser token은 terminal prompt 경계의 중복 stroke padding만 상쇄한다. `PauseOverlay`는 Game 위의 일시적인 blur 안내만 담당한다. 두 DOM 계층 모두 simulation state를 변경하지 않는다.
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환한다. blur·hidden pause는 fixed-step backlog와 held input을 함께 비우고 focus 뒤에도 클릭 또는 Space 전까지 simulation을 재개하지 않는다. local font는 최대 1.5초만 기다리며 API 미지원·reject·timeout에서도 game boot를 계속한다.
-- Services: local storage와 Web Audio 효과음·procedural BGM. BGM sequencer는 game elapsed time의 16분음표 step에만 반응해 같은 frame step을 중복 재생하지 않으며, stage 경계를 한 번만 감지해 original delivery·completion motif를 예약한다. compaction·review·parallel event는 각각 error popup·delivery contour의 original cue를 합성한다. 실제 OS·협업 앱·OpenAI 제품 notification asset은 사용하지 않는다. mute·game over·blur·hidden에서는 active music gain을 즉시 disconnect한다. leaderboard HTTP는 실제 구현 시에만 추가
+- Services: Guest `sessionStorage` 최고점 하나와 Web Audio 효과음·procedural BGM. BGM sequencer는 game elapsed time의 16분음표 step에만 반응해 같은 frame step을 중복 재생하지 않으며, stage 경계를 한 번만 감지해 original delivery·completion motif를 예약한다. compaction·review·parallel event는 각각 error popup·delivery contour의 original cue를 합성한다. 실제 OS·협업 앱·OpenAI 제품 notification asset은 사용하지 않는다. mute·game over·blur·hidden에서는 active music gain을 즉시 disconnect한다. ending 뒤 재시작의 `run-started` event가 ending audio latch를 해제한다. leaderboard HTTP는 실제 구현 시에만 추가
 
 현재 core는 Phaser를 import하지 않는다. `stepGame`은 전달받은 state를 통제된 순서로 변경하지만 외부 I/O를 하지 않으며, 같은 seed·입력·고정 tick 수에는 같은 결과를 만든다.
 
@@ -204,9 +204,10 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 ## 8. 성능 원칙
 
-- Phaser `RESIZE`로 브라우저 viewport 전체를 논리 arena로 사용한다. resize 시 player와 범위 공격을 새 경계 안으로 clamp한다.
+- Phaser `RESIZE`로 브라우저 viewport 전체를 논리 arena로 사용한다. resize 시 player와 범위 공격을 새 경계 안으로 clamp하고 retry velocity를 새 target으로 재계산하며 blackout의 viewport 면적 비율을 보존한다.
 - update에서 반복 생성되는 객체를 피한다.
-- 회전 text projectile은 최대 48개, context hazard와 convergence sequence는 각각 최대 4개로 명시적 상한을 둔다.
+- 회전 text projectile은 최대 56개, context hazard와 convergence sequence는 각각 최대 4개로 명시적 상한을 둔다.
+- 특수 pattern onset은 최소 360ms 떨어뜨리고 서로 다른 active major family는 최대 세 개로 제한한다. 기준 arena 면적의 55%보다 작은 viewport는 spawn interval만 1.22배 늘린다.
 - player 원과 회전 projectile rectangle의 교차로 보이는 token·문구와 판정을 맞춘다. compaction frame은 예고·실패 연출만 담당하고 실제 판정은 실패 순간 생성되는 `context-token` projectile이 담당한다. 현재 상한에서는 공간 분할을 추가하지 않는다.
 - 에셋은 브라우저 캐시가 가능한 정적 파일로 제공한다.
 - 개발자 도구를 열지 않아도 오류 상태를 알 수 있게 한다.
@@ -219,9 +220,10 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - TypeScript typecheck
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
-- 완전 랜덤 `tool-call`, snapshot `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` ballistic burst·중력 낙하, 반복 `retry`, 장시간 예고 `reasoning`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
+- 완전 랜덤 `tool-call`, 도달 가능한 gap `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` ballistic burst·중력 낙하, attempt 단위 snapshot `retry`, safe-sector annulus `reasoning`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
 - 회전한 text hitbox 충돌, 12초 단위 Stage 1–10 경계와 Stage 10 상한 테스트
-- `tool-call` 경로가 player 위치에 독립적이고 `approval`·`reasoning`이 예고 중 재조준하지 않는 회귀 테스트
+- `tool-call` 경로 독립성, approval gap 도달 예산, reasoning safe sector 고정, round-robin 360ms onset·active family 3개 cap, blackout warning·stack·180ms reveal grace와 responsive interval 회귀 테스트
+- resize 뒤 retry/blackout 상태, 4분 ending 초기화와 ending 뒤 오디오 재시작 회귀 테스트
 - 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트
 - production build
 

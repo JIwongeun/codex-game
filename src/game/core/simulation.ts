@@ -12,6 +12,7 @@ import {
 import type {
   ApprovalGateState,
   AreaHazardState,
+  AttackPatternKind,
   AttackSurface,
   AttackSequenceState,
   ArenaBounds,
@@ -90,6 +91,16 @@ const CONTEXT_TOKEN_LABELS = [
   "false",
   "null",
 ] as const;
+const MAJOR_PATTERN_ORDER: readonly AttackPatternKind[] = [
+  "approval-required",
+  "context-compaction",
+  "retry-loop",
+  "reasoning-xhigh",
+  "parallel-agents",
+  "review-fix-loop",
+  "usage-limit",
+  "wildcard-blackout",
+];
 
 export const EMPTY_INPUT: InputIntent = { direction: { x: 0, y: 0 } };
 
@@ -134,6 +145,8 @@ export function createGameState(
       reviewLoopMs: GAMEPLAY.reviewLoopFirstSpawnMs,
       usageLimitMs: GAMEPLAY.usageLimitFirstSpawnMs,
       blackoutMs: GAMEPLAY.blackoutFirstSpawnMs,
+      majorPatternCooldownMs: 0,
+      majorPatternCursor: 0,
     },
   };
 }
@@ -162,6 +175,7 @@ export function resizeArena(
   width: number,
   height: number,
 ): void {
+  const previousArena = state.arena;
   state.arena = createArena(width, height);
   state.player.position = clampPointToArena(
     state.player.position,
@@ -203,6 +217,7 @@ export function resizeArena(
   for (const retry of state.retryChains) {
     retry.position = clampPointToArena(retry.position, state.arena, 0);
     retry.target = clampPointToArena(retry.target, state.arena, 0);
+    retry.velocity = directionBetween(retry.position, retry.target);
   }
 
   for (const wave of state.reasoningWaves) {
@@ -226,9 +241,15 @@ export function resizeArena(
   }
 
   for (const blackout of state.blackouts) {
+    const widthScale = state.arena.width / previousArena.width;
+    const heightScale = state.arena.height / previousArena.height;
     blackout.hitbox = {
-      width: Math.min(blackout.hitbox.width, state.arena.width * 0.46),
-      height: Math.min(blackout.hitbox.height, state.arena.height * 0.38),
+      width: blackout.hitbox.width * widthScale,
+      height: blackout.hitbox.height * heightScale,
+    };
+    blackout.position = {
+      x: blackout.position.x * widthScale,
+      y: blackout.position.y * heightScale,
     };
     blackout.position = clampRectangleCenter(
       blackout.position,
@@ -308,6 +329,7 @@ export function stepGame(
   updateRetryChains(state, stepMs, stepSeconds);
   updateReasoningWaves(state, stepMs, stepSeconds, events);
   updateBlackouts(state, stepMs);
+  refreshActiveBlackoutProjectileGrace(state);
   spawnScheduledAttacks(state, stepMs, events);
 
   const hitSource = findHitSource(state);
@@ -355,6 +377,10 @@ function updateProjectiles(
   const survivors: ProjectileState[] = [];
 
   for (const projectile of state.projectiles) {
+    const wasInsideBlackout = pointInsideActiveBlackout(
+      state,
+      projectile.position,
+    );
     projectile.ageMs += stepMs;
 
     if (projectile.telegraphRemainingMs > 0) {
@@ -376,6 +402,19 @@ function updateProjectiles(
           (projectile.gravityScale ?? 1) *
           stepSeconds;
       }
+    }
+
+    if (
+      wasInsideBlackout ||
+      pointInsideActiveBlackout(state, projectile.position)
+    ) {
+      projectile.blackoutRevealGraceRemainingMs =
+        GAMEPLAY.blackoutRevealGraceMs;
+    } else {
+      projectile.blackoutRevealGraceRemainingMs = Math.max(
+        0,
+        projectile.blackoutRevealGraceRemainingMs - stepMs,
+      );
     }
 
     if (isInsideProjectileBounds(state, projectile.position)) {
@@ -584,9 +623,25 @@ function updateReasoningWaves(
 
 function updateBlackouts(state: GameState, stepMs: number): void {
   state.blackouts = state.blackouts.filter((blackout) => {
+    if (blackout.telegraphRemainingMs > 0) {
+      blackout.telegraphRemainingMs = Math.max(
+        0,
+        blackout.telegraphRemainingMs - stepMs,
+      );
+      return true;
+    }
     blackout.remainingMs -= stepMs;
     return blackout.remainingMs > 0;
   });
+}
+
+function refreshActiveBlackoutProjectileGrace(state: GameState): void {
+  for (const projectile of state.projectiles) {
+    if (pointInsideActiveBlackout(state, projectile.position)) {
+      projectile.blackoutRevealGraceRemainingMs =
+        GAMEPLAY.blackoutRevealGraceMs;
+    }
+  }
 }
 
 function spawnScheduledAttacks(
@@ -595,6 +650,7 @@ function spawnScheduledAttacks(
   events: GameEvent[],
 ): void {
   const difficulty = difficultyAt(state.elapsedMs);
+  const intervalScale = responsiveSpawnIntervalScale(state.arena);
   state.spawn.toolCallMs -= stepMs;
   state.spawn.approvalMs -= stepMs;
   state.spawn.compactionMs -= stepMs;
@@ -604,24 +660,49 @@ function spawnScheduledAttacks(
   state.spawn.reviewLoopMs -= stepMs;
   state.spawn.usageLimitMs -= stepMs;
   state.spawn.blackoutMs -= stepMs;
+  state.spawn.majorPatternCooldownMs = Math.max(
+    0,
+    state.spawn.majorPatternCooldownMs - stepMs,
+  );
+  const activeMajorPatterns = activeMajorPatternFamilies(state);
+  const selectedMajorPattern = selectMajorPattern(
+    state,
+    difficulty,
+    activeMajorPatterns,
+  );
+
+  const reserveMajorPattern = (kind: AttackPatternKind): void => {
+    activeMajorPatterns.add(kind);
+    state.spawn.majorPatternCooldownMs = GAMEPLAY.majorPatternSeparationMs;
+  };
 
   if (state.spawn.toolCallMs <= 0) {
     spawnToolCall(state, difficulty.toolCallSpeed);
-    state.spawn.toolCallMs += difficulty.toolCallIntervalMs;
+    state.spawn.toolCallMs += difficulty.toolCallIntervalMs * intervalScale;
   }
 
-  if (difficulty.approvalUnlocked && state.spawn.approvalMs <= 0) {
+  if (
+    selectedMajorPattern === "approval-required" &&
+    difficulty.approvalUnlocked &&
+    state.spawn.approvalMs <= 0
+  ) {
     if (spawnApprovalGate(state, difficulty.approvalSpeed)) {
       events.push({ type: "pattern-warning", kind: "approval-required" });
+      reserveMajorPattern("approval-required");
     }
-    state.spawn.approvalMs += difficulty.approvalIntervalMs;
+    state.spawn.approvalMs += difficulty.approvalIntervalMs * intervalScale;
   }
 
-  if (difficulty.compactionUnlocked && state.spawn.compactionMs <= 0) {
+  if (
+    selectedMajorPattern === "context-compaction" &&
+    difficulty.compactionUnlocked &&
+    state.spawn.compactionMs <= 0
+  ) {
     const available = Math.min(
       difficulty.compactionCount,
       GAMEPLAY.maxHazards - state.hazards.length,
     );
+    let spawnedPattern = false;
     for (let index = 0; index < available; index += 1) {
       if (index === 0) {
         if (
@@ -632,6 +713,7 @@ function spawnScheduledAttacks(
           )
         ) {
           events.push({ type: "hazard-warning", kind: "compaction" });
+          spawnedPattern = true;
         }
         continue;
       }
@@ -649,23 +731,36 @@ function spawnScheduledAttacks(
           : randomRectangleCenter(state, accessHitbox);
       if (spawnFullAccess(state, target, accessHitbox)) {
         events.push({ type: "hazard-warning", kind: "full-access" });
+        spawnedPattern = true;
       }
     }
-    state.spawn.compactionMs += difficulty.compactionIntervalMs;
+    if (spawnedPattern) {
+      reserveMajorPattern("context-compaction");
+    }
+    state.spawn.compactionMs += difficulty.compactionIntervalMs * intervalScale;
   }
 
-  if (difficulty.retryLoopUnlocked && state.spawn.retryLoopMs <= 0) {
+  if (
+    selectedMajorPattern === "retry-loop" &&
+    difficulty.retryLoopUnlocked &&
+    state.spawn.retryLoopMs <= 0
+  ) {
     if (spawnRetryChain(
       state,
       difficulty.retryLoopCount,
       difficulty.approvalSpeed * 0.94,
     )) {
       events.push({ type: "pattern-warning", kind: "retry-loop" });
+      reserveMajorPattern("retry-loop");
     }
-    state.spawn.retryLoopMs += difficulty.retryLoopIntervalMs;
+    state.spawn.retryLoopMs += difficulty.retryLoopIntervalMs * intervalScale;
   }
 
-  if (difficulty.reasoningUnlocked && state.spawn.reasoningMs <= 0) {
+  if (
+    selectedMajorPattern === "reasoning-xhigh" &&
+    difficulty.reasoningUnlocked &&
+    state.spawn.reasoningMs <= 0
+  ) {
     if (
       spawnReasoningXhigh(
         state,
@@ -674,24 +769,33 @@ function spawnScheduledAttacks(
       )
     ) {
       events.push({ type: "pattern-warning", kind: "reasoning-xhigh" });
+      reserveMajorPattern("reasoning-xhigh");
     }
-    state.spawn.reasoningMs += difficulty.reasoningIntervalMs;
+    state.spawn.reasoningMs += difficulty.reasoningIntervalMs * intervalScale;
   }
 
   if (
+    selectedMajorPattern === "parallel-agents" &&
     difficulty.parallelAgentsUnlocked &&
     state.spawn.parallelAgentsMs <= 0
   ) {
-    spawnParallelAgents(
+    if (spawnParallelAgents(
       state,
       difficulty.parallelAgentPairs,
       difficulty.parallelAgentSpeed,
-    );
-    events.push({ type: "pattern-warning", kind: "parallel-agents" });
-    state.spawn.parallelAgentsMs += difficulty.parallelAgentsIntervalMs;
+    )) {
+      events.push({ type: "pattern-warning", kind: "parallel-agents" });
+      reserveMajorPattern("parallel-agents");
+    }
+    state.spawn.parallelAgentsMs +=
+      difficulty.parallelAgentsIntervalMs * intervalScale;
   }
 
-  if (difficulty.reviewLoopUnlocked && state.spawn.reviewLoopMs <= 0) {
+  if (
+    selectedMajorPattern === "review-fix-loop" &&
+    difficulty.reviewLoopUnlocked &&
+    state.spawn.reviewLoopMs <= 0
+  ) {
     if (
       spawnSequence(
         state,
@@ -701,11 +805,16 @@ function spawnScheduledAttacks(
       )
     ) {
       events.push({ type: "pattern-warning", kind: "review-loop" });
+      reserveMajorPattern("review-fix-loop");
     }
-    state.spawn.reviewLoopMs += difficulty.reviewLoopIntervalMs;
+    state.spawn.reviewLoopMs += difficulty.reviewLoopIntervalMs * intervalScale;
   }
 
-  if (difficulty.usageLimitUnlocked && state.spawn.usageLimitMs <= 0) {
+  if (
+    selectedMajorPattern === "usage-limit" &&
+    difficulty.usageLimitUnlocked &&
+    state.spawn.usageLimitMs <= 0
+  ) {
     if (
       spawnSequence(
         state,
@@ -716,19 +825,137 @@ function spawnScheduledAttacks(
       )
     ) {
       events.push({ type: "pattern-warning", kind: "usage-limit" });
+      reserveMajorPattern("usage-limit");
     }
-    state.spawn.usageLimitMs += difficulty.usageLimitIntervalMs;
+    state.spawn.usageLimitMs += difficulty.usageLimitIntervalMs * intervalScale;
   }
 
-  if (difficulty.blackoutUnlocked && state.spawn.blackoutMs <= 0) {
+  if (
+    selectedMajorPattern === "wildcard-blackout" &&
+    difficulty.blackoutUnlocked &&
+    state.spawn.blackoutMs <= 0
+  ) {
     if (spawnBlackout(state, difficulty)) {
       events.push({
         type: "blackout-started",
         position: { ...state.blackouts.at(-1)!.position },
       });
+      reserveMajorPattern("wildcard-blackout");
     }
-    state.spawn.blackoutMs += difficulty.blackoutIntervalMs;
+    state.spawn.blackoutMs += difficulty.blackoutIntervalMs * intervalScale;
   }
+}
+
+function selectMajorPattern(
+  state: GameState,
+  difficulty: ReturnType<typeof difficultyAt>,
+  active: ReadonlySet<AttackPatternKind>,
+): AttackPatternKind | null {
+  if (state.spawn.majorPatternCooldownMs > 0) {
+    return null;
+  }
+
+  if (
+    active.has("wildcard-blackout") &&
+    state.blackouts.length < difficulty.blackoutMaxActive &&
+    majorPatternIsDue("wildcard-blackout", state, difficulty)
+  ) {
+    return "wildcard-blackout";
+  }
+
+  if (active.size >= GAMEPLAY.maxConcurrentMajorPatterns) {
+    return null;
+  }
+
+  for (let offset = 0; offset < MAJOR_PATTERN_ORDER.length; offset += 1) {
+    const index = (state.spawn.majorPatternCursor + offset) %
+      MAJOR_PATTERN_ORDER.length;
+    const kind = MAJOR_PATTERN_ORDER[index]!;
+    if (!majorPatternIsDue(kind, state, difficulty)) {
+      continue;
+    }
+    state.spawn.majorPatternCursor = (index + 1) % MAJOR_PATTERN_ORDER.length;
+    return kind;
+  }
+  return null;
+}
+
+function majorPatternIsDue(
+  kind: AttackPatternKind,
+  state: GameState,
+  difficulty: ReturnType<typeof difficultyAt>,
+): boolean {
+  if (kind === "approval-required") {
+    return difficulty.approvalUnlocked && state.spawn.approvalMs <= 0;
+  }
+  if (kind === "context-compaction") {
+    return difficulty.compactionUnlocked && state.spawn.compactionMs <= 0;
+  }
+  if (kind === "retry-loop") {
+    return difficulty.retryLoopUnlocked && state.spawn.retryLoopMs <= 0;
+  }
+  if (kind === "reasoning-xhigh") {
+    return difficulty.reasoningUnlocked && state.spawn.reasoningMs <= 0;
+  }
+  if (kind === "parallel-agents") {
+    return (
+      difficulty.parallelAgentsUnlocked && state.spawn.parallelAgentsMs <= 0
+    );
+  }
+  if (kind === "review-fix-loop") {
+    return difficulty.reviewLoopUnlocked && state.spawn.reviewLoopMs <= 0;
+  }
+  if (kind === "usage-limit") {
+    return difficulty.usageLimitUnlocked && state.spawn.usageLimitMs <= 0;
+  }
+  return difficulty.blackoutUnlocked && state.spawn.blackoutMs <= 0;
+}
+
+function activeMajorPatternFamilies(state: GameState): Set<AttackPatternKind> {
+  const active = new Set<AttackPatternKind>();
+  if (state.approvalGates.length > 0) {
+    active.add("approval-required");
+  }
+  if (
+    state.hazards.length > 0 ||
+    state.projectiles.some(({ kind }) => kind === "context-token")
+  ) {
+    active.add("context-compaction");
+  }
+  if (state.retryChains.length > 0) {
+    active.add("retry-loop");
+  }
+  if (state.reasoningWaves.length > 0) {
+    active.add("reasoning-xhigh");
+  }
+  if (state.projectiles.some(({ kind }) => kind === "agent")) {
+    active.add("parallel-agents");
+  }
+  if (
+    state.sequences.some(({ kind }) => kind === "review-loop") ||
+    state.projectiles.some(({ kind }) => kind === "finding")
+  ) {
+    active.add("review-fix-loop");
+  }
+  if (
+    state.sequences.some(({ kind }) => kind === "usage-limit") ||
+    state.projectiles.some(({ kind }) => kind === "limit")
+  ) {
+    active.add("usage-limit");
+  }
+  if (state.blackouts.length > 0) {
+    active.add("wildcard-blackout");
+  }
+  return active;
+}
+
+function responsiveSpawnIntervalScale(arena: ArenaBounds): number {
+  const areaRatio =
+    (arena.width * arena.height) /
+    (DEFAULT_GAME_WIDTH * DEFAULT_GAME_HEIGHT);
+  return areaRatio < GAMEPLAY.smallViewportAreaThresholdRatio
+    ? GAMEPLAY.smallViewportIntervalMultiplier
+    : 1;
 }
 
 function spawnToolCall(state: GameState, speed: number): void {
@@ -780,16 +1007,30 @@ function spawnApprovalGate(state: GameState, speed: number): boolean {
     ? state.arena.height
     : state.arena.width;
   const gapSize = Math.min(
+    perpendicularSize,
     GAMEPLAY.approvalGateMaxGap,
     Math.max(
       GAMEPLAY.approvalGateMinGap,
       perpendicularSize * 0.16,
     ),
   );
+  const playerAlong = horizontal
+    ? state.player.position.y
+    : state.player.position.x;
+  const edgeInset = Math.min(
+    20,
+    Math.max(0, (perpendicularSize - gapSize) / 2),
+  );
+  const minimumGapCenter = gapSize / 2 + edgeInset;
+  const maximumGapCenter = perpendicularSize - gapSize / 2 - edgeInset;
+  const reachBudget =
+    GAMEPLAY.playerSpeed *
+    (GAMEPLAY.approvalGateTelegraphMs / 1_000) *
+    GAMEPLAY.approvalGateReachBudgetRatio;
   const gapCenter = randomBetween(
     state,
-    gapSize / 2 + 20,
-    perpendicularSize - gapSize / 2 - 20,
+    Math.max(minimumGapCenter, playerAlong - reachBudget),
+    Math.min(maximumGapCenter, playerAlong + reachBudget),
   );
   const margin = GAMEPLAY.approvalGateThickness;
   const position = pointOnEdge(state.arena, edge, 0, margin);
@@ -886,12 +1127,16 @@ function spawnParallelAgents(
   state: GameState,
   pairCount: number,
   speed: number,
-): void {
+): boolean {
   const availablePairs = Math.min(
     pairCount,
     Math.floor((GAMEPLAY.maxProjectiles - state.projectiles.length) / 2),
   );
   const target = { ...state.player.position };
+
+  if (availablePairs <= 0) {
+    return false;
+  }
 
   for (let index = 0; index < availablePairs; index += 1) {
     const horizontal = index % 2 === 0;
@@ -938,6 +1183,7 @@ function spawnParallelAgents(
       760 + index * 100,
     );
   }
+  return true;
 }
 
 function spawnSequence(
@@ -1121,6 +1367,7 @@ function addProjectile(
     speed,
     ageMs: 0,
     telegraphRemainingMs: telegraphMs,
+    blackoutRevealGraceRemainingMs: 0,
   };
   state.projectiles.push(projectile);
   return projectile;
@@ -1261,6 +1508,7 @@ function spawnBlackout(
     id: takeEntityId(state),
     position,
     hitbox,
+    telegraphRemainingMs: GAMEPLAY.blackoutTelegraphMs,
     remainingMs: difficulty.blackoutDurationMs,
     durationMs: difficulty.blackoutDurationMs,
   });
@@ -1380,8 +1628,17 @@ function randomRectangleCenter(
 
 function findHitSource(state: GameState): HitSource | null {
   for (const projectile of state.projectiles) {
+    const sharesBlackoutWithPlayer = pointsShareActiveBlackout(
+      state,
+      projectile.position,
+      state.player.position,
+    );
     if (
       projectile.telegraphRemainingMs <= 0 &&
+      (
+        projectile.blackoutRevealGraceRemainingMs <= 0 ||
+        sharesBlackoutWithPlayer
+      ) &&
       circleOverlapsOrientedRectangle(
         state.player.position,
         GAMEPLAY.playerRadius,
@@ -1453,6 +1710,30 @@ function findHitSource(state: GameState): HitSource | null {
   }
 
   return null;
+}
+
+function pointInsideActiveBlackout(state: GameState, point: Vec2): boolean {
+  return state.blackouts.some(
+    (blackout) =>
+      blackout.telegraphRemainingMs <= 0 &&
+      Math.abs(point.x - blackout.position.x) <= blackout.hitbox.width / 2 &&
+      Math.abs(point.y - blackout.position.y) <= blackout.hitbox.height / 2,
+  );
+}
+
+function pointsShareActiveBlackout(
+  state: GameState,
+  first: Vec2,
+  second: Vec2,
+): boolean {
+  return state.blackouts.some(
+    (blackout) =>
+      blackout.telegraphRemainingMs <= 0 &&
+      Math.abs(first.x - blackout.position.x) <= blackout.hitbox.width / 2 &&
+      Math.abs(first.y - blackout.position.y) <= blackout.hitbox.height / 2 &&
+      Math.abs(second.x - blackout.position.x) <= blackout.hitbox.width / 2 &&
+      Math.abs(second.y - blackout.position.y) <= blackout.hitbox.height / 2,
+  );
 }
 
 function reasoningWaveHitsPlayer(

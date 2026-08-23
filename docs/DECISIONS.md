@@ -2,6 +2,22 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-035 — 정적 asset도 Worker를 거쳐 release 보안 header를 적용한다
+
+- 날짜: 2026-08-24
+- 상태: 확정
+- 배경: source의 `_headers`와 Worker `X-Robots-Tag`는 있었지만 Sites production의 정적 asset이 Worker를 우회해 실제 root와 hashed asset 응답에는 CSP, `nosniff`, referrer, permissions와 robots header가 없었다. 현재 게임은 사용자 입력·API가 없어 즉시 악용 가능한 경로는 없지만 의도한 방어 계층과 production 동작이 달랐다.
+- 결정: Cloudflare asset 설정에 `run_worker_first: true`를 사용하고 Worker가 모든 asset 응답에 self-only script/font/image/connect CSP, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `nosniff`, no-referrer, 제한된 Permissions Policy와 `X-Robots-Tag`를 추가한다. runtime style attribute와 local Vite의 style element injection은 허용하고, 대회 iframe 호환성이 불명확하므로 `frame-ancestors`와 `X-Frame-Options`는 보류한다.
+- 결과: 게임 로직·사용자 데이터·API를 Worker에 추가하지 않고 응답 header만 강화한다. Cloudflare Vite plugin과 Wrangler를 각각 1.53.1·4.125.0으로 함께 갱신해 dev toolchain을 포함한 `pnpm audit` advisory를 0건으로 만든다.
+
+## D-034 — 최고 난이도는 유지하되 읽을 수 없는 동시 발동을 제거한다
+
+- 날짜: 2026-08-24
+- 상태: 확정
+- 배경: Stage 10 seed sweep에서 서로 다른 major warning이 같은 tick에 최대 세 종류, 500ms 안에 여섯 종류까지 시작했고 `rm *`은 warning 없이 즉시 탄막을 가렸다. approval gap도 player 위치와 무관해 viewport edge에서는 warning 안에 물리적으로 도달할 수 없는 seed가 있었다. 이는 높은 난이도가 아니라 입력으로 해결할 수 없는 사망이었다.
+- 결정: 기본 tool stream을 제외한 major onset을 최소 360ms 분리하고 active major family를 최대 세 개로 제한한다. due pattern은 round-robin으로 선택해 후반 pattern starvation을 막는다. approval gap은 1.05초 warning 동안 player가 도달 가능한 축 범위 안에서 선택한다. `rm *`은 720ms outline warning 뒤에만 projectile blackout이 되며 같은 family 안에서 Stage 10 최대 4개까지 겹친다. approval·retry·reasoning·area hazard geometry는 blackout 위에 계속 표시한다. 가림막을 빠져나온 projectile은 180ms 동안 반투명 reveal과 충돌 유예를 받는다. 작은 viewport는 속도 대신 spawn interval을 1.22배 늘린다. 공정성 guard로 완주 가능성이 올라가는 만큼 ending은 180초에서 240초로 연장해 Stage 10 최고 압력을 132초 버텨야 도달하도록 한다.
+- 결과: 어려움은 공격 수를 삭제하는 대신 읽고 선택할 수 있는 순서와 세 family 조합에서 나온다. ending은 이론적으로 가능하지만 일반 플레이에서는 거의 도달하기 어렵고, blackout은 warning 이후 선택한 시야 위험으로 남되 보이지 않던 탄의 출구 즉사는 막는다.
+
 ## D-033 — Guest 기록은 최고점 하나만 유지하고 Esc로 run을 취소한다
 
 - 날짜: 2026-08-24
@@ -21,11 +37,11 @@
 ## D-031 — 공격 수가 아니라 서로 다른 회피 판단을 Stage마다 추가한다
 
 - 날짜: 2026-08-24
-- 상태: 확정, `CONTEXT COMPACTION` 적용 완료·나머지 패턴 순차 교체 예정
+- 상태: 확정, approval gate·compaction token burst·retry chain·xhigh safe-sector wave 적용 완료
 - 배경: 여덟 공격의 이름과 문구는 달랐지만 실제 조작은 대부분 속도·조준 여부가 다른 직선 text projectile이었고, review와 usage는 둘 다 수렴 후 원형 발산이었다. Stage가 올라도 새 공격을 학습하는 대신 같은 탄을 더 많이 피하는 체감이 강했다.
 - 결정: 각 패턴은 흐름 피하기, 틈 선택, 영역 이탈 뒤 파편 회피, 박자 통과, safe sector 유지, 이동 corridor 추적, cell 전환, 경계 출구 추적 중 하나의 고유한 회피 행동을 소유한다. 문구를 제거해도 실루엣과 안전 공간이 같은 패턴은 합치거나 다시 설계한다. Stage 1–8은 새 문법을 하나씩 소개하고 Stage 9–10은 읽을 수 있는 예고 순서로 최대 세 고강도 문법을 조합한다.
 - 첫 적용: `CONTEXT COMPACTION` frame을 가로·세로 1.5배로 확대하고 전체 보라색 active 장판과 상단 progress bar를 제거한다. context row와 frame이 중심으로 압축된 뒤 `COMPACTION FAILED`와 함께 12–20개 `context-token`이 서로 다른 속도로 튀며, 수평 감속과 중력을 받아 아래로 쏟아진다. 큰 frame 자체가 아니라 이 ballistic token 파편이 실제 피격을 만든다.
-- 결과: context는 공간을 미리 비운 다음 radial 파편을 다시 읽는 2단 회피가 된다. `TOOL CALL STREAM` 외의 패턴도 단순 text projectile에서 shutter, pulse path, safe sector, corridor, diff cell, closing boundary로 순차 교체한다.
+- 결과: context는 공간을 미리 비운 다음 ballistic 파편을 다시 읽는 2단 회피가 된다. 나머지 패턴도 gate, attempt chain, safe-sector wave, 교차 corridor와 밀도가 다른 두 convergence burst로 구분해 현재 Stage 1–10 구현에 적용했다.
 
 ## D-030 — 실제 제품 알림음 대신 original system-notification motif를 사용한다
 

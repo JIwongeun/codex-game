@@ -10,10 +10,10 @@
 
 공격 이름과 움직임은 분리될 수 없다. 이름을 다른 개발 용어로 바꿔도 성립하는 공격은 다시 설계한다.
 
-- `APPROVAL REQUIRED`는 요청 시점의 player 위치를 snapshot하고 이후 재조준하지 않는다.
-- `RETRY`는 같은 snapshot과 같은 tool call을 시간차로 반복한다.
+- `APPROVAL REQUIRED`는 요청 시점의 player 축 위치 근처에 도달 가능한 하나의 승인 gap을 고정한다.
+- `RETRY`는 실패할 때마다 다음 attempt의 player 위치를 다시 snapshot하고 속도를 높인다.
 - `CONTEXT COMPACTION`은 넓은 frame 안의 context row를 한 점으로 압축한 뒤 실패하며 token 파편을 사방으로 잃어버린다.
-- `REASONING: XHIGH`는 긴 thinking 예고 뒤 한 번에 매우 빠르게 응답한다.
+- `REASONING: XHIGH`는 긴 thinking 동안 후보 경로를 가지치기하고 마지막 safe sector만 남긴 inward response wave로 응답한다.
 - `PARALLEL AGENTS`는 같은 작업 지점을 화면 반대편에서 동시에 차지하려 한다.
 - `REVIEW / FIX LOOP`는 finding을 고친 직후 `ONE MORE ISSUE`를 전방위로 다시 만든다.
 - `USAGE LIMIT`은 여러 usage 감소가 한 지점으로 수렴한 뒤 `LIMIT REACHED`를 전방위로 발산한다.
@@ -109,30 +109,30 @@
 | 해금 | 패턴 | 화면 문구 | 행동과 개연성 |
 |---|---|---|---|
 | Stage 1 | `TOOL CALL STREAM` | `$ rg --files -g AGENTS.md`, `[tool] rereading same file`, `ERR_*` 등 | player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge로 흐른다. 실제 작업 surface의 로그가 방향 예고 없이 화면을 가로지른다. |
-| Stage 2 | `APPROVAL REQUIRED` | `[approval] allow full access?`, `run outside sandbox?` 등 | 생성 순간 player 위치를 snapshot하고 짧은 점선 경로를 고정한 뒤 돌진한다. 승인 prompt를 피했더라도 같은 탄이 재조준하지 않는다. |
+| Stage 2 | `APPROVAL REQUIRED` | `[approval] ALLOW ONCE`, `ALLOW SESSION`, `DENY` | 화면 전체를 가로지르는 permission gate가 edge에서 들어온다. gap은 생성 순간 player의 수직축 위치에서 1.05초 warning 동안 도달 가능한 범위에 고정된다. |
 | Stage 3 | `CONTEXT COMPACTION` | `[context] compacting 0–100%` → `COMPACTION FAILED` → `[tok] ...` | 기존 대비 가로·세로 1.5배인 snapshot frame 안에서 context row와 중첩 frame이 한 점으로 수축한다. 실패 순간 frame 전체가 장판으로 변하지 않고 12–20개의 짧은 token 파편이 서로 다른 속도로 튄 뒤 수평 감속·중력을 받아 포물선으로 떨어진다. |
-| Stage 4 | `RETRY LOOP` | `[tool] retry 1/3`, `2/3`, `3/3` | 같은 snapshot을 향해 260ms 간격으로 같은 tool call을 반복한다. 후반에는 최대 5회다. |
-| Stage 5 | `REASONING: XHIGH` | `[effort] xhigh · thinking...` | 일반 조준보다 두 배 이상 오래 멈춰 있다가 snapshot을 향해 단발 초고속으로 이동한다. 기다림과 갑작스러운 응답이 한 행동이다. |
+| Stage 4 | `RETRY LOOP` | `[tool] retry 1/3`, `2/3`, `3/3` | 한 attempt 동안 목표를 고정하고 실패 지점에 도달하면 560ms warning 뒤 현재 player 위치를 다시 snapshot한다. 후반에는 최대 5회이며 매번 1.12배 빨라진다. |
+| Stage 5 | `REASONING: XHIGH` | `[effort] xhigh · 8/4/2 paths` → `finalizing` → `[answer] final` | 2.1초 동안 후보 방향을 8→4→2→1로 가지치기해 생성 순간 정한 safe sector를 보여준다. 이후 얇은 response annulus가 viewport 바깥에서 center로 수축하며 그 sector만 무해하다. |
 | Stage 6 | `PARALLEL AGENTS` | `[agent 1] working`, `[agent 2] working` | 같은 snapshot을 향해 화면 반대편 agent 두 개가 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
 | Stage 7 | `REVIEW / FIX LOOP` | 여러 `[review] Pn finding` → `[fix] ... reviewing again` → `ONE MORE ISSUE` | 네 finding이 한 지점으로 모이고, 수정 완료 순간 8–16개 새 issue가 원형 발산한다. 반복 review마다 새 문제를 찾는 경험을 행동으로 만든다. |
 | Stage 8 | `USAGE LIMIT` | 여러 `[usage] -N%` → `[usage] N% left` → `5H LIMIT REACHED`·`WEEKLY LIMIT REACHED`·`RESETS IN 4 DAYS` | 4–8개 usage 감소가 player snapshot으로 수렴하고, seed로 정해진 실제 limit 결말이 12–20개 탄으로 원형 발산한다. |
 
-`TOOL CALL`, `APPROVAL`, `CONTEXT TOKEN`, `RETRY`, `REASONING`, `AGENT`, `FINDING`, `LIMIT`은 각각 별도 projectile kind와 회전 사각 hitbox를 가진다. `COMPACTION` frame은 warning/failed visual state를 갖지만 큰 frame 자체는 치명 영역이 아니며, 실패 때 생성된 `CONTEXT TOKEN`이 실제 판정을 담당한다. `REVIEW LOOP`와 `USAGE LIMIT`은 수렴 완료 시 projectile을 생성하는 sequence state다.
+`TOOL CALL`, `CONTEXT TOKEN`, `AGENT`, `FINDING`, `LIMIT`은 projectile kind와 회전 사각 hitbox를 사용한다. `APPROVAL`은 gap이 있는 screen gate, `RETRY`는 attempt chain, `REASONING`은 safe sector가 있는 swept annulus 전용 state다. `COMPACTION` frame은 warning/failed visual state를 갖지만 큰 frame 자체는 치명 영역이 아니며, 실패 때 생성된 `CONTEXT TOKEN`이 실제 판정을 담당한다. `REVIEW LOOP`와 `USAGE LIMIT`은 수렴 완료 시 projectile을 생성하는 sequence state다.
 
 ### 공격군 차별화 재설계 기준
 
-현재 구현은 이름이 여덟 개여도 직선 문구탄과 수렴 후 방사 탄에 지나치게 집중되어 있다. 아래 표는 속도·조준 여부가 아니라 플레이어에게 요구하는 회피 판단을 기준으로 한 교체 목표다. 이번 작업에서는 `CONTEXT COMPACTION`만 적용하며 나머지는 각 패턴을 하나씩 교체하면서 core test와 stage 조합을 갱신한다.
+아래 표는 속도·조준 여부가 아니라 플레이어에게 요구하는 회피 판단을 기준으로 현재 구현을 기록한다.
 
 | 패턴 | 고유 화면 문법 | 요구하는 회피 행동 | 상태 |
 |---|---|---|---|
 | `TOOL CALL STREAM` | 실제 작업 문구가 임의 edge를 계속 가로지르는 유일한 일반 text 탄막 | 작은 방향 전환으로 흐름 피하기 | 현재 baseline 유지 |
-| `APPROVAL REQUIRED` | snapshot 주변을 permission shutter가 닫고 `DENY` 쪽 한 틈만 남김 | 안전 틈을 고르고 일찍 진입 | 교체 예정 |
-| `CONTEXT COMPACTION` | 넓은 context frame과 row가 중심으로 수축한 뒤 token 조각이 물풍선처럼 튀고 아래로 쏟아짐 | frame에서 이탈한 뒤 낙하 파편 사이를 다시 회피 | 이번 작업 적용 |
-| `RETRY LOOP` | 하나의 고정 실행 경로를 terminal pulse가 같은 박자로 3–5회 재실행 | pulse 사이의 시간 틈 통과 | 교체 예정 |
-| `REASONING: XHIGH` | 긴 thinking arc가 회전하며 한 safe sector만 남기고 응답 wave로 전환 | safe sector 각도를 따라 이동 | 교체 예정 |
-| `PARALLEL AGENTS` | 여러 worktree window가 서로 다른 축에서 arena를 움직이는 통로로 분할 | 움직이는 corridor 사이를 따라가기 | 교체 예정 |
-| `REVIEW / FIX LOOP` | diff cell의 finding을 고치면 다음 pass에서 인접 cell이 새 위험으로 전환 | pass마다 안전 cell을 옮겨 타기 | 교체 예정 |
-| `USAGE LIMIT` | viewport 외곽 usage segment가 소진되며 세 벽이 닫히고 한 `RESET` window만 이동 | 닫히는 경계의 출구를 계속 추적 | 교체 예정 |
+| `APPROVAL REQUIRED` | screen gate가 `DENY` 쪽 한 틈만 남김 | 도달 가능한 안전 틈을 고르고 일찍 진입 | 적용 완료 |
+| `CONTEXT COMPACTION` | 넓은 context frame과 row가 중심으로 수축한 뒤 token 조각이 물풍선처럼 튀고 아래로 쏟아짐 | frame에서 이탈한 뒤 낙하 파편 사이를 다시 회피 | 적용 완료 |
+| `RETRY LOOP` | 한 chain이 매 실패 때 목표를 다시 잡고 더 빨라짐 | attempt warning마다 새 경로를 읽고 시간차 회피 | 적용 완료 |
+| `REASONING: XHIGH` | 후보 sector를 8→4→2→1로 가지치기하고 gap이 있는 inward wave로 전환 | safe sector 각도를 따라 이동 | 적용 완료 |
+| `PARALLEL AGENTS` | 반대 edge의 agent pair가 같은 snapshot을 교차하며 축별 corridor를 만듦 | 교차축 사이의 열린 corridor를 따라가기 | 적용 완료 |
+| `REVIEW / FIX LOOP` | 여러 finding이 fix 지점으로 모인 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산 | 수렴 중심에서 벗어난 뒤 넓은 radial gap 선택 | 적용 완료 |
+| `USAGE LIMIT` | 여러 usage 감소가 한 지점으로 소모된 뒤 limit 결과가 12–20방향으로 고밀도 발산 | 수렴점 반대편으로 선이동한 뒤 좁은 radial gap 유지 | 적용 완료 |
 
 문구를 지웠을 때 실루엣·타이밍·안전 공간이 같은 두 패턴은 같은 공격으로 간주하고 다시 설계한다. Stage 1–8은 새 회피 문법을 하나씩 학습시키고, Stage 9–10은 최대 세 종류의 고강도 패턴을 읽을 수 있는 예고 순서로 겹친다. 단순히 모든 timer를 동시에 울려 피할 수 없는 화면을 만드는 것은 난이도 상승으로 인정하지 않는다.
 
@@ -143,15 +143,15 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 | Stage | 시간 | 변화 |
 |---|---:|---|
 | 1 | 0–11.99초 | 무작위 `TOOL CALL STREAM` |
-| 2 | 12–23.99초 | snapshot `APPROVAL REQUIRED` 해금 |
+| 2 | 12–23.99초 | gap `APPROVAL REQUIRED` 해금 |
 | 3 | 24–35.99초 | 일점 `CONTEXT COMPACTION` 해금 |
 | 4 | 36–47.99초 | `RETRY LOOP` 3연사 해금 |
-| 5 | 48–59.99초 | `REASONING: XHIGH` 해금, tool call 2연사 가능 |
+| 5 | 48–59.99초 | safe-sector `REASONING: XHIGH` 해금 |
 | 6 | 60–71.99초 | `PARALLEL AGENTS` 1 pair 해금, retry 4회 |
 | 7 | 72–83.99초 | `REVIEW / FIX LOOP` 4개 수렴·8방향 발산 해금 |
 | 8 | 84–95.99초 | `USAGE LIMIT` 4개 수렴·12방향 발산, 세 limit 결말 중 하나 선택, compaction 2개 조합 |
-| 9 | 96–107.99초 | tool call 3연사, retry 5회, review 12방향, usage 6개·16방향 |
-| 10 | 108초 이후 | compaction 3개, agent 3 pair, review 16방향, usage 8개·20방향과 최대 속도·최저 간격 |
+| 9 | 96–107.99초 | `rm *` blackout 해금, retry 5회, review 12방향, usage 6개·16방향 |
+| 10 | 108초 이후 | compaction 3개, agent 3 pair, review 16방향, usage 8개·20방향, blackout 최대 4개와 최대 속도·최저 간격 |
 
 단계 사이에서 속도와 생성 간격은 연속 보간한다. 해금·동시 수·분할 수는 표의 stage 경계에서만 바뀐다.
 
@@ -159,12 +159,17 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 
 - 모든 조준·영역·수렴 공격은 치명 단계 전에 경로 또는 진행률을 보인다.
 - 기본 `TOOL CALL STREAM`은 player를 조준하지 않고 방향 예고·rail도 표시하지 않는다. 생성 후 telegraph 시간 동안은 판정만 비활성이다.
-- 조준점은 생성 뒤 추적하지 않는다. 움직여서 회피할 수 있어야 한다.
+- approval·reasoning과 한 retry attempt의 목표는 생성 뒤 추적하지 않는다. retry는 다음 attempt warning이 시작될 때만 새 위치를 snapshot한다.
+- 서로 다른 major pattern onset은 최소 360ms 떨어지고 동시에 active한 major family는 세 개를 넘지 않는다. 기본 tool stream은 이 상한과 무관하다.
+- `rm *`은 720ms outline warning 뒤에만 projectile을 가리며 warning 중 player와 projectile은 그대로 보인다. approval·retry·reasoning·area hazard처럼 경로 자체가 위험인 major geometry는 blackout 위에 계속 표시한다. Stage 10에서는 하나의 major family로 계산하면서 최대 4개까지 겹칠 수 있다.
+- blackout을 빠져나온 projectile은 180ms 동안 반투명하게 다시 드러나고 충돌이 유예된다. blackout 안에 남아 있는 player와 projectile 사이 판정은 계속 위험하다.
+- 기준 면적의 55%보다 작은 viewport는 모든 spawn interval을 1.22배 늘리고 projectile 속도는 유지한다.
 - 회전한 문구와 collision rectangle은 같은 각도를 사용한다.
 - radial projectile은 폭발 중심에서 56px 떨어져 생성되어 중심에 있던 player를 즉시 판정하지 않는다.
 - projectile은 최대 56개, compaction hazard와 convergence sequence는 각각 최대 4개다.
 - entity cap에 걸리면 일부 탄만 안전하게 생략하고 결정성은 유지한다.
 - 작은 viewport resize 후에도 player, context와 sequence 중심은 유효 범위에 남는다.
+- resize 뒤 retry velocity를 새 target으로 재계산하고 blackout 면적 비율을 보존한다.
 
 ## 코드 책임
 
@@ -183,7 +188,7 @@ Presentation은 판정을 만들지 않고 simulation state만 그린다. 문구
 
 ## 현재 완료 조건
 
-- 8개 패턴이 각각 Codex 사용 경험과 일치하는 spawn·예고·이동·분할을 가진다.
+- 8개 Codex 패턴과 Stage 9 `rm *` wildcard가 각각 의미에 맞는 spawn·예고·이동·분할을 가진다.
 - Stage 1–10 경계와 Stage 10 cap이 자동 테스트로 고정된다.
 - 상단 중앙 공격 설명이 없고 실제 공격 표현만으로 판독 가능하다.
 - 흰 task surface와 흑백 HUD, terminal·browser·Codex별 서체·glyph·의미색, 전체 viewport 규칙을 유지한다.

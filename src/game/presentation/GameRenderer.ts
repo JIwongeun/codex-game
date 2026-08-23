@@ -91,7 +91,7 @@ export class GameRenderer {
     this.scene = scene;
     this.background = scene.add.graphics().setDepth(-10);
     this.world = scene.add.graphics().setDepth(1);
-    this.blackoutLayer = scene.add.graphics().setDepth(8);
+    this.blackoutLayer = scene.add.graphics().setDepth(0);
     this.playerLayer = scene.add.graphics().setDepth(10);
     this.effectsLayer = scene.add.graphics().setDepth(11);
     const parent = scene.game.canvas.parentElement ?? document.body;
@@ -301,6 +301,9 @@ export class GameRenderer {
 
   private drawProjectiles(state: GameState): void {
     for (const projectile of state.projectiles) {
+      if (this.pointInsideActiveBlackout(state, projectile.position)) {
+        continue;
+      }
       if (projectile.kind === "tool-call") {
         continue;
       }
@@ -339,6 +342,9 @@ export class GameRenderer {
     }
 
     for (const projectile of state.projectiles) {
+      if (this.pointInsideActiveBlackout(state, projectile.position)) {
+        continue;
+      }
       this.drawProjectileSurfaceMark(projectile);
     }
   }
@@ -595,6 +601,7 @@ export class GameRenderer {
 
     const insideBlackout = state.blackouts.some(
       (blackout) =>
+        blackout.telegraphRemainingMs <= 0 &&
         Math.abs(state.player.position.x - blackout.position.x) <=
           blackout.hitbox.width / 2 &&
         Math.abs(state.player.position.y - blackout.position.y) <=
@@ -613,6 +620,10 @@ export class GameRenderer {
 
     for (const projectile of state.projectiles) {
       activeIds.add(projectile.id);
+      const hiddenByBlackout = this.pointInsideActiveBlackout(
+        state,
+        projectile.position,
+      );
       let view = this.projectileLabels.get(projectile.id);
       if (!view) {
         view = this.createRichLabel(6);
@@ -627,15 +638,24 @@ export class GameRenderer {
         fontStyle: projectile.surface === "terminal" ? "normal" : "500",
         letterSpacing: projectile.surface === "terminal" ? 0 : 0.15,
       });
+      const revealAlpha = projectile.blackoutRevealGraceRemainingMs > 0
+        ? Phaser.Math.Linear(
+            0.48,
+            0.96,
+            1 -
+              projectile.blackoutRevealGraceRemainingMs /
+                GAMEPLAY.blackoutRevealGraceMs,
+          )
+        : 0.96;
       view.container
         .setPosition(
           Math.round(projectile.position.x),
           Math.round(projectile.position.y),
         )
         .setRotation(this.readableProjectileRotation(projectile.velocity))
-        .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.42 : 0.96)
+        .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.42 : revealAlpha)
         .setScale(1)
-        .setVisible(true);
+        .setVisible(!hiddenByBlackout);
     }
 
     this.removeInactiveRichLabels(this.projectileLabels, activeIds);
@@ -930,14 +950,25 @@ export class GameRenderer {
 
   private drawBlackouts(state: GameState): void {
     for (const blackout of state.blackouts) {
+      const x = blackout.position.x - blackout.hitbox.width / 2;
+      const y = blackout.position.y - blackout.hitbox.height / 2;
+      if (blackout.telegraphRemainingMs > 0) {
+        this.blackoutLayer.lineStyle(1, COLORS.black, 0.5);
+        this.blackoutLayer.strokeRect(x, y, blackout.hitbox.width, blackout.hitbox.height);
+        continue;
+      }
       this.blackoutLayer.fillStyle(COLORS.black, 1);
-      this.blackoutLayer.fillRect(
-        blackout.position.x - blackout.hitbox.width / 2,
-        blackout.position.y - blackout.hitbox.height / 2,
-        blackout.hitbox.width,
-        blackout.hitbox.height,
-      );
+      this.blackoutLayer.fillRect(x, y, blackout.hitbox.width, blackout.hitbox.height);
     }
+  }
+
+  private pointInsideActiveBlackout(state: GameState, point: Vec2): boolean {
+    return state.blackouts.some(
+      (blackout) =>
+        blackout.telegraphRemainingMs <= 0 &&
+        Math.abs(point.x - blackout.position.x) <= blackout.hitbox.width / 2 &&
+        Math.abs(point.y - blackout.position.y) <= blackout.hitbox.height / 2,
+    );
   }
 
   private syncBlackoutViews(state: GameState): void {
@@ -972,14 +1003,27 @@ export class GameRenderer {
 
       const x = blackout.position.x - blackout.hitbox.width / 2;
       const y = blackout.position.y - blackout.hitbox.height / 2;
+      const telegraphing = blackout.telegraphRemainingMs > 0;
       const progress = Phaser.Math.Clamp(
         1 - blackout.remainingMs / blackout.durationMs,
         0,
         1,
       );
-      view.command.setPosition(Math.round(x + 12), Math.round(y + 10));
+      const telegraphProgress = Phaser.Math.Clamp(
+        1 - blackout.telegraphRemainingMs / GAMEPLAY.blackoutTelegraphMs,
+        0,
+        1,
+      );
+      view.command
+        .setColor(telegraphing ? TEXT_COLORS.ink : TEXT_COLORS.surface)
+        .setPosition(Math.round(x + 12), Math.round(y + 10));
       view.status
-        .setText(`BACKING UP...\n${Math.round(progress * 100)}%`)
+        .setColor(telegraphing ? TEXT_COLORS.ink : TEXT_COLORS.surface)
+        .setText(
+          telegraphing
+            ? `DELETE TARGET\n${Math.round(telegraphProgress * 100)}%`
+            : `BACKING UP...\n${Math.round(progress * 100)}%`,
+        )
         .setPosition(
           Math.round(blackout.position.x),
           Math.round(blackout.position.y),

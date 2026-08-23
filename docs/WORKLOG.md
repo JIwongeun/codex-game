@@ -2,6 +2,27 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — 제출 전 공정성·lifecycle·배포 보안 감사
+
+### 구현
+
+- major pattern scheduler를 360ms onset 간격·동시 세 family 상한·round-robin overdue 선택으로 바꿔 같은 tick 발동과 후반 pattern starvation을 제거
+- approval gap을 warning 동안 player가 도달 가능한 축 범위로 제한하고, 작은 viewport는 공격 속도 대신 spawn interval을 1.22배 적용
+- `rm *`에 720ms outline warning을 추가하고 Stage 10에서 한 family로 최대 4개가 중첩되도록 유지. projectile만 가리며 major geometry는 위에 표시하고, 가림막에서 나온 projectile에는 180ms 반투명 reveal·충돌 유예 적용
+- resize 뒤 retry velocity와 blackout 면적 비율을 재계산하고, ending 뒤 재시작에서 `run-started` audio event를 복구
+- 엔딩을 180초에서 240초로 연장해 공정성 guard 뒤에도 Stage 10 최고 압력을 132초 버티는 극난도 목표 유지
+- 정적 asset을 Worker-first로 라우팅하고 CSP, nosniff, no-referrer, Permissions Policy, noindex header를 모든 응답에 적용. Cloudflare Vite plugin과 Wrangler를 갱신하고 local Vite style injection과 호환되는 CSP로 조정
+
+### 검증
+
+- 최종 `pnpm check` 통과: typecheck, 13개 test file의 107개 test, production build와 session storage·Worker header production verifier 완료
+- `pnpm audit`와 `pnpm audit --prod` 모두 known vulnerability 0건
+- 96 seed × 375×640·1280×720·1920×1080 × 240초 sweep에서 8개 major family가 모든 seed에 출현, 최소 onset 366.67ms, 동시 family 최대 3, cap 초과 0, ending event 288/288 확인
+- 같은 sweep에서 blackout이 Stage 10 구간에 따라 최대 2→3→4개로 증가하고 214,855개 hidden→visible projectile 전이가 모두 180ms grace를 받는 것을 확인
+- 1280×720 seed 2의 future-lookahead oracle이 240초 ending에 도달해 이론적 경로가 존재함을 확인. 사람이 같은 정보를 사용할 수 없으므로 실제 목표 난이도는 극난도로 유지
+- local browser에서 Start → Stage 10 실행·피격 → Start 복귀와 일반 run → `Esc` → Start를 확인. 취소 run은 `LAST RUN`에 남지 않고 기존 `SESSION BEST`는 새로고침 뒤 유지
+- CSP 수정 뒤 local viewport 1280×720, canvas 1280×720, document overflow 없음과 추가 dev server error 없음을 확인
+
 ## 2026-08-24 — Guest 기록 이력 제거와 Esc 대기화면 복귀
 
 ### 구현

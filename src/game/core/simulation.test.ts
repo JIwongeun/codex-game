@@ -32,6 +32,8 @@ function playingState(seed = 1, width = 1280, height = 720): GameState {
     reviewLoopMs: 1_000_000,
     usageLimitMs: 1_000_000,
     blackoutMs: 1_000_000,
+    majorPatternCooldownMs: 0,
+    majorPatternCursor: 0,
   };
   return state;
 }
@@ -113,6 +115,7 @@ function projectile(
     speed: 0,
     ageMs: 0,
     telegraphRemainingMs: 0,
+    blackoutRevealGraceRemainingMs: 0,
     ...overrides,
   };
 }
@@ -520,6 +523,23 @@ describe("survival simulation", () => {
         origins: [{ x: 1_280, y: 700 }],
       }),
     ];
+    state.retryChains = [
+      retryChain({
+        position: { x: 1_200, y: 680 },
+        target: { x: 1_270, y: 100 },
+        velocity: { x: 1, y: 0 },
+      }),
+    ];
+    state.blackouts = [
+      {
+        id: 330,
+        position: { x: 1_100, y: 500 },
+        hitbox: { width: 384, height: 180 },
+        telegraphRemainingMs: GAMEPLAY.blackoutTelegraphMs,
+        remainingMs: GAMEPLAY.blackoutStageTenDurationMs,
+        durationMs: GAMEPLAY.blackoutStageTenDurationMs,
+      },
+    ];
     state.reasoningWaves = [
       reasoningWave(state, {
         center: { x: 1_200, y: 680 },
@@ -546,6 +566,16 @@ describe("survival simulation", () => {
     );
     expect(state.sequences[0]!.position.x).toBeLessThanOrEqual(375 - 36);
     expect(state.sequences[0]!.origins[0]!.x).toBeLessThanOrEqual(375);
+    expect(state.retryChains[0]!.velocity).toEqual({ x: 0, y: -1 });
+    expect(state.blackouts[0]!.hitbox.width / state.arena.width).toBeCloseTo(
+      0.3,
+    );
+    expect(state.blackouts[0]!.hitbox.height / state.arena.height).toBeCloseTo(
+      0.25,
+    );
+    expect(state.blackouts[0]!.position.x).toBeLessThanOrEqual(
+      state.arena.width - state.blackouts[0]!.hitbox.width / 2,
+    );
     expect(state.reasoningWaves[0]!.center.x).toBeLessThanOrEqual(
       375 - GAMEPLAY.playerRadius,
     );
@@ -581,6 +611,118 @@ describe("survival simulation", () => {
       finalScore: state.score,
       source: "tool-call",
     });
+  });
+
+  it("gives a hidden projectile a short reveal grace after it leaves rm", () => {
+    const state = playingState(302, 800, 600);
+    state.player.position = { x: 460, y: 300 };
+    state.projectiles = [
+      projectile(state, {
+        position: { x: 440, y: 300 },
+        velocity: { x: 1, y: 0 },
+        speed: 200,
+      }),
+    ];
+    state.blackouts = [
+      {
+        id: 341,
+        position: { x: 400, y: 300 },
+        hitbox: { width: 100, height: 200 },
+        telegraphRemainingMs: 0,
+        remainingMs: 1_000,
+        durationMs: 1_000,
+      },
+    ];
+
+    expect(stepGame(state, EMPTY_INPUT, 100)).toEqual([]);
+    expect(state.projectiles[0]?.position.x).toBe(460);
+    expect(state.projectiles[0]?.blackoutRevealGraceRemainingMs).toBe(
+      GAMEPLAY.blackoutRevealGraceMs,
+    );
+    expect(state.phase).toBe("playing");
+
+    state.projectiles[0]!.speed = 0;
+    stepGame(state, EMPTY_INPUT, GAMEPLAY.blackoutRevealGraceMs - 1);
+    expect(state.phase).toBe("playing");
+    const events = stepGame(state, EMPTY_INPUT, 1);
+    expect(events).toContainEqual({ type: "player-hit", source: "tool-call" });
+    expect(state.phase).toBe("results");
+  });
+
+  it("keeps projectiles dangerous while both player and projectile are inside rm", () => {
+    const state = playingState(303, 800, 600);
+    state.player.position = { x: 440, y: 300 };
+    state.projectiles = [projectile(state)];
+    state.projectiles[0]!.position = { ...state.player.position };
+    state.blackouts = [
+      {
+        id: 342,
+        position: { x: 400, y: 300 },
+        hitbox: { width: 100, height: 200 },
+        telegraphRemainingMs: 0,
+        remainingMs: 1_000,
+        durationMs: 1_000,
+      },
+    ];
+
+    const events = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(events).toContainEqual({ type: "player-hit", source: "tool-call" });
+    expect(state.phase).toBe("results");
+  });
+
+  it("does not let a hidden projectile hit a player beyond the rm edge", () => {
+    const state = playingState(304, 800, 600);
+    state.player.position = { x: 470, y: 300 };
+    state.projectiles = [
+      projectile(state, {
+        position: { x: 440, y: 300 },
+        hitbox: { width: 100, height: GAMEPLAY.toolCallHitboxHeight },
+      }),
+    ];
+    state.blackouts = [
+      {
+        id: 343,
+        position: { x: 400, y: 300 },
+        hitbox: { width: 100, height: 200 },
+        telegraphRemainingMs: 0,
+        remainingMs: 1_000,
+        durationMs: 1_000,
+      },
+    ];
+
+    expect(stepGame(state, EMPTY_INPUT, 1)).toEqual([]);
+    expect(state.projectiles[0]?.blackoutRevealGraceRemainingMs).toBe(
+      GAMEPLAY.blackoutRevealGraceMs,
+    );
+    expect(state.phase).toBe("playing");
+  });
+
+  it("grants reveal grace on the exact frame an rm warning activates", () => {
+    const state = playingState(305, 800, 600);
+    state.player.position = { x: 470, y: 300 };
+    state.projectiles = [
+      projectile(state, {
+        position: { x: 440, y: 300 },
+        hitbox: { width: 100, height: GAMEPLAY.toolCallHitboxHeight },
+      }),
+    ];
+    state.blackouts = [
+      {
+        id: 344,
+        position: { x: 400, y: 300 },
+        hitbox: { width: 100, height: 200 },
+        telegraphRemainingMs: 1,
+        remainingMs: 1_000,
+        durationMs: 1_000,
+      },
+    ];
+
+    expect(stepGame(state, EMPTY_INPUT, 1)).toEqual([]);
+    expect(state.blackouts[0]?.telegraphRemainingMs).toBe(0);
+    expect(state.projectiles[0]?.blackoutRevealGraceRemainingMs).toBe(
+      GAMEPLAY.blackoutRevealGraceMs,
+    );
+    expect(state.phase).toBe("playing");
   });
 
   it("keeps an approval harmless while telegraphing, then makes it lethal", () => {
@@ -814,7 +956,7 @@ describe("survival simulation", () => {
     expect(state.phase).toBe("results");
   });
 
-  it("spawns all eight Codex attack patterns at stage ten", () => {
+  it("stages every Codex pattern without same-tick major onsets", () => {
     const state = playingState(77, 900, 600);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
     state.spawn = {
@@ -827,49 +969,135 @@ describe("survival simulation", () => {
       reviewLoopMs: 0,
       usageLimitMs: 0,
       blackoutMs: 0,
+      majorPatternCooldownMs: 0,
+      majorPatternCursor: 0,
     };
 
-    const events = stepGame(
-      state,
-      EMPTY_INPUT,
-      FIXED_STEP_MS,
-    );
+    const seen = new Set<string>();
+    let sawToolStream = false;
+    for (let onset = 0; onset < 8; onset += 1) {
+      const events = stepGame(
+        state,
+        EMPTY_INPUT,
+        onset === 0 ? FIXED_STEP_MS : GAMEPLAY.majorPatternSeparationMs,
+      );
+      sawToolStream ||= state.projectiles.some(
+        (candidate) => candidate.kind === "tool-call",
+      );
 
-    expect(
-      state.projectiles.some((candidate) => candidate.kind === "tool-call"),
-    ).toBe(true);
-    expect(state.approvalGates).toHaveLength(1);
-    expect(
-      state.hazards.some((candidate) => candidate.kind === "compaction"),
-    ).toBe(true);
-    expect(state.retryChains).toHaveLength(1);
-    expect(state.reasoningWaves).toHaveLength(1);
-    expect(state.reasoningWaves[0]?.phase).toBe("thinking");
-    expect(
-      state.projectiles.some((candidate) => candidate.kind === "agent"),
-    ).toBe(true);
-    expect(state.sequences.map((candidate) => candidate.kind).sort()).toEqual([
-      "review-loop",
-      "usage-limit",
-    ]);
-    expect(state.blackouts).toHaveLength(1);
-    expect(
-      state.sequences.find((candidate) => candidate.kind === "usage-limit")
-        ?.origins,
-    ).toHaveLength(8);
-    expect(events.filter((event) => event.type === "hazard-warning")).toHaveLength(
-      3,
+      const families = new Set<string>();
+      for (const event of events) {
+        if (event.type === "pattern-warning") {
+          families.add(event.kind);
+          seen.add(event.kind);
+        } else if (event.type === "hazard-warning") {
+          families.add("context-compaction");
+          if (event.kind === "compaction") {
+            seen.add("context-compaction");
+          }
+        } else if (event.type === "blackout-started") {
+          families.add("wildcard-blackout");
+          seen.add("wildcard-blackout");
+        }
+      }
+      expect(families.size).toBeLessThanOrEqual(1);
+
+      state.projectiles = [];
+      state.hazards = [];
+      state.sequences = [];
+      state.approvalGates = [];
+      state.retryChains = [];
+      state.reasoningWaves = [];
+      state.blackouts = [];
+    }
+
+    expect(sawToolStream).toBe(true);
+    expect(seen).toEqual(
+      new Set([
+        "approval-required",
+        "context-compaction",
+        "retry-loop",
+        "reasoning-xhigh",
+        "parallel-agents",
+        "review-loop",
+        "usage-limit",
+        "wildcard-blackout",
+      ]),
     );
-    const patternWarnings = events.filter(
-      (event) => event.type === "pattern-warning",
+  });
+
+  it("keeps every approval gap inside the telegraph movement budget", () => {
+    const reachBudget =
+      GAMEPLAY.playerSpeed *
+      (GAMEPLAY.approvalGateTelegraphMs / 1_000) *
+      GAMEPLAY.approvalGateReachBudgetRatio;
+
+    for (let seed = 1; seed <= 256; seed += 1) {
+      const state = playingState(seed, 800, 600);
+      state.elapsedMs = GAMEPLAY.approvalFirstSpawnMs;
+      state.player.position = seed % 2 === 0
+        ? { x: 5, y: 5 }
+        : { x: 795, y: 595 };
+      state.spawn.approvalMs = 0;
+
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      const gate = state.approvalGates[0];
+      expect(gate).toBeDefined();
+      if (!gate) {
+        continue;
+      }
+      const playerAlong = Math.abs(gate.direction.x) > 0
+        ? state.player.position.y
+        : state.player.position.x;
+      expect(Math.abs(gate.gapCenter - playerAlong)).toBeLessThanOrEqual(
+        reachBudget,
+      );
+    }
+  });
+
+  it("queues a fourth major family until one of three active families clears", () => {
+    const state = playingState(301, 1_280, 720);
+    state.elapsedMs = GAMEPLAY.difficultyRampMs;
+    state.approvalGates = [approvalGate(state)];
+    state.reasoningWaves = [reasoningWave(state, { phase: "thinking" })];
+    state.blackouts = [
+      {
+        id: 340,
+        position: { x: 900, y: 500 },
+        hitbox: { width: 300, height: 180 },
+        telegraphRemainingMs: GAMEPLAY.blackoutTelegraphMs,
+        remainingMs: GAMEPLAY.blackoutStageTenDurationMs,
+        durationMs: GAMEPLAY.blackoutStageTenDurationMs,
+      },
+    ];
+    state.spawn.compactionMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(state.hazards).toEqual([]);
+    expect(state.spawn.compactionMs).toBeLessThanOrEqual(0);
+
+    state.blackouts = [];
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(state.hazards.some(({ kind }) => kind === "compaction")).toBe(true);
+  });
+
+  it("slows spawn cadence on a small viewport without changing attack speed", () => {
+    const desktop = playingState(401, 1_280, 720);
+    const portrait = playingState(401, 375, 640);
+    desktop.spawn.toolCallMs = 0;
+    portrait.spawn.toolCallMs = 0;
+
+    stepGame(desktop, EMPTY_INPUT, FIXED_STEP_MS);
+    stepGame(portrait, EMPTY_INPUT, FIXED_STEP_MS);
+
+    expect(portrait.spawn.toolCallMs).toBeCloseTo(
+      (desktop.spawn.toolCallMs + FIXED_STEP_MS) *
+        GAMEPLAY.smallViewportIntervalMultiplier -
+        FIXED_STEP_MS,
+      0,
     );
-    expect(patternWarnings).toHaveLength(6);
-    expect(patternWarnings).toContainEqual({
-      type: "pattern-warning",
-      kind: "approval-required",
-    });
-    expect(state.approvalGates[0]?.telegraphRemainingMs).toBeGreaterThan(0);
-    expect(state.retryChains[0]?.telegraphRemainingMs).toBeGreaterThan(0);
+    expect(portrait.projectiles[0]?.speed).toBe(desktop.projectiles[0]?.speed);
   });
 
   it("retries as one chain that reacquires the player after each failure", () => {
@@ -924,6 +1152,19 @@ describe("survival simulation", () => {
     expect(stageNine.blackouts[0]?.durationMs).toBe(
       GAMEPLAY.blackoutStageNineDurationMs,
     );
+    expect(stageNine.blackouts[0]?.telegraphRemainingMs).toBe(
+      GAMEPLAY.blackoutTelegraphMs,
+    );
+    stepGame(stageNine, EMPTY_INPUT, GAMEPLAY.blackoutTelegraphMs / 2);
+    expect(stageNine.blackouts[0]?.remainingMs).toBe(
+      GAMEPLAY.blackoutStageNineDurationMs,
+    );
+    stepGame(stageNine, EMPTY_INPUT, GAMEPLAY.blackoutTelegraphMs / 2);
+    expect(stageNine.blackouts[0]?.telegraphRemainingMs).toBe(0);
+    stepGame(stageNine, EMPTY_INPUT, 1);
+    expect(stageNine.blackouts[0]?.remainingMs).toBe(
+      GAMEPLAY.blackoutStageNineDurationMs - 1,
+    );
 
     const late = playingState(92, 1_000, 700);
     late.elapsedMs = GAMEPLAY.difficultyRampMs + 60_000;
@@ -939,7 +1180,7 @@ describe("survival simulation", () => {
     )).toBe(true);
   });
 
-  it("ends a three-minute survival with a timed task-crash sequence", () => {
+  it("ends a four-minute survival with a timed task-crash sequence", () => {
     const state = playingState(180, 1_000, 700);
     state.elapsedMs = GAMEPLAY.endingAtMs - 10;
     state.projectiles = [projectile(state, { position: { x: 20, y: 20 } })];
@@ -1182,6 +1423,8 @@ describe("survival simulation", () => {
         reviewLoopMs: 0,
         usageLimitMs: 0,
         blackoutMs: 0,
+        majorPatternCooldownMs: 0,
+        majorPatternCursor: 0,
       };
 
       for (let tick = 0; tick < 3_600; tick += 1) {

@@ -26,7 +26,7 @@
 
 ## 3. 핵심 경험
 
-플레이어는 Canvas가 직접 그리는 glyph 없는 hard-edge 검은 정사각형이다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 tool call과 approval, context compaction, retry, xhigh reasoning, parallel agents, review/fix와 usage limit 패턴을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록된다.
+플레이어는 Canvas가 직접 그리는 glyph 없는 hard-edge 검은 정사각형이다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 tool call과 approval, context compaction, retry, xhigh reasoning, parallel agents, review/fix, usage limit와 `rm *` blackout을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록되며 4분을 버티면 task-crash ending으로 완주한다.
 
 핵심 감정은 다음 세 단계다.
 
@@ -38,7 +38,7 @@
 
 ### 세션
 
-- 시간 제한 없음
+- 일반 종료 조건은 한 번 피격이며, 4분 생존 시 숨겨진 task-crash ending으로 정상 종료
 - 목숨 없음, 한 번 피격되면 즉시 종료
 - 점수는 밀리초 단위 생존 시간
 - 첫 방문은 가입·로그인·닉네임 입력 없이 익명으로 시작
@@ -62,18 +62,19 @@
 난이도는 12초 단위 Stage 1–10으로 표시한다. 속도와 생성 간격은 108초까지 연속 상승하고, 해금·동시 수·분할 수는 stage 경계에서 증가한 뒤 Stage 10 상한에 고정된다.
 
 1. Stage 1 `TOOL CALL STREAM` — player 좌표와 무관하며 방향선도 없는 terminal·browser·Codex 작업 탄막
-2. Stage 2 `APPROVAL REQUIRED` — full access·sandbox·network 승인이 생성 순간 player 위치를 snapshot해 고정 조준
+2. Stage 2 `APPROVAL REQUIRED` — 화면을 가로막는 permission gate가 생성 순간 player 축 위치에서 도달 가능한 `DENY` gap 하나를 고정
 3. Stage 3 `CONTEXT COMPACTION` — 넓은 context frame의 문장 조각이 중심으로 압축되고, 실패 순간 12–20개 token 파편이 물풍선처럼 튄 뒤 중력을 받아 아래로 떨어짐
-4. Stage 4 `RETRY LOOP` — 같은 snapshot을 향한 3–5회 시간차 반복
-5. Stage 5 `REASONING: XHIGH` — 긴 thinking 예고 뒤 snapshot으로 발사되는 단발 초고속 응답
+4. Stage 4 `RETRY LOOP` — 3–5번의 실패가 각 attempt 시작 때 player 위치를 다시 snapshot하고 더 빨라져 재시도
+5. Stage 5 `REASONING: XHIGH` — 2.1초 동안 8→4→2→1 후보를 가지치기해 safe sector를 고정한 뒤 그 틈만 비운 inward response wave
 6. Stage 6 `PARALLEL AGENTS` — 여러 agent가 반대편에서 같은 snapshot을 동시에 교차
 7. Stage 7 `REVIEW / FIX LOOP` — 여러 finding을 고친 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산
 8. Stage 8 `USAGE LIMIT` — 5h·weekly usage가 한 지점으로 소모된 뒤 `5H LIMIT REACHED`, `WEEKLY LIMIT REACHED`, `RESETS IN 4 DAYS` 중 하나가 12–20방향으로 발산
-9. Stage 9–10 — 앞 패턴의 동시 수, 속도, 빈도와 조합 밀도를 최고치까지 상승
+9. Stage 9 `rm *` — 720ms outline warning 뒤 무작위 영역을 가리고 backup 100%에서 복구하는 wildcard blackout
+10. Stage 10 — 앞 패턴의 속도·빈도·분할 수와 blackout 중첩을 최고치까지 상승
 
 각 용어는 label뿐 아니라 이동과 결과로 의미를 전달한다. 고정 phrase bank에는 실제 작업에서 반복되는 terminal·browser 오류와 `rereading same file`, `waiting for output`, `still waiting`, `approve again` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
 
-예고 단계는 항상 무해하고, 활성화 단계만 피격을 발생시킨다. 공격 개체와 범위 수에는 명시적 상한을 둔다.
+예고 단계는 항상 무해하고, 활성화 단계만 피격 또는 시야 차단을 발생시킨다. 특수 패턴 onset은 최소 360ms 떨어뜨리고 서로 다른 active major family는 최대 세 개로 제한한다. 작은 viewport에서는 공격 속도를 낮추지 않고 생성 간격만 1.22배 늘린다. 공격 개체와 범위 수에는 별도 상한을 둔다.
 
 ## 5. 점수 원칙
 
@@ -110,6 +111,7 @@ Guest session 최고 기록 = 현재 browser page session에서 가장 긴 생�
 - 한 번 피격 시 종료와 생존 시간 기록
 - 실제 Codex 사용자 경험에서 가져온 공격 패턴 8종과 수렴·분할 sequence
 - 12초 단위 Stage 1–10 난이도 상승과 공격 상한
+- 4분 생존 task-crash ending
 - browser session 한정 Guest 최고 생존 기록 하나
 - 음소거 가능한 procedural BGM과 공격·stage notification 효과음
 - 로그인 없는 public production URL과 검색 색인 차단

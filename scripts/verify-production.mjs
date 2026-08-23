@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 const requiredPaths = [
   "dist/server/index.js",
+  "dist/server/wrangler.json",
   "dist/client/index.html",
   "dist/client/og.png",
   ".openai/hosting.json",
@@ -22,6 +23,18 @@ for (const path of clientFiles) {
   if (content.includes("qaElapsedSeconds")) {
     throw new Error(`Development QA query leaked into production: ${path}`);
   }
+}
+
+for (const requiredRuntimeStorage of [
+  "await-codex.guest-session-best.v1",
+  "sessionStorage",
+]) {
+  if (!productionCode.includes(requiredRuntimeStorage)) {
+    throw new Error(`Guest session storage is missing: ${requiredRuntimeStorage}`);
+  }
+}
+if (productionCode.includes("await-codex.best-survival-ms.v2")) {
+  throw new Error("Legacy persistent best-score key leaked into production.");
 }
 
 if (
@@ -73,6 +86,23 @@ if (typeof hosting.project_id !== "string" || hosting.project_id.length === 0) {
   throw new Error("Sites project_id is missing from .openai/hosting.json.");
 }
 
+const workerCode = await readFile("dist/server/index.js", "utf8");
+for (const requiredHeader of [
+  "Content-Security-Policy",
+  "Permissions-Policy",
+  "Referrer-Policy",
+  "X-Content-Type-Options",
+  "X-Robots-Tag",
+]) {
+  if (!workerCode.includes(requiredHeader)) {
+    throw new Error(`Worker security header is missing: ${requiredHeader}`);
+  }
+}
+const wrangler = JSON.parse(await readFile("dist/server/wrangler.json", "utf8"));
+if (wrangler.assets?.run_worker_first !== true) {
+  throw new Error("Static assets are not routed through the security-header Worker.");
+}
+
 const og = await readFile("dist/client/og.png");
 const pngSignature = "89504e470d0a1a0a";
 if (og.subarray(0, 8).toString("hex") !== pngSignature) {
@@ -97,7 +127,7 @@ if (ogStat.size > maximumSubmissionImageBytes) {
 }
 
 console.log(
-  `Production verified: ${clientFiles.length} client files, initial and runtime favicon, ${width}x${height} OG image (${ogStat.size} bytes), no QA query.`,
+  `Production verified: ${clientFiles.length} client files, session-only best, Worker security headers, initial and runtime favicon, ${width}x${height} OG image (${ogStat.size} bytes), no QA query.`,
 );
 
 async function filesBelow(directory) {

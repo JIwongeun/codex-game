@@ -16,8 +16,8 @@
 | Vite | 8.2.2 | MIT |
 | TypeScript | 5.9.3 | Apache-2.0 |
 | Vitest | 4.1.11 | MIT |
-| Wrangler | 4.92.0 | MIT OR Apache-2.0 |
-| Cloudflare Vite plugin | 1.37.1 | MIT |
+| Wrangler | 4.125.0 | MIT OR Apache-2.0 |
+| Cloudflare Vite plugin | 1.53.1 | MIT |
 
 ## 이미지와 아이콘
 

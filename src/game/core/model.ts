@@ -74,6 +74,7 @@ export interface ProjectileState {
   speed: number;
   ageMs: number;
   telegraphRemainingMs: number;
+  blackoutRevealGraceRemainingMs: number;
   gravityScale?: number;
   horizontalDragPerSecond?: number;
 }
@@ -131,6 +132,7 @@ export interface BlackoutState {
   id: number;
   position: Vec2;
   hitbox: RectangleHitbox;
+  telegraphRemainingMs: number;
   remainingMs: number;
   durationMs: number;
 }
@@ -163,6 +165,8 @@ export interface SpawnTimers {
   reviewLoopMs: number;
   usageLimitMs: number;
   blackoutMs: number;
+  majorPatternCooldownMs: number;
+  majorPatternCursor: number;
 }
 
 export interface GameState {

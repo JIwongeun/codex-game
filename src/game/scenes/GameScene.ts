@@ -118,6 +118,7 @@ export class GameScene extends Phaser.Scene {
         this.inputController.clearTransient();
         this.gameRenderer.resetEffects();
         this.cameras.main.resetFX();
+        this.handleEvents([{ type: "run-started" }]);
       }
       this.renderFrame(delta);
       return;

@@ -1,6 +1,6 @@
 # await CODEX: CONTEXT//OVERFLOW
 
-Codex가 작업하는 동안 `>_` task node를 움직여 개발·vibe coding의 골칫거리를 피하는 무한 생존 웹 아케이드입니다. 한 번 맞으면 run이 끝나고 버틴 시간이 현재 Guest browser session의 기록이 됩니다.
+Codex가 작업하는 동안 작은 정사각형 agent node를 움직여 개발·vibe coding의 골칫거리를 피하는 고난도 생존 웹 아케이드입니다. 한 번 맞으면 run이 끝나고 버틴 시간이 현재 Guest browser session의 기록이 되며, 4분을 버티면 task-crash ending에 도달합니다.
 
 현재 상태는 **처음부터 결과·재시작까지 플레이 가능한 공개 링크 빌드**입니다. 계정, 서버, 랭킹 없이 정적 웹 빌드만으로 실행됩니다.
 
@@ -16,8 +16,8 @@ Codex가 작업하는 동안 `>_` task node를 움직여 개발·vibe coding의 
 - 시작·재시작·pause 해제: 클릭 또는 Space
 - run 취소 후 대기화면 복귀: `Esc`
 - 음소거: `M`
-- 목표: 회전 task log, snapshot review, `CONTEXT MAX`, retry·fork·race·merge→`BUG!` 패턴을 피하며 오래 생존
-- 한 판: 시간 제한 없이 한 번 피격될 때까지
+- 목표: tool call, approval gate, context compaction, retry, xhigh reasoning, parallel agents, review, usage limit와 `rm *` blackout을 피하며 오래 생존
+- 한 판: 한 번 피격될 때까지. 4분 생존 시 숨겨진 task-crash ending
 - pause: 다른 탭으로 이동하면 simulation과 타이머가 멈추고 held movement key가 초기화됩니다.
 
 공격 문구는 개발과 Codex·vibe coding 경험을 바탕으로 한 고정 패러디입니다. 실제 workspace 파일이나 Codex session 상태를 읽지 않습니다.
@@ -61,6 +61,6 @@ pnpm check      # typecheck + test + build
 - Vitest, pnpm
 - Cloudflare Workers-compatible static hosting
 
-판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 기본 `log` 경로는 player 위치에 독립적이고, `review`는 생성 순간 위치만 snapshot합니다. projectile·hazard는 보이는 문자 block과 일치하는 rectangle hitbox를 사용합니다.
+판정은 Phaser와 분리된 seed 기반 60 Hz simulation에서 처리합니다. 기본 tool-call 경로는 player 위치에 독립적이고, 특수 공격은 무해한 warning과 도달 가능한 안전 공간을 먼저 제공합니다. 서로 다른 major pattern은 최대 세 family만 겹치며 onset을 최소 360ms 분리합니다.
 
 개발 서버에서 `?qaElapsedSeconds=84`를 붙이면 7개 공격이 모두 해금된 Stage 8 조합 난이도를 바로 확인할 수 있습니다. 이 옵션은 production build에서는 무시됩니다.
