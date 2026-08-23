@@ -2,6 +2,19 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — 제출 썸네일 production gate 보강
+
+### 검증 범위
+
+- 기존 PNG signature·1672×941의 16:9 허용 오차 검증에 공식 권장 상한 10MB 조건을 추가
+- production HTML의 `og:image`·`twitter:image` meta tag가 각각 absolute production URL을 가리키는지 검증
+- verifier 성공 출력에 실제 썸네일 byte 크기를 포함해 제출 직전 증거를 즉시 확인할 수 있도록 변경
+
+### 현재 자산
+
+- `public/og.png`와 build 결과는 846,533 bytes로 10MB보다 작음
+- 시각적 내용과 제출 폼 업로드 결과는 사용자가 직접 확인하는 수동 항목으로 유지
+
 ## 2026-08-24 — Track 1 공식 제출 조건 재감사
 
 ### 공식 페이지 대조

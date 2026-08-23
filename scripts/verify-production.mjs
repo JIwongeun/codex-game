@@ -33,13 +33,27 @@ if (
 }
 
 const html = await readFile("dist/client/index.html", "utf8");
+const publicOgUrl =
+  "https://await-codex-context-overflow.jygjyg99.chatgpt.site/og.png";
 for (const requiredMetadata of [
   "await CODEX: CONTEXT//OVERFLOW",
   "noindex, nofollow, noarchive",
-  "/og.png",
+  publicOgUrl,
 ]) {
   if (!html.includes(requiredMetadata)) {
     throw new Error(`Production metadata is missing: ${requiredMetadata}`);
+  }
+}
+for (const imageMetadataAttribute of [
+  'property="og:image"',
+  'name="twitter:image"',
+]) {
+  const attributeIndex = html.indexOf(imageMetadataAttribute);
+  const tagStart = html.lastIndexOf("<meta", attributeIndex);
+  const tagEnd = html.indexOf(">", attributeIndex);
+  const tag = html.slice(tagStart, tagEnd + 1);
+  if (attributeIndex < 0 || tagStart < 0 || tagEnd < 0 || !tag.includes(publicOgUrl)) {
+    throw new Error(`Production image metadata is incomplete: ${imageMetadataAttribute}`);
   }
 }
 
@@ -64,9 +78,15 @@ const ogStat = await stat("dist/client/og.png");
 if (ogStat.size === 0) {
   throw new Error("Open Graph image is empty.");
 }
+const maximumSubmissionImageBytes = 10 * 1024 * 1024;
+if (ogStat.size > maximumSubmissionImageBytes) {
+  throw new Error(
+    `Open Graph image exceeds the 10MB submission recommendation: ${ogStat.size} bytes`,
+  );
+}
 
 console.log(
-  `Production verified: ${clientFiles.length} client files, runtime favicon, ${width}x${height} OG image, no QA query.`,
+  `Production verified: ${clientFiles.length} client files, runtime favicon, ${width}x${height} OG image (${ogStat.size} bytes), no QA query.`,
 );
 
 async function filesBelow(directory) {

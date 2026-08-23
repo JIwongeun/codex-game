@@ -153,6 +153,6 @@
 - [x] 게임 제목 — `await CODEX: CONTEXT//OVERFLOW`
 - [ ] 200자 이내 소개
 - [x] 플레이 URL — [production](https://await-codex-context-overflow.jygjyg99.chatgpt.site)
-- [x] 16:9 PNG/JPG 썸네일 — `public/og.png` 1672×941
+- [x] 16:9 PNG/JPG 썸네일 — `public/og.png` 1672×941, PNG signature·16:9 허용 오차·10MB 이하 production gate
 - [ ] 선택 가산점: 3분 이하 실제 플레이 영상
 - [x] 선택 가산점 근거: Codex 활용 과정 — `docs/WORKLOG.md`, `docs/DECISIONS.md`
