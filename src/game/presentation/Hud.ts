@@ -99,14 +99,16 @@ export class Hud {
         : "FICTIONAL TASK FEED  ·  NO WORKSPACE DATA IS READ",
     );
 
+    const showGameChrome = state.phase !== "ready";
+    this.brandText.setVisible(showGameChrome);
+    this.statusText.setVisible(showGameChrome);
+    this.timeText.setVisible(showGameChrome);
+    this.bestText.setVisible(showGameChrome);
+    this.hintText.setVisible(showGameChrome);
+    this.footerText.setVisible(showGameChrome);
+
     if (state.phase === "ready") {
-      this.showOverlay(
-        state,
-        "Codex is working.",
-        "Use the wait time.",
-        `RUN  SURVIVE THE QUEUE\n\nMOVE                  WASD / ARROW KEYS\nFAIL CONDITION   ONE HIT\nLOCAL BEST          ${formatSurvivalTime(localBest)}`,
-        ">  CLICK / SPACE TO RUN  █",
-      );
+      this.hideOverlay();
     } else if (state.phase === "results") {
       const source = state.lastHitSource
         ? SOURCE_LABEL[state.lastHitSource]

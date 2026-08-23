@@ -85,6 +85,7 @@ flowchart LR
 │     │  ├─ GameRenderer.ts
 │     │  ├─ Hud.ts
 │     │  ├─ PauseOverlay.ts
+│     │  ├─ ReadyOverlay.ts
 │     │  └─ theme.ts
 │     ├─ runtime/
 │     │  └─ FixedStepRunner.ts
@@ -104,7 +105,7 @@ flowchart LR
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
 - Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
 - Input: Phaser keyboard event를 정규화된 WASD·방향키 방향 intent로 변환하고 click·Space action 및 음소거를 분리한다. blur/hidden에서는 held movement key를 비운다.
-- Presentation: domain의 명시적 `ProjectileState.surface`를 읽어 terminal은 10–11px monospace, browser는 10px sans와 page glyph, Codex는 10–11px Pretendard와 tool marker로 그린다. 회전 사각 hitbox와 12×12 정적 agent node를 Canvas에 표시하고 HUD를 갱신한다. projectile·hazard Text object는 entity id 기반 bounded map으로 관리한다. `PauseOverlay`는 blur 상태의 DOM 안내만 담당한다.
+- Presentation: domain의 명시적 `ProjectileState.surface`를 읽어 terminal은 10–11px monospace, browser는 10px sans와 page glyph, Codex는 10–11px Pretendard와 tool marker로 그린다. 회전 사각 hitbox와 12×12 정적 agent node를 Canvas에 표시하고 HUD를 갱신한다. projectile·hazard Text object는 entity id 기반 bounded map으로 관리한다. `ReadyOverlay`는 시작 화면의 responsive DOM layout과 presentation-only ambient motion을, `PauseOverlay`는 blur 상태의 DOM 안내를 담당한다. 두 계층 모두 simulation state를 변경하지 않는다.
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환
 - Services: local storage와 브라우저 효과음. leaderboard HTTP는 실제 구현 시에만 추가
 

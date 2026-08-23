@@ -185,3 +185,11 @@
 - 배경: 6×12 caret은 흰 배경에서 너무 가늘어 player 위치가 잘 보이지 않았고, 6px↔2px blink 때문에 아이콘 실루엣도 계속 달라졌다. 사용자는 animation이 없는 정적인 정사각형 아이콘을 요청했다.
 - 결정: player는 12×12 black square, 4×4 white inset, 2×2 Codex violet core로 그린다. 16×16 white clearance로 주변 공격 문구와 분리한다. 시간과 입력 방향에 따른 blink·폭 변화·방향 장식은 모두 제거한다. 기존 이동, 피격 반경 5px과 판정은 변경하지 않는다.
 - 결과: 흰 화면에서 검은 정사각형 외곽이 항상 같은 크기로 보이고, 작은 violet core가 Codex 작업 주체임을 표시한다. Ready 화면의 player glyph도 동일한 구조로 맞춘다.
+
+## D-024 — Ready 화면을 독립적인 wait-time game identity로 구성한다
+
+- 날짜: 2026-08-23
+- 상태: 확정, 실제 viewport 확인 뒤 간격과 ambient 밀도만 조정 가능
+- 배경: 기존 Ready는 작은 player glyph와 제목·설명 텍스트만 있어 화면 상단이 비고, Codex를 기다리며 하는 게임이라는 정체성과 실제 공격의 terminal·browser·Codex 문법을 시작 전에 전달하지 못했다.
+- 결정: Ready를 Canvas text block이 아닌 presentation-only DOM overlay로 분리한다. 상단에는 black square, white rotated context loop와 violet core로 구성한 original mark와 task-running 상태를 둔다. 본문은 큰 headline, 두 줄 설명, 네 줄 run spec과 단일 rectangular CTA로 제한한다. 실제 phrase bank의 의미색·서체를 반영한 여덟 ambient attack 문구는 낮은 opacity와 약한 blur, 19–31초 저속 drift로 배경에서만 움직인다. OpenAI knot와 Codex 제품 logo는 복제하지 않는다.
+- 결과: Ready의 typography와 responsive layout을 gameplay HUD와 독립적으로 조정할 수 있다. 같은 mark를 runtime-generated PNG favicon으로 browser tab에 표시한다. 장식 문구는 pointer event를 받지 않고 simulation·spawn·collision에 참여하지 않으며, 시작 click과 Space 입력 흐름은 그대로 유지한다.

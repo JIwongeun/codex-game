@@ -2,6 +2,26 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — branded Ready surface와 ambient attack feed
+
+### UI·연출
+
+- 비어 있던 상단을 original context-loop game mark, `await CODEX` wordmark와 background task status가 있는 1px header로 재구성
+- Ready 본문을 큰 `Codex is working.` headline, wait-time 설명, objective·control·fail state·local best와 단일 실행 CTA로 정리
+- terminal·browser·Codex의 실제 문구·서체·의미색을 반영한 여덟 background signal을 낮은 opacity, 약한 blur와 19–31초 drift로 추가
+- OpenAI/Codex logo를 복제하지 않고 black square·white rotated loop·violet core로 게임 전용 심볼을 제작하고 같은 형태의 browser tab icon 생성
+- Ready를 presentation-only DOM overlay로 분리하고 기존 Playing·Results HUD, 입력과 simulation은 변경하지 않음
+
+### 검증
+
+- `pnpm check`: typecheck, Vitest 6 files의 46 tests, Worker/client production build 통과
+- `prefers-reduced-motion`에서는 background signal animation을 정지하도록 처리
+- 사용자 요청에 따라 자동 browser 시각 판정은 하지 않고 실제 typography·간격·ambient 밀도 확인을 사용자에게 넘김
+
+### production 반영
+
+- 배포 전
+
 ## 2026-08-23 — 정적인 정사각형 agent node player
 
 ### UI·연출
