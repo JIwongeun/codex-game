@@ -132,7 +132,7 @@ export class GameScene extends Phaser.Scene {
       this.localBest,
       this.soundService.isMuted,
     );
-    this.readyOverlay.render(this.state.phase === "ready", this.localBest);
+    this.readyOverlay.render(this.state, this.localBest);
     this.pauseOverlay.render(this.focusPaused, this.state.elapsedMs);
   }
 

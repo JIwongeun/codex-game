@@ -93,7 +93,7 @@
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 terminal의 monospace·ANSI 의미색, browser의 sans·page error glyph, Codex의 Pretendard·tool marker·context progress처럼 작업 출처별 문법을 사용한다.
 - 둥근 card와 부드러운 장식을 피하고 각진 1px frame, square pixel, stepped trail, tool-call row로 개발 도구의 digital 질감을 만든다.
 - HUD와 overlay는 `Pretendard Variable`을 사용한다. 공격은 surface에 따라 10–11px monospace 또는 Pretendard/system sans를 사용한다. 상단 중앙 공격명 announcement는 표시하지 않는다.
-- 시작 화면은 original context-loop game mark, 상단 background task 상태, 큰 `Codex is working.` headline, 네 줄 run spec과 하나의 실행 CTA로 구성한다. 뒤에는 실제 공격 문법을 미리 보여주는 저대비 terminal·browser·Codex 문구가 천천히 떠다닌다. 결과 화면은 넓은 여백과 건조한 실행 문구를 유지하며 실제 제품 로고나 UI는 복제하지 않는다.
+- 사용자에게 보이는 완전한 화면은 Start와 Game 두 개뿐이다. Start는 최초 진입과 game over 뒤에 공유하며 original context-loop game mark, 상단 background task 상태, 큰 `Codex is working.` headline, objective·control·fail state·last run·local best와 하나의 실행 CTA로 구성한다. 뒤에는 실제 공격 문법을 미리 보여주는 저대비 terminal·browser·Codex 문구가 천천히 떠다닌다. 별도 Results 화면은 만들지 않는다.
 - 탭 blur/hidden으로 멈춘 동안에는 결과 화면처럼 장면을 덮지 않는다. 마지막 게임 장면을 흐리게 남기고 중앙 pause 문구만 표시한다.
 - pause 중에는 마지막 장면과 player 위치를 blur 아래에 그대로 남기고 중앙 재개 문구만 표시한다.
 - 공격의 실루엣, 예고 범위, 실제 위험 범위를 명확히 구분한다.
@@ -101,7 +101,7 @@
 
 ## 7. MVP 포함 범위
 
-- Ready → Playing → Results → Retry 상태
+- Start ↔ Game 두 화면. 내부에서는 `ready | playing | results` phase로 최초 시작과 마지막 run 정보를 구분하지만 `ready`와 `results`는 같은 Start 화면을 사용
 - 정적인 정사각형 agent node의 WASD·방향키 8방향 이동
 - 한 번 피격 시 종료와 생존 시간 기록
 - 의미가 다른 공격 패턴 7종과 수렴·분할 sequence

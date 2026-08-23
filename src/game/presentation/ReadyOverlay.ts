@@ -1,8 +1,47 @@
+import type { GameState, HitSource } from "../core/model";
 import { formatSurvivalTime } from "../core/rules";
+
+const HIT_SOURCE_LABEL: Record<HitSource, string> = {
+  log: "ONE MORE CHANGE",
+  review: "REVIEW REQUEST",
+  "context-max": "CONTEXT MAX",
+  retry: "RETRY LOOP",
+  branch: "BRANCH",
+  race: "RACE CONDITION",
+  bug: "MERGE BUG",
+};
+
+export interface StartScreenView {
+  visible: boolean;
+  best: string;
+  lastRun: string;
+  actionSuffix: "TO START RUN" | "TO START NEW RUN";
+}
+
+export function startScreenView(
+  state: GameState,
+  localBest: number,
+): StartScreenView {
+  const completedRun = state.phase === "results";
+  const hitSource = state.lastHitSource
+    ? HIT_SOURCE_LABEL[state.lastHitSource]
+    : "UNKNOWN INTERRUPTION";
+
+  return {
+    visible: state.phase !== "playing",
+    best: formatSurvivalTime(localBest),
+    lastRun: completedRun
+      ? `${formatSurvivalTime(state.elapsedMs)} / ${hitSource}`
+      : "--:--.-- / NO RUN YET",
+    actionSuffix: completedRun ? "TO START NEW RUN" : "TO START RUN",
+  };
+}
 
 export class ReadyOverlay {
   private readonly root: HTMLElement;
   private readonly bestValue: HTMLElement;
+  private readonly lastRunValue: HTMLElement;
+  private readonly actionSuffix: HTMLElement;
 
   constructor(parent: HTMLElement) {
     this.root = document.createElement("section");
@@ -44,13 +83,14 @@ export class ReadyOverlay {
           <div><dt>OBJECTIVE</dt><dd>SURVIVE THE QUEUE</dd></div>
           <div><dt>CONTROL</dt><dd>WASD / ARROW KEYS</dd></div>
           <div><dt>FAIL STATE</dt><dd>ONE HIT</dd></div>
+          <div><dt>LAST RUN</dt><dd data-ready-last-run>--:--.-- / NO RUN YET</dd></div>
           <div><dt>LOCAL BEST</dt><dd data-ready-best>00:00.00</dd></div>
         </dl>
 
         <div class="ready-action">
           <span class="ready-action__prompt" aria-hidden="true">›</span>
           <strong>CLICK OR PRESS SPACE</strong>
-          <span>TO START RUN</span>
+          <span data-ready-action-suffix>TO START RUN</span>
         </div>
       </main>
 
@@ -61,19 +101,32 @@ export class ReadyOverlay {
     `;
 
     const bestValue = this.root.querySelector<HTMLElement>("[data-ready-best]");
-    if (!bestValue) {
-      throw new Error("Ready overlay best-score target was not found.");
+    const lastRunValue = this.root.querySelector<HTMLElement>(
+      "[data-ready-last-run]",
+    );
+    const actionSuffix = this.root.querySelector<HTMLElement>(
+      "[data-ready-action-suffix]",
+    );
+    if (!bestValue || !lastRunValue || !actionSuffix) {
+      throw new Error("Ready overlay status targets were not found.");
     }
 
     this.bestValue = bestValue;
+    this.lastRunValue = lastRunValue;
+    this.actionSuffix = actionSuffix;
     parent.append(this.root);
   }
 
-  render(visible: boolean, localBest: number): void {
-    this.root.hidden = !visible;
-    if (visible) {
-      this.bestValue.textContent = formatSurvivalTime(localBest);
+  render(state: GameState, localBest: number): void {
+    const view = startScreenView(state, localBest);
+    this.root.hidden = !view.visible;
+    if (!view.visible) {
+      return;
     }
+
+    this.bestValue.textContent = view.best;
+    this.lastRunValue.textContent = view.lastRun;
+    this.actionSuffix.textContent = view.actionSuffix;
   }
 
   destroy(): void {

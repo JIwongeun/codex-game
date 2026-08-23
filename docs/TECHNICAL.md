@@ -105,7 +105,7 @@ flowchart LR
 - Scene: Ready/Playing/Results 흐름과 Phaser 객체 수명주기 조율
 - Domain logic: 생존 시간, 난이도, 직선 공격, 범위 공격, 충돌 계산
 - Input: Phaser keyboard event를 정규화된 WASD·방향키 방향 intent로 변환하고 click·Space action 및 음소거를 분리한다. blur/hidden에서는 held movement key를 비운다.
-- Presentation: domain의 명시적 `ProjectileState.surface`를 읽어 terminal은 10–11px monospace, browser는 10px sans와 page glyph, Codex는 10–11px Pretendard와 tool marker로 그린다. 회전 사각 hitbox와 12×12 정적 agent node를 Canvas에 표시하고 HUD를 갱신한다. projectile·hazard Text object는 entity id 기반 bounded map으로 관리한다. `ReadyOverlay`는 시작 화면의 responsive DOM layout과 presentation-only ambient motion을, `PauseOverlay`는 blur 상태의 DOM 안내를 담당한다. 두 계층 모두 simulation state를 변경하지 않는다.
+- Presentation: domain의 명시적 `ProjectileState.surface`를 읽어 terminal은 10–11px monospace, browser는 10px sans와 page glyph, Codex는 10–11px Pretendard와 tool marker로 그린다. 회전 사각 hitbox와 12×12 정적 agent node를 Canvas에 표시하고 Game HUD를 갱신한다. projectile·hazard Text object는 entity id 기반 bounded map으로 관리한다. `ReadyOverlay`는 최초 진입과 game over가 공유하는 Start layout, last run·local best와 presentation-only ambient motion을 담당한다. `PauseOverlay`는 Game 위의 일시적인 blur 안내만 담당한다. 두 DOM 계층 모두 simulation state를 변경하지 않는다.
 - Runtime: render delta를 제한된 60 Hz simulation tick으로 변환
 - Services: local storage와 브라우저 효과음. leaderboard HTTP는 실제 구현 시에만 추가
 
@@ -113,15 +113,13 @@ flowchart LR
 
 ## 5. 게임 상태
 
-최소 상태 전이는 다음과 같다.
+사용자가 보는 화면 전이는 다음 두 개뿐이다.
 
 ```text
-Boot → Ready → Playing → Results
-                 ↑          |
-                 └── Retry ─┘
+Boot → Start screen ⇄ Game screen
 ```
 
-Scene을 상태마다 무조건 분리할 필요는 없다. 시작 화면과 결과 화면이 작다면 하나의 Play Scene 안에서 상태로 관리한다. 분리가 실제 복잡도를 낮출 때만 Scene을 추가한다.
+내부 `ready | playing | results` phase는 최초 진입, 실행 중, 마지막 run이 있는 Start를 구분하기 위해 유지한다. `ready`와 `results`는 같은 `ReadyOverlay`를 표시하므로 별도 Results surface나 Scene은 없다. `results`에서 클릭 또는 Space를 누르면 새 state로 교체하고 바로 Game 화면으로 진입한다.
 
 ## 6. 후순위 글로벌 랭킹 서버
 

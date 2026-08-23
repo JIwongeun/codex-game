@@ -2,6 +2,26 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-23 — Start와 Game 두 화면으로 통합
+
+### UI 흐름
+
+- 별도 `Task interrupted.` Results overlay와 관련 Phaser Graphics·Text object를 제거
+- 최초 진입의 `ready`와 game over 뒤 `results`가 동일한 Start DOM overlay를 사용하도록 통합
+- Start spec에 `LAST RUN`을 추가하고 game over 뒤 생존 시간과 정확한 피격 계열을 표시
+- `LOCAL BEST`는 같은 Start 화면에서 갱신하고 CTA는 첫 진입 `TO START RUN`, game over 뒤 `TO START NEW RUN`으로 변경
+- Game HUD는 `playing` phase에서만 보이도록 제한하고 simulation·공격·충돌·재시작 판정은 변경하지 않음
+
+### 검증
+
+- Start가 `ready`와 `results`에서 보이고 `playing`에서 숨겨지며 last run·best·CTA가 올바르게 바뀌는 presentation 회귀 테스트 추가
+- `pnpm check`: typecheck, Vitest 7 files의 47 tests, Worker/client production build 통과
+- 사용자 요청에 따라 자동 browser 시각 판정은 하지 않고 실제 game over → Start 복귀와 정보 배치 확인을 사용자에게 넘김
+
+### production 반영
+
+- 배포 전
+
 ## 2026-08-23 — branded Ready surface와 ambient attack feed
 
 ### UI·연출

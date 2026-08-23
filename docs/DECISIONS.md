@@ -193,3 +193,11 @@
 - 배경: 기존 Ready는 작은 player glyph와 제목·설명 텍스트만 있어 화면 상단이 비고, Codex를 기다리며 하는 게임이라는 정체성과 실제 공격의 terminal·browser·Codex 문법을 시작 전에 전달하지 못했다.
 - 결정: Ready를 Canvas text block이 아닌 presentation-only DOM overlay로 분리한다. 상단에는 black square, white rotated context loop와 violet core로 구성한 original mark와 task-running 상태를 둔다. 본문은 큰 headline, 두 줄 설명, 네 줄 run spec과 단일 rectangular CTA로 제한한다. 실제 phrase bank의 의미색·서체를 반영한 여덟 ambient attack 문구는 낮은 opacity와 약한 blur, 19–31초 저속 drift로 배경에서만 움직인다. OpenAI knot와 Codex 제품 logo는 복제하지 않는다.
 - 결과: Ready의 typography와 responsive layout을 gameplay HUD와 독립적으로 조정할 수 있다. 같은 mark를 runtime-generated PNG favicon으로 browser tab에 표시한다. 장식 문구는 pointer event를 받지 않고 simulation·spawn·collision에 참여하지 않으며, 시작 click과 Space 입력 흐름은 그대로 유지한다.
+
+## D-025 — 사용자 화면을 Start와 Game 두 개로 제한한다
+
+- 날짜: 2026-08-23
+- 상태: 확정
+- 배경: 기존에는 피격 뒤 `Task interrupted.` 전용 Results overlay가 나타나 Start와 다른 정보 구조를 만들었다. 사용자는 시작에 필요한 정보와 결과를 하나의 기본 UI에서 확인하고, 실제 플레이 중에는 게임만 보이기를 요청했다.
+- 결정: 최초 `ready`와 game over 뒤 `results` phase는 모두 같은 `ReadyOverlay`를 표시한다. Start에는 objective, control, fail state, local best를 항상 두고 `results`일 때만 `LAST RUN`에 생존 시간과 피격 계열을 갱신한다. `Hud`는 `playing`에서만 표시하며 Results용 Graphics와 Text object는 제거한다. 내부 phase와 deterministic simulation은 변경하지 않는다.
+- 결과: 사용자가 보는 완전한 화면은 Start와 Game 두 개뿐이다. game over 즉시 Start가 돌아오고 클릭 또는 Space는 기존 `restartRun` 경로로 새 Game을 시작한다. Pause는 Game을 대체하지 않는 일시적인 blur 계층으로 남는다.

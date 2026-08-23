@@ -86,10 +86,9 @@
 
 ### 화면 상태
 
-- Ready: 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시한다. 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`을 크게 두고 objective·control·fail state·local best 네 줄과 하나의 실행 CTA만 제공한다. 뒤에는 실제 attack surface와 같은 terminal·browser·Codex 문구가 저대비 blur 상태로 천천히 떠다니며 게임 내용을 미리 보여주되 gameplay projectile로 오인될 정도로 선명하게 만들지 않는다.
-- Playing: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 local best, 하단 조작과 fictional feed 고지만 유지한다.
-- Paused: 마지막 장면을 약하게 blur하고 중앙에는 작은 검은 `PAUSED` 상태와 재개 방법만 둔다.
-- Results: 정확한 피격 계열, 생존 시간, local best와 즉시 재시작만 표시한다.
+- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·local best와 하나의 실행 CTA를 제공한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack surface와 같은 terminal·browser·Codex 문구가 저대비 blur 상태로 천천히 떠다닌다.
+- Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 local best, 하단 조작과 fictional feed 고지만 유지한다.
+- Pause는 별도 화면이 아니라 마지막 Game 장면 위의 일시적인 blur 계층이다.
 
 ## 7개 공격 패턴
 
@@ -141,8 +140,8 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 - `core/rules.ts`: 12초 단위 Stage 1–10, 해금과 연속 난이도 곡선
 - `core/simulation.ts`: seeded spawn, snapshot, 수렴·분할, 회전 충돌, entity cap
 - `presentation/GameRenderer.ts`: 회전 텍스트, 경로, context progress, convergence와 particle 표현
-- `presentation/ReadyOverlay.ts`: Ready 전용 DOM layout, original game mark, local best와 ambient attack feed
-- `presentation/Hud.ts`: Playing, Results와 stage 표시. 공격명 announcement는 금지
+- `presentation/ReadyOverlay.ts`: 최초 진입과 game over가 공유하는 Start DOM layout, original game mark, last run·local best와 ambient attack feed
+- `presentation/Hud.ts`: Game 화면의 stage·시간·best만 표시. 공격명 announcement와 별도 Results UI는 금지
 - `presentation/PauseOverlay.ts`: focus pause 표현
 - `services/SoundService.ts`: warning, convergence burst, hit의 최소 tone
 
