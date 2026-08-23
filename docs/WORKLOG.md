@@ -27,6 +27,12 @@
 - 알려진 비차단 경고: Phaser 포함 client chunk가 Vite 기본 500 kB 경고를 넘으며 gzip 약 333 kB
 - 실제 player 대비, token 간격과 ambient 밀도는 사용자 production 확인 대상으로 유지
 
+### production 반영
+
+- 검증된 source commit `ce2eced`를 Sites version 16으로 로그인 없는 public production URL에 배포
+- 배포 상태 `succeeded`, live URL의 latest version 16과 access mode `public` 유지 확인
+- 사용자 요청에 따라 자동 browser 시각 판정은 수행하지 않고 새로고침 뒤 실제 화면 확인을 사용자에게 넘김
+
 ## 2026-08-23 — 로그인 없는 공개 제출 URL
 
 ### 접근과 검색 노출
