@@ -11,15 +11,25 @@ const requiredPaths = [
 await Promise.all(requiredPaths.map((path) => access(path)));
 
 const clientFiles = await filesBelow("dist/client");
+let productionCode = "";
 for (const path of clientFiles) {
   if (!path.endsWith(".js") && !path.endsWith(".html")) {
     continue;
   }
 
   const content = await readFile(path, "utf8");
+  productionCode += content;
   if (content.includes("qaElapsedSeconds")) {
     throw new Error(`Development QA query leaked into production: ${path}`);
   }
+}
+
+if (
+  !productionCode.includes("await-codex-favicon") ||
+  !productionCode.includes("toDataURL") ||
+  !productionCode.includes("image/png")
+) {
+  throw new Error("Runtime-generated PNG favicon is missing from production.");
 }
 
 const html = await readFile("dist/client/index.html", "utf8");
@@ -56,7 +66,7 @@ if (ogStat.size === 0) {
 }
 
 console.log(
-  `Production verified: ${clientFiles.length} client files, ${width}x${height} OG image, no QA query.`,
+  `Production verified: ${clientFiles.length} client files, runtime favicon, ${width}x${height} OG image, no QA query.`,
 );
 
 async function filesBelow(directory) {

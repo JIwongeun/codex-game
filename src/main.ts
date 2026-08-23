@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 import { gameConfig } from "./game/config";
+import { waitForGameFont } from "./game/runtime/waitForGameFont";
 import "./styles.css";
 
 const gameRoot = document.querySelector<HTMLDivElement>("#game-root");
@@ -35,18 +36,20 @@ function installGameIcon(): void {
   context.fillStyle = "#7863bd";
   context.fillRect(14, 14, 4, 4);
 
-  const icon = document.createElement("link");
+  const icon =
+    document.querySelector<HTMLLinkElement>("#await-codex-favicon") ??
+    document.createElement("link");
+  icon.id = "await-codex-favicon";
   icon.rel = "icon";
   icon.type = "image/png";
   icon.href = canvas.toDataURL("image/png");
-  document.head.append(icon);
+  if (!icon.isConnected) {
+    document.head.append(icon);
+  }
 }
 
 async function bootGame(): Promise<void> {
-  await document.fonts.load(
-    '500 16px "Pretendard Variable"',
-    "await CODEX Pointer crashed 포인터",
-  );
+  await waitForGameFont(document.fonts);
   game = new Phaser.Game(gameConfig);
 }
 

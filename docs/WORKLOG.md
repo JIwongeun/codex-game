@@ -2,6 +2,19 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — first-load font fallback과 favicon production gate
+
+### boot 안정성
+
+- 최초 boot의 `document.fonts.load()` 직접 await를 `waitForGameFont`의 1.5초 bounded wait로 교체
+- Font Loading API 미지원, synchronous throw, Promise reject와 영구 pending 모두 Phaser boot를 막지 않도록 처리
+- runtime favicon에 stable id를 부여해 HMR 중 link 중복 생성을 막고, original context-loop mark의 PNG data URL 생성을 유지
+
+### 검증
+
+- font load 성공·미지원·reject·throw·timeout 경로를 unit test로 고정해 Vitest 12 files의 63 tests 통과
+- production verifier가 `await-codex-favicon`, PNG data URL 생성과 기존 metadata·OG·QA query 제거를 함께 검사
+
 ## 2026-08-24 — focus lifecycle·mute·production gate 보강
 
 ### lifecycle과 오디오
