@@ -16,7 +16,8 @@
 - prompt 경계 보정 뒤 나머지 token advance가 그대로 유지되는 presentation unit test 추가
 - ambient의 시작·종료 좌표가 viewport 밖이고 최초 delay가 음수가 아닌 회귀 테스트 추가
 - `pnpm check` 통과: typecheck, 12개 test file의 71개 test, production build, production verifier 완료
-- production 반영과 공개 URL 응답 확인은 별도로 진행
+- Sites version 25 production deployment 성공
+- 공개 root, `index-k14xV9iu.js`, `index-BBmZ4hxh.css`가 모두 HTTP 200으로 응답하고 배포 직후 최근 worker 오류 로그 0건 확인
 
 ## 2026-08-24 — procedural gameplay BGM 추가
 
