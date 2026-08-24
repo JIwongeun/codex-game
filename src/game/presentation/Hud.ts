@@ -12,31 +12,73 @@ export class Hud {
   private readonly hintText: Phaser.GameObjects.Text;
   private readonly footerText: Phaser.GameObjects.Text;
 
-  constructor(scene: Phaser.Scene) {
-    this.brandText = this.text(scene, 0, 0, 12, TEXT_COLORS.ink)
+  constructor(scene: Phaser.Scene, textResolution: number) {
+    this.brandText = this.text(
+      scene,
+      0,
+      0,
+      12,
+      TEXT_COLORS.ink,
+      textResolution,
+    )
       .setFontStyle("700")
       .setLetterSpacing(0.7)
       .setDepth(32);
-    this.statusText = this.text(scene, 0, 0, 9, TEXT_COLORS.muted)
+    this.statusText = this.text(
+      scene,
+      0,
+      0,
+      9,
+      TEXT_COLORS.muted,
+      textResolution,
+    )
       .setFontStyle("620")
       .setLetterSpacing(0.6)
       .setDepth(21);
-    this.timeText = this.text(scene, 0, 0, 24, TEXT_COLORS.ink)
+    this.timeText = this.text(
+      scene,
+      0,
+      0,
+      24,
+      TEXT_COLORS.ink,
+      textResolution,
+    )
       .setFontStyle("680")
       .setLetterSpacing(0.7)
       .setOrigin(1, 0)
       .setDepth(21);
-    this.bestText = this.text(scene, 0, 0, 9, TEXT_COLORS.faint)
+    this.bestText = this.text(
+      scene,
+      0,
+      0,
+      9,
+      TEXT_COLORS.faint,
+      textResolution,
+    )
       .setFontStyle("560")
       .setLetterSpacing(0.5)
       .setOrigin(1, 0)
       .setDepth(21);
-    this.hintText = this.text(scene, 0, 0, 8, TEXT_COLORS.muted)
+    this.hintText = this.text(
+      scene,
+      0,
+      0,
+      8,
+      TEXT_COLORS.muted,
+      textResolution,
+    )
       .setFontStyle("580")
       .setLetterSpacing(0.6)
       .setOrigin(0, 1)
       .setDepth(21);
-    this.footerText = this.text(scene, 0, 0, 9, TEXT_COLORS.faint)
+    this.footerText = this.text(
+      scene,
+      0,
+      0,
+      9,
+      TEXT_COLORS.faint,
+      textResolution,
+    )
       .setFontStyle("580")
       .setLetterSpacing(0.55)
       .setOrigin(1, 1)
@@ -109,12 +151,15 @@ export class Hud {
     y: number,
     size: number,
     color: string,
+    resolution: number,
     fontFamily: string = FONTS.sans,
   ): Phaser.GameObjects.Text {
-    return scene.add.text(x, y, "", {
-      color,
-      fontFamily,
-      fontSize: `${size}px`,
-    });
+    return scene.add
+      .text(x, y, "", {
+        color,
+        fontFamily,
+        fontSize: `${size}px`,
+      })
+      .setResolution(resolution);
   }
 }

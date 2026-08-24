@@ -26,7 +26,7 @@ export type AttackPatternKind =
   | "context-compaction"
   | "download-access"
   | "retry-loop"
-  | "reasoning-xhigh"
+  | "ultra-code"
   | "parallel-agents"
   | "review-fix-loop"
   | "usage-limit"
@@ -216,12 +216,12 @@ export type GameEvent =
         | SequenceKind
         | "approval-required"
         | "retry-loop"
-        | "reasoning-xhigh"
+        | "ultra-code"
         | "parallel-agents";
     }
   | {
       type: "pattern-burst";
-      kind: SequenceKind | "reasoning-xhigh";
+      kind: SequenceKind | "ultra-code";
       position: Vec2;
     }
   | { type: "pattern-complete"; kind: "retry-loop"; position: Vec2 }

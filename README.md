@@ -16,7 +16,7 @@ Codex가 작업하는 동안 작은 정사각형 agent node를 움직여 개발�
 - 시작·재시작·pause 해제: 클릭 또는 Space
 - run 취소 후 대기화면 복귀: `Esc`
 - 음소거: `M`
-- 목표: tool call, approval gate, context compaction, retry, xhigh reasoning, parallel agents, review, usage limit와 `rm *` blackout을 피하며 오래 생존
+- 목표: tool call, approval gate, context compaction, retry, ultra code response, parallel agents, review, usage limit와 `rm *` blackout을 피하며 오래 생존
 - 한 판: 한 번 피격될 때까지. 4분 생존 시 숨겨진 task-crash ending
 - pause: 다른 탭으로 이동하면 simulation과 타이머가 멈추고 held movement key가 초기화됩니다.
 

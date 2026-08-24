@@ -67,12 +67,39 @@ function seededUnit(value: number): number {
   return noise - Math.floor(noise);
 }
 
-function reasoningCandidateCount(progress: number): 8 | 4 | 2 | 1 {
+function ultraWorkingAgentCount(progress: number): 8 | 4 | 2 | 1 {
   return progress < 0.25 ? 8 : progress < 0.5 ? 4 : progress < 0.75 ? 2 : 1;
+}
+
+function ultraWorkingAgentIndices(count: 8 | 4 | 2 | 1): readonly number[] {
+  if (count === 8) {
+    return [0, 1, 2, 3, 4, 5, 6, 7];
+  }
+  if (count === 4) {
+    return [0, 2, 4, 6];
+  }
+  if (count === 2) {
+    return [0, 4];
+  }
+  return [0];
+}
+
+function ultraAgentCompletionThreshold(index: number): number {
+  if (index % 2 === 1) {
+    return 0.25;
+  }
+  if (index === 2 || index === 6) {
+    return 0.5;
+  }
+  if (index === 4) {
+    return 0.75;
+  }
+  return 1;
 }
 
 export class GameRenderer {
   private readonly scene: Phaser.Scene;
+  private readonly textResolution: number;
   private readonly background: Phaser.GameObjects.Graphics;
   private readonly world: Phaser.GameObjects.Graphics;
   private readonly blackoutLayer: Phaser.GameObjects.Graphics;
@@ -89,8 +116,9 @@ export class GameRenderer {
   private readonly particles: ParticleEffect[] = [];
   private hitFlashMs = 0;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, textResolution: number) {
     this.scene = scene;
+    this.textResolution = textResolution;
     this.background = scene.add.graphics().setDepth(-10);
     this.world = scene.add.graphics().setDepth(1);
     this.blackoutLayer = scene.add.graphics().setDepth(0);
@@ -109,11 +137,9 @@ export class GameRenderer {
       if (event.type === "hazard-activated") {
         if (event.kind === "compaction") {
           this.addContextBurst(event.position, state.elapsedMs);
-        } else {
-          this.addBurst(event.position, 14, state.elapsedMs);
         }
       } else if (event.type === "pattern-burst") {
-        if (event.kind === "reasoning-xhigh") {
+        if (event.kind === "ultra-code") {
           continue;
         }
         this.addBurst(
@@ -262,14 +288,10 @@ export class GameRenderer {
           0,
           1,
         );
-    const warningTone = ATTACK_TONES.browserAccent.value;
-    const activeTone = ATTACK_TONES.browserError.value;
-    const tone = active ? activeTone : warningTone;
+    const tone = ATTACK_TONES.downloadAccess.value;
 
-    this.world.fillStyle(tone, active ? 0.14 : 0.018);
+    this.world.fillStyle(tone, active ? 0.13 : 0.014);
     this.world.fillRect(x, y, width, height);
-    this.world.lineStyle(active ? 2 : 1, tone, active ? 0.92 : 0.52);
-    this.world.strokeRect(x, y, width, height);
 
     if (!active) {
       const sector = hazard.accessSector ?? "left";
@@ -288,9 +310,9 @@ export class GameRenderer {
         fillHeight = height * progress;
         fillY = y + height - fillHeight;
       }
-      this.world.fillStyle(warningTone, 0.035 + progress * 0.075);
+      this.world.fillStyle(tone, 0.035 + progress * 0.075);
       this.world.fillRect(fillX, fillY, fillWidth, fillHeight);
-      this.world.lineStyle(2, warningTone, 0.64 + progress * 0.28);
+      this.world.lineStyle(2, tone, 0.64 + progress * 0.28);
       if (sector === "left" || sector === "right") {
         const scanX = sector === "left" ? fillX + fillWidth : fillX;
         this.world.lineBetween(scanX, y, scanX, y + height);
@@ -301,14 +323,16 @@ export class GameRenderer {
       return;
     }
 
-    for (let offset = -height; offset < width; offset += 16) {
-      this.world.lineStyle(1, activeTone, 0.22);
-      this.world.lineBetween(
-        x + Math.max(0, offset),
-        y + Math.max(0, -offset),
-        x + Math.min(width, offset + height),
-        y + Math.min(height, height + offset),
-      );
+    const sector = hazard.accessSector ?? "left";
+    this.world.lineStyle(3, tone, 0.96);
+    if (sector === "left") {
+      this.world.lineBetween(x + width, y, x + width, y + height);
+    } else if (sector === "right") {
+      this.world.lineBetween(x, y, x, y + height);
+    } else if (sector === "top") {
+      this.world.lineBetween(x, y + height, x + width, y + height);
+    } else {
+      this.world.lineBetween(x, y, x + width, y);
     }
   }
 
@@ -533,14 +557,14 @@ export class GameRenderer {
 
     for (const wave of state.reasoningWaves) {
       if (wave.phase === "thinking") {
-        this.drawReasoningBranches(wave, tone);
+        this.drawUltraCodeAgents(wave, tone);
       } else {
-        this.drawReasoningResponse(wave, tone);
+        this.drawUltraCodeResponse(wave, tone);
       }
     }
   }
 
-  private drawReasoningBranches(
+  private drawUltraCodeAgents(
     wave: ReasoningWaveState,
     tone: number,
   ): void {
@@ -549,53 +573,88 @@ export class GameRenderer {
       0,
       1,
     );
-    const candidateCount = reasoningCandidateCount(progress);
-    const previewRadius = Math.min(54, Math.max(38, wave.maxRadius * 0.12));
-    const innerRadius = 8;
+    const workingCount = ultraWorkingAgentCount(progress);
+    const workingIndices = ultraWorkingAgentIndices(workingCount);
+    const orbitRadius = Math.min(70, Math.max(52, wave.maxRadius * 0.12));
+    const coreSize = 10;
 
-    this.world.fillStyle(tone, 0.84);
+    this.world.lineStyle(1, tone, 0.68 + progress * 0.2);
+    this.world.strokeRect(
+      Math.round(wave.center.x - coreSize / 2),
+      Math.round(wave.center.y - coreSize / 2),
+      coreSize,
+      coreSize,
+    );
+    this.world.fillStyle(tone, 0.38 + progress * 0.46);
     this.world.fillRect(
-      Math.round(wave.center.x) - 2,
-      Math.round(wave.center.y) - 2,
-      4,
-      4,
+      Math.round(wave.center.x) - 1,
+      Math.round(wave.center.y) - 1,
+      3,
+      3,
     );
 
-    for (let ringIndex = 0; ringIndex < 3; ringIndex += 1) {
-      const radius = previewRadius - ringIndex * 9;
-      this.strokeReasoningArc(
-        wave,
-        radius,
-        1,
-        tone,
-        0.2 + progress * 0.12 + ringIndex * 0.04,
-      );
-    }
+    for (let index = 0; index < 8; index += 1) {
+      const angle = wave.safeAngle + (Math.PI * 2 * index) / 8;
+      const agentX = wave.center.x + Math.cos(angle) * orbitRadius;
+      const agentY = wave.center.y + Math.sin(angle) * orbitRadius;
+      const working = workingIndices.includes(index);
 
-    this.world.lineStyle(1, tone, 0.3 + progress * 0.34);
-    const survivorIndices =
-      candidateCount === 8
-        ? [0, 1, 2, 3, 4, 5, 6, 7]
-        : candidateCount === 4
-          ? [0, 2, 4, 6]
-          : candidateCount === 2
-            ? [0, 4]
-            : [0];
-    for (const branchIndex of survivorIndices) {
-      const angle = wave.safeAngle + (Math.PI * 2 * branchIndex) / 8;
-      const branchEnd = previewRadius - (branchIndex % 2) * 4;
+      if (working) {
+        this.world.lineStyle(1, tone, 0.48 + progress * 0.2);
+        this.world.strokeRect(
+          Math.round(agentX) - 3,
+          Math.round(agentY) - 3,
+          6,
+          6,
+        );
+        this.world.fillStyle(COLORS.ink, 0.56);
+        this.world.fillRect(
+          Math.round(agentX) - 1,
+          Math.round(agentY) - 1,
+          2,
+          2,
+        );
+        continue;
+      }
+
+      this.world.fillStyle(tone, 0.9);
+      this.world.fillRect(Math.round(agentX) - 2, Math.round(agentY) - 2, 5, 5);
+      this.world.lineStyle(1, tone, 0.24);
       this.world.lineBetween(
-        wave.center.x + Math.cos(angle) * innerRadius,
-        wave.center.y + Math.sin(angle) * innerRadius,
-        wave.center.x + Math.cos(angle) * branchEnd,
-        wave.center.y + Math.sin(angle) * branchEnd,
+        agentX - Math.cos(angle) * 5,
+        agentY - Math.sin(angle) * 5,
+        wave.center.x + Math.cos(angle) * 7,
+        wave.center.y + Math.sin(angle) * 7,
+      );
+
+      const responseProgress = Phaser.Math.Clamp(
+        (progress - ultraAgentCompletionThreshold(index)) / 0.16,
+        0,
+        1,
+      );
+      const packetX = Phaser.Math.Linear(
+        agentX,
+        wave.center.x,
+        responseProgress,
+      );
+      const packetY = Phaser.Math.Linear(
+        agentY,
+        wave.center.y,
+        responseProgress,
+      );
+      this.world.fillStyle(COLORS.ink, 0.92);
+      this.world.fillRect(
+        Math.round(packetX) - 1,
+        Math.round(packetY) - 1,
+        3,
+        3,
       );
     }
 
-    this.drawReasoningGapTicks(wave, previewRadius, tone, 0.78);
+    this.drawReasoningGapTicks(wave, orbitRadius, tone, 0.82);
   }
 
-  private drawReasoningResponse(
+  private drawUltraCodeResponse(
     wave: ReasoningWaveState,
     tone: number,
   ): void {
@@ -606,6 +665,25 @@ export class GameRenderer {
     const thickness = Math.min(16, Math.max(12, wave.thickness));
     this.strokeReasoningArc(wave, wave.radius, thickness, tone, 0.14);
     this.strokeReasoningArc(wave, wave.radius, 1, tone, 0.94);
+    const dangerousArc = Math.PI * 2 - wave.safeArc;
+    const responseStart = wave.safeAngle + wave.safeArc / 2;
+    this.world.lineStyle(2, tone, 0.72);
+    for (let index = 0; index < 8; index += 1) {
+      const angle = responseStart + dangerousArc * ((index + 0.5) / 8);
+      this.world.lineBetween(
+        wave.center.x + Math.cos(angle) * (wave.radius + 7),
+        wave.center.y + Math.sin(angle) * (wave.radius + 7),
+        wave.center.x + Math.cos(angle) * Math.max(0, wave.radius - 7),
+        wave.center.y + Math.sin(angle) * Math.max(0, wave.radius - 7),
+      );
+    }
+    this.world.lineStyle(1, tone, 0.72);
+    this.world.strokeRect(
+      Math.round(wave.center.x) - 5,
+      Math.round(wave.center.y) - 5,
+      10,
+      10,
+    );
     this.drawReasoningGapTicks(wave, wave.radius, tone, 0.9);
   }
 
@@ -939,13 +1017,13 @@ export class GameRenderer {
         0,
         1,
       );
-      const candidateCount = reasoningCandidateCount(progress);
+      const workingCount = ultraWorkingAgentCount(progress);
       const status =
         wave.phase === "active"
-          ? "[answer] final"
-          : candidateCount === 1
-            ? "[effort] xhigh · finalizing"
-            : `[effort] xhigh · ${candidateCount} paths`;
+          ? "[ultra] 8/8 done · FINAL RESPONSE"
+          : workingCount === 8
+            ? "[ultra] 8 agents running"
+            : `[ultra] ${workingCount} agent${workingCount === 1 ? "" : "s"} remaining`;
       this.updateRichLabel(view, {
         surface: "codex",
         label: status,
@@ -1014,6 +1092,7 @@ export class GameRenderer {
               fontFamily: FONTS.mono,
               fontSize: "10px",
             })
+            .setResolution(this.textResolution)
             .setDepth(9),
           status: this.scene.add
             .text(0, 0, "", {
@@ -1024,6 +1103,7 @@ export class GameRenderer {
               fontStyle: "500",
               lineSpacing: 5,
             })
+            .setResolution(this.textResolution)
             .setOrigin(0.5)
             .setDepth(9),
         };
@@ -1101,6 +1181,7 @@ export class GameRenderer {
           stroke: TEXT_COLORS.surface,
           strokeThickness: RICH_LABEL_STROKE_THICKNESS,
         })
+        .setResolution(this.textResolution)
         .setOrigin(0, 0.5)
         .setLetterSpacing(style.letterSpacing ?? 0),
     );

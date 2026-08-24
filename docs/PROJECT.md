@@ -26,7 +26,7 @@
 
 ## 3. 핵심 경험
 
-플레이어는 Canvas가 직접 그리는 glyph 없는 hard-edge 검은 정사각형이다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 tool call과 approval, context compaction, download access, retry, xhigh reasoning, parallel agents, review/fix, usage limit와 `rm *` blackout을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록되며 4분을 버티면 task-crash ending으로 완주한다.
+플레이어는 Canvas가 직접 그리는 glyph 없는 hard-edge 검은 정사각형이다. 실제 OS cursor와 분리되어 있으며 `WASD` 또는 방향키로 움직인다. 화면 바깥에서 날아오는 tool call과 approval, context compaction, download access, retry, ultra code response, parallel agents, review/fix, usage limit와 `rm *` blackout을 읽어 짧게 움직이며 피한다. 한 번 닿으면 run이 끝나고 생존 시간이 기록되며 4분을 버티면 task-crash ending으로 완주한다.
 
 핵심 감정은 다음 세 단계다.
 
@@ -65,7 +65,7 @@
 2. Stage 2 `APPROVAL REQUIRED` — player보다 느린 permission wall이 1.4초 warning 뒤 이동하며, 생성 순간 player 축 위치에서 도달 가능한 네 opening을 문장별 폭으로 고정
 3. Stage 3 `CONTEXT COMPACTION` — 넓은 context frame의 문장 조각이 중심으로 압축되고, 실패 순간 12–20개 token 파편이 물풍선처럼 튄 뒤 중력을 받아 아래로 떨어짐
 4. Stage 4 `RETRY LOOP` — 3–5번의 실패가 각 attempt 시작 때 player 위치를 다시 snapshot하고 더 빨라져 재시도하며, 마지막 attempt 뒤 `RETRY COMPLETE`로 짧게 마감
-5. Stage 5 `REASONING: XHIGH` — 2.1초 동안 8→4→2→1 후보를 가지치기해 safe sector를 고정한 뒤 그 틈만 비운 inward response wave
+5. Stage 5 `ULTRA CODE` — 8개 서브에이전트가 8→4→2→1개 working 상태로 줄어들며 완료 응답을 중앙에 전달하고, 8/8 완료 뒤 safe sector만 비운 final response wave로 합쳐짐
 6. Stage 6 `PARALLEL AGENTS` — 여러 agent가 반대편에서 같은 snapshot을 동시에 교차
 7. Stage 7 `REVIEW / FIX LOOP` — 여러 finding을 고친 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산
 8. Stage 8 `DOWNLOAD ACCESS` + `USAGE LIMIT` — 상·하·좌·우 반 화면 중 하나가 loading 100% 뒤 `ACCESS!` 영역이 되며, 5h·weekly usage는 한 지점으로 소모된 뒤 세 limit 결말 중 하나가 12–20방향으로 발산
@@ -92,7 +92,7 @@ Guest session 최고 기록 = 현재 browser page session에서 가장 긴 생�
 
 ## 6. 화면과 피드백
 
-- Canvas는 browser viewport 전체를 채우되 gameplay 좌표는 QHD `2560×1440`을 기준으로 정규화한다. FHD `1920×1080`은 같은 logical arena를 `0.75×`로 표시해 개체 크기·속도·간격의 화면 비율을 QHD와 같게 유지한다. 다른 화면비는 logical 높이 1440을 유지하고 가로 범위만 화면비에 맞춰 조정해 letterbox를 만들지 않는다.
+- Canvas는 browser viewport 전체를 채우되 gameplay 좌표는 QHD `2560×1440`을 기준으로 정규화한다. FHD `1920×1080`은 같은 logical arena를 `0.75×`로 표시해 개체 크기·속도·간격의 화면 비율을 QHD와 같게 유지한다. 다른 화면비는 logical 높이 1440을 유지하고 가로 범위만 화면비에 맞춰 조정해 letterbox를 만들지 않는다. 비정수 camera zoom에서도 linear antialiasing을 사용하고 작은 Phaser Text는 최소 2× internal resolution로 생성해 폰트와 1px 선을 pixelated 방식으로 축소하지 않는다.
 - 순백 웹페이지와 흰 Canvas를 이어 붙여 별도 게임 프레임처럼 보이지 않게 한다.
 - 격자, 패널, 상단 점수 바, 장식용 배경은 사용하지 않는다.
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 terminal의 monospace·ANSI 의미색, browser의 sans·page error glyph, Codex의 Pretendard·tool marker·context progress처럼 작업 출처별 문법을 사용한다.

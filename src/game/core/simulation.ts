@@ -107,7 +107,7 @@ const MAJOR_PATTERN_ORDER: readonly AttackPatternKind[] = [
   "context-compaction",
   "download-access",
   "retry-loop",
-  "reasoning-xhigh",
+  "ultra-code",
   "parallel-agents",
   "review-fix-loop",
   "usage-limit",
@@ -658,7 +658,7 @@ function updateReasoningWaves(
         wave.previousRadius = wave.maxRadius;
         events.push({
           type: "pattern-burst",
-          kind: "reasoning-xhigh",
+          kind: "ultra-code",
           position: { ...wave.center },
         });
       }
@@ -806,19 +806,19 @@ function spawnScheduledAttacks(
   }
 
   if (
-    selectedMajorPattern === "reasoning-xhigh" &&
+    selectedMajorPattern === "ultra-code" &&
     difficulty.reasoningUnlocked &&
     state.spawn.reasoningMs <= 0
   ) {
     if (
-      spawnReasoningXhigh(
+      spawnUltraCode(
         state,
         difficulty.reasoningCollapseMs,
         difficulty.reasoningSafeArc,
       )
     ) {
-      events.push({ type: "pattern-warning", kind: "reasoning-xhigh" });
-      reserveMajorPattern("reasoning-xhigh");
+      events.push({ type: "pattern-warning", kind: "ultra-code" });
+      reserveMajorPattern("ultra-code");
     }
     state.spawn.reasoningMs += difficulty.reasoningIntervalMs * intervalScale;
   }
@@ -948,7 +948,7 @@ function majorPatternIsDue(
   if (kind === "retry-loop") {
     return difficulty.retryLoopUnlocked && state.spawn.retryLoopMs <= 0;
   }
-  if (kind === "reasoning-xhigh") {
+  if (kind === "ultra-code") {
     return difficulty.reasoningUnlocked && state.spawn.reasoningMs <= 0;
   }
   if (kind === "parallel-agents") {
@@ -983,7 +983,7 @@ function activeMajorPatternFamilies(state: GameState): Set<AttackPatternKind> {
     active.add("retry-loop");
   }
   if (state.reasoningWaves.length > 0) {
-    active.add("reasoning-xhigh");
+    active.add("ultra-code");
   }
   if (state.projectiles.some(({ kind }) => kind === "agent")) {
     active.add("parallel-agents");
@@ -1185,7 +1185,7 @@ function spawnRetryChain(
   return true;
 }
 
-function spawnReasoningXhigh(
+function spawnUltraCode(
   state: GameState,
   collapseDurationMs: number,
   safeArc: number,

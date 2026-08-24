@@ -28,6 +28,7 @@ export const ATTACK_TONES = {
   browserInk: { value: 0x465160, text: "#465160" },
   browserAccent: { value: 0x356da5, text: "#356da5" },
   browserError: { value: 0xb64747, text: "#b64747" },
+  downloadAccess: { value: 0x287a50, text: "#287a50" },
   codex: { value: 0x6754a3, text: "#6754a3" },
 } as const;
 
@@ -41,6 +42,7 @@ export const ATTACK_TEXT_COLORS = {
   terminalError: "#b83d45",
   browserError: "#b64747",
   browserMeta: "#596675",
+  browserSuccess: "#287a50",
   codexToken: "#6754a3",
 } as const;
 

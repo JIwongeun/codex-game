@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-040 — QHD logical 비율과 렌더링 선명도를 분리하고 XHIGH를 Ultra Code로 대체한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-039의 Download Access 색·active 장식과 D-031의 XHIGH 가지치기 표현을 대체
+- 배경: QHD logical arena를 실제 browser 높이에 camera zoom으로 맞추면서 기존 pixel-art nearest-neighbor 설정이 9–11px Text와 1px 선을 비정수 크기로 축소해 QHD 화면에서도 자글거림을 만들었다. Download Access active의 대각 hatch는 반 화면 경계에서 언덕처럼 보였고, XHIGH의 동심원·8→4→2→1 branch는 이름을 제외하면 서브에이전트 작업과 최종 응답의 인과를 보여주지 못했다.
+- 결정: QHD `2560×1440` logical 좌표와 판정은 유지하되 Canvas는 linear antialiasing과 CSS `image-rendering: auto`를 사용하고 Phaser Text는 device pixel ratio를 고려한 최소 2× internal resolution로 만든다. Download Access는 success-green fill·scan front·중앙 경계만 사용하고 대각 hatch와 blue/red 전환을 제거한다. Stage 5는 `ULTRA CODE`로 이름을 바꾸고 8개 agent node가 8→4→2→1개 working 상태로 줄어들며 완료 response packet을 중앙 core에 전달한 뒤, 8/8 완료 순간 safe-sector final response wave로 합쳐지도록 표현한다.
+- 결과: FHD/QHD 비율과 난이도는 바뀌지 않으면서 축소된 Text와 선이 부드럽게 표시된다. 두 영역 공격은 green 반 화면 loading과 violet agent-response convergence라는 서로 다른 실루엣을 가지며, Ultra Code의 최종 inward wave 판정과 safe sector 규칙은 유지된다.
+
 ## D-039 — Approval opening과 label을 하나의 geometry로 맞추고 반화면 Access를 독립시킨다
 
 - 날짜: 2026-08-24
-- 상태: 확정, D-037의 동일 opening 폭·major 단독 실행과 D-031의 compaction 다중 조합을 대체
+- 상태: 일부 대체됨 — D-040이 Download Access 색과 active 장식을 변경. D-037의 동일 opening 폭·major 단독 실행과 D-031의 compaction 다중 조합을 대체
 - 배경: 네 approval 문장의 길이가 다른데 opening은 모두 같은 폭이었고 label은 wall에서 18px 떨어져 있어 문구와 실제 안전 공간이 정렬되지 않았다. Compaction의 추가 개수로 생성되던 `FULL ACCESS`는 정체가 숨겨져 있었고 player 주변의 작은 사각 장판이라 별도 회피 문법도 약했다. Approval을 다른 major와 완전히 격리한 scheduler는 후반에도 여러 패턴이 동시에 실행되지 않는 체감을 만들었다.
 - 결정: approval opening은 9px Pretendard label의 token stroke와 8px 여유를 포함한 문장별 폭 94–153px을 사용하고 label 중심을 wall의 opening 중심에 정확히 둔다. QHD·FHD logical arena에서는 네 opening을 계속 유지하며 wall 하나·player보다 느린 속도는 유지한다. Approval의 양방향 major 격리를 제거하되 360ms onset 간격과 active major family 세 개 상한은 유지한다. `DOWNLOAD ACCESS`는 Compaction에서 분리해 Stage 8부터 상·하·좌·우 중 하나의 정확한 반 화면을 3.3초간 browser-blue loading fill로 예고한 뒤 720ms `ACCESS!` red active 영역으로 만드는 독립 major로 실행한다.
 - 결과: 보이는 문장의 길이와 통과 판정이 일치하고 edge warning에서도 label이 wall 안에 놓인다. Compaction은 항상 한 frame과 token burst만 담당하며 Access는 넓은 영역 이탈이라는 독자 회피 행동을 갖는다. 가장 먼 QHD 좌·우 반 화면에서도 player가 경계를 넘을 수 있는 3.3초가 주어지고, 후반 난이도는 단독 approval이 아니라 읽을 수 있게 stagger된 최대 세 패턴 조합에서 상승한다.

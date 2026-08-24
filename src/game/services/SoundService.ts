@@ -238,8 +238,8 @@ export class SoundService {
           delaySeconds: 0.085,
         });
       } else if (event.type === "pattern-burst") {
-        if (event.kind === "reasoning-xhigh") {
-          this.playReasoningAnswer();
+        if (event.kind === "ultra-code") {
+          this.playUltraCodeResponse();
           continue;
         }
         this.play({
@@ -388,7 +388,7 @@ export class SoundService {
       return;
     }
 
-    if (kind === "reasoning-xhigh") {
+    if (kind === "ultra-code") {
       this.play({
         frequency: 150,
         endFrequency: 420,
@@ -457,7 +457,7 @@ export class SoundService {
     });
   }
 
-  private playReasoningAnswer(): void {
+  private playUltraCodeResponse(): void {
     this.play({
       frequency: 1_480,
       endFrequency: 820,

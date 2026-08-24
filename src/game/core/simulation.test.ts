@@ -287,7 +287,7 @@ describe("survival simulation", () => {
     );
   });
 
-  it("snapshots one xhigh center and safe sector while thinking stays harmless", () => {
+  it("snapshots one ultra-code center and safe sector while agents work harmlessly", () => {
     const state = playingState(18, 800, 600);
     state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
     state.player.position = { x: 240, y: 410 };
@@ -298,7 +298,7 @@ describe("survival simulation", () => {
     const spawned = state.reasoningWaves[0];
     expect(spawned).toBeDefined();
     if (!spawned) {
-      throw new Error("expected an xhigh reasoning wave");
+      throw new Error("expected an ultra-code response wave");
     }
 
     expect(spawned.center).toEqual({ x: 240, y: 410 });
@@ -314,7 +314,7 @@ describe("survival simulation", () => {
     expect(spawned.safeAngle).toBe(initialSafeAngle);
   });
 
-  it("emits one answer event when xhigh thinking becomes an inward wave", () => {
+  it("emits one answer event when ultra-code agents merge into an inward wave", () => {
     const state = playingState(19, 800, 600);
     const wave = reasoningWave(state, {
       phase: "thinking",
@@ -329,7 +329,7 @@ describe("survival simulation", () => {
     expect(wave.radius).toBe(wave.maxRadius);
     expect(activationEvents).toContainEqual({
       type: "pattern-burst",
-      kind: "reasoning-xhigh",
+      kind: "ultra-code",
       position: wave.center,
     });
 
@@ -337,7 +337,7 @@ describe("survival simulation", () => {
     expect(
       nextEvents.filter(
         (event) =>
-          event.type === "pattern-burst" && event.kind === "reasoning-xhigh",
+          event.type === "pattern-burst" && event.kind === "ultra-code",
       ),
     ).toHaveLength(0);
     expect(wave.radius).toBeLessThan(wave.maxRadius);
@@ -347,7 +347,7 @@ describe("survival simulation", () => {
     [375, 640],
     [1_920, 1_080],
   ])(
-    "keeps xhigh collapse duration stable in a %ix%i viewport",
+    "keeps ultra-code collapse duration stable in a %ix%i viewport",
     (width, height) => {
       const state = playingState(width + height, width, height);
       state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
@@ -358,7 +358,7 @@ describe("survival simulation", () => {
       const wave = state.reasoningWaves[0];
       expect(wave).toBeDefined();
       if (!wave) {
-        throw new Error("expected an xhigh reasoning wave");
+        throw new Error("expected an ultra-code response wave");
       }
       expect((wave.maxRadius / wave.speed) * 1_000).toBeCloseTo(
         wave.collapseDurationMs,
@@ -367,7 +367,7 @@ describe("survival simulation", () => {
     },
   );
 
-  it("recomputes a thinking xhigh wave for the resized viewport", () => {
+  it("recomputes a pending ultra-code wave for the resized viewport", () => {
     const state = playingState(23, 1_920, 1_080);
     state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
     state.spawn.reasoningMs = 0;
@@ -376,7 +376,7 @@ describe("survival simulation", () => {
     const wave = state.reasoningWaves[0];
     expect(wave).toBeDefined();
     if (!wave) {
-      throw new Error("expected an xhigh reasoning wave");
+      throw new Error("expected an ultra-code response wave");
     }
     const previousSpeed = wave.speed;
 
@@ -389,7 +389,7 @@ describe("survival simulation", () => {
     );
   });
 
-  it("leaves the fixed xhigh safe sector harmless but hits the swept annulus", () => {
+  it("leaves the fixed ultra-code safe sector harmless but hits the swept response", () => {
     const safeState = playingState(20, 800, 600);
     safeState.player.position = { x: 500, y: 300 };
     safeState.reasoningWaves = [
@@ -416,7 +416,7 @@ describe("survival simulation", () => {
     expect(dangerState.lastHitSource).toBe("reasoning");
   });
 
-  it("cannot tunnel through xhigh or survive its final collapse at center", () => {
+  it("cannot tunnel through ultra-code or survive its final collapse at center", () => {
     const sweptState = playingState(21, 800, 600);
     sweptState.player.position = { x: 400, y: 150 };
     sweptState.reasoningWaves = [
@@ -1104,7 +1104,7 @@ describe("survival simulation", () => {
         "context-compaction",
         "download-access",
         "retry-loop",
-        "reasoning-xhigh",
+        "ultra-code",
         "parallel-agents",
         "review-loop",
         "usage-limit",

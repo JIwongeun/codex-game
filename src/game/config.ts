@@ -9,9 +9,9 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   height: Math.max(1, window.innerHeight),
   backgroundColor: "#ffffff",
   render: {
-    antialias: false,
-    pixelArt: true,
-    roundPixels: true,
+    antialias: true,
+    pixelArt: false,
+    roundPixels: false,
   },
   scale: {
     mode: Phaser.Scale.RESIZE,

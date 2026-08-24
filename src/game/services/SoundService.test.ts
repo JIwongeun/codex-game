@@ -160,10 +160,10 @@ describe("SoundService", () => {
       },
       { type: "pattern-warning", kind: "retry-loop" },
       { type: "pattern-complete", kind: "retry-loop", position: { x: 1, y: 1 } },
-      { type: "pattern-warning", kind: "reasoning-xhigh" },
+      { type: "pattern-warning", kind: "ultra-code" },
       {
         type: "pattern-burst",
-        kind: "reasoning-xhigh",
+        kind: "ultra-code",
         position: { x: 1, y: 1 },
       },
       { type: "pattern-warning", kind: "parallel-agents" },
@@ -204,18 +204,18 @@ describe("SoundService", () => {
     ).toEqual([660, 990]);
   });
 
-  it("separates xhigh branch pruning from the final answer snap", () => {
+  it("separates ultra-code agent collection from the final answer snap", () => {
     const sound = new SoundService();
 
     sound.unlock();
     const context = FakeAudioContext.instances[0];
-    sound.consume([{ type: "pattern-warning", kind: "reasoning-xhigh" }]);
+    sound.consume([{ type: "pattern-warning", kind: "ultra-code" }]);
     expect(context?.oscillators).toHaveLength(5);
 
     sound.consume([
       {
         type: "pattern-burst",
-        kind: "reasoning-xhigh",
+        kind: "ultra-code",
         position: { x: 1, y: 1 },
       },
     ]);

@@ -17,6 +17,7 @@ import { ReadyOverlay } from "../presentation/ReadyOverlay";
 import { FixedStepRunner } from "../runtime/FixedStepRunner";
 import { FocusPauseController } from "../runtime/FocusPauseController";
 import { logicalViewportFor } from "../runtime/logicalViewport";
+import { textTextureResolution } from "../runtime/renderQuality";
 import {
   readGuestSessionBest,
   saveGuestSessionBest,
@@ -50,8 +51,9 @@ export class GameScene extends Phaser.Scene {
       logicalViewport.width,
       logicalViewport.height,
     );
-    this.gameRenderer = new GameRenderer(this);
-    this.hud = new Hud(this);
+    const textResolution = textTextureResolution(window.devicePixelRatio);
+    this.gameRenderer = new GameRenderer(this, textResolution);
+    this.hud = new Hud(this, textResolution);
     const gameParent = this.game.canvas.parentElement ?? document.body;
     this.pauseOverlay = new PauseOverlay(gameParent);
     this.readyOverlay = new ReadyOverlay(gameParent);
@@ -263,7 +265,11 @@ export class GameScene extends Phaser.Scene {
     this.state.spawn.approvalMs = Math.min(this.state.spawn.approvalMs, 350);
     this.state.spawn.compactionMs = Math.min(this.state.spawn.compactionMs, 450);
     this.state.spawn.retryLoopMs = Math.min(this.state.spawn.retryLoopMs, 520);
-    this.state.spawn.reasoningMs = Math.min(this.state.spawn.reasoningMs, 620);
+    this.state.spawn.downloadAccessMs = Math.min(
+      this.state.spawn.downloadAccessMs,
+      590,
+    );
+    this.state.spawn.reasoningMs = Math.min(this.state.spawn.reasoningMs, 660);
     this.state.spawn.parallelAgentsMs = Math.min(
       this.state.spawn.parallelAgentsMs,
       720,

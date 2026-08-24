@@ -2,6 +2,23 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — 축소 렌더링 선명도, green Access와 Ultra Code 응답 수렴
+
+### 구현
+
+- QHD logical camera zoom은 유지하면서 Phaser의 pixel-art nearest-neighbor와 CSS `image-rendering: pixelated`를 제거하고 linear antialiasing을 활성화
+- HUD·공격 token·blackout Phaser Text를 device pixel ratio 기반 최소 2× internal texture로 생성해 FHD와 browser chrome이 있는 QHD viewport의 비정수 축소에서도 작은 글자의 source resolution을 유지
+- `DOWNLOAD ACCESS`의 browser-blue warning·red active·대각 hatch를 success-green loading fill과 중앙 위험 경계로 교체해 하단에서 언덕처럼 보이던 장식을 제거
+- `REASONING: XHIGH` pattern literal과 사용자 문구를 `ULTRA CODE`로 교체하고, 8개 agent node가 8→4→2→1개 working 상태로 줄어들 때 완료 response packet을 중앙 core로 전달한 뒤 `8/8 done · FINAL RESPONSE` inward wave가 되도록 presentation 재설계
+- 기존 Ultra Code의 생성 순간 center·safe sector snapshot, warning 무해, swept annulus 충돌과 Stage별 속도·safe arc는 변경하지 않음
+
+### 검증
+
+- render resolution helper의 DPR 하한·상한, Download Access token의 green syntax role, Ultra Code warning·burst event와 기존 collision 회귀 테스트 추가·갱신
+- 최종 `pnpm check` 통과: typecheck, 전체 16개 test file의 121개 test, production build와 production verifier 완료
+- local 1280×720 browser에서 QHD logical 0.5축소 상태의 Canvas `image-rendering: auto`, green Download Access loading, 대각 hatch 제거와 console error 0건을 시각 확인
+- production 배포와 live asset 확인은 이 변경의 commit·push 뒤 진행
+
 ## 2026-08-24 — Approval 문장 정렬과 독립 반화면 Download Access
 
 ### 구현

@@ -204,7 +204,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 ## 8. 성능 원칙
 
-- Phaser `RESIZE` Canvas는 browser viewport 전체를 채우고 `logicalViewportFor`가 QHD 높이 1440을 기준으로 logical arena와 camera zoom을 계산한다. QHD는 zoom 1, FHD는 동일한 `2560×1440` arena에 zoom 0.75를 사용한다. 다른 화면비는 letterbox 없이 logical 가로만 조정한다. resize 시 player와 범위 공격을 새 logical 경계 안으로 clamp하고 retry velocity를 새 target으로 재계산하며 blackout의 viewport 면적 비율을 보존한다.
+- Phaser `RESIZE` Canvas는 browser viewport 전체를 채우고 `logicalViewportFor`가 QHD 높이 1440을 기준으로 logical arena와 camera zoom을 계산한다. QHD는 zoom 1, FHD는 동일한 `2560×1440` arena에 zoom 0.75를 사용한다. 다른 화면비는 letterbox 없이 logical 가로만 조정한다. 비정수 zoom에는 WebGL linear antialiasing을 사용하고 pixel-art CSS scaling을 금지하며, 작은 Phaser Text texture는 device pixel ratio를 고려한 최소 2× resolution로 생성한다. resize 시 player와 범위 공격을 새 logical 경계 안으로 clamp하고 retry velocity를 새 target으로 재계산하며 blackout의 viewport 면적 비율을 보존한다.
 - update에서 반복 생성되는 객체를 피한다.
 - 회전 text projectile은 최대 56개, context hazard와 convergence sequence는 각각 최대 4개로 명시적 상한을 둔다.
 - 특수 pattern은 각자 timer를 유지하되 onset을 최소 360ms 떨어뜨리고 서로 다른 active major family는 최대 세 개로 제한한다. approval도 같은 상한 안에서 다른 major와 겹칠 수 있다. 기준 logical arena 면적의 55%보다 작은 viewport는 spawn interval만 1.22배 늘린다.
@@ -220,7 +220,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - TypeScript typecheck
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
-- 완전 랜덤 `tool-call`, 문장별 폭의 네 opening·가로/세로 안전 통과·player보다 느린 속도를 갖는 `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` ballistic burst·중력 낙하, 반 화면 `download-access`, attempt 단위 snapshot과 비치명 completion을 갖는 `retry`, safe-sector annulus `reasoning`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
+- 완전 랜덤 `tool-call`, 문장별 폭의 네 opening·가로/세로 안전 통과·player보다 느린 속도를 갖는 `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` ballistic burst·중력 낙하, 반 화면 `download-access`, attempt 단위 snapshot과 비치명 completion을 갖는 `retry`, agent 응답 수렴 뒤 safe-sector annulus를 만드는 `ultra-code`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
 - 회전한 text hitbox 충돌, 12초 단위 Stage 1–10 경계와 Stage 10 상한 테스트
 - `tool-call` 경로 독립성, approval opening과 label 중심·문장별 폭·도달 예산, QHD/FHD logical viewport 동등성, download-access 네 sector·반 화면·warning 판정, reasoning safe sector 고정, round-robin 360ms onset·active family 3개 cap, blackout warning·stack·180ms reveal grace와 responsive interval 회귀 테스트
 - resize 뒤 retry/blackout 상태, 4분 ending 초기화와 ending 뒤 오디오 재시작 회귀 테스트
