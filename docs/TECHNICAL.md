@@ -220,9 +220,9 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 
 - TypeScript typecheck
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
-- 완전 랜덤 `tool-call`, 문장별 폭의 네 opening·가로/세로 안전 통과·player보다 느린 속도를 갖는 `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` ballistic burst·중력 낙하, 반 화면 `download-access`, attempt 단위 snapshot과 비치명 completion을 갖는 `retry`, agent 응답 수렴 뒤 safe-sector annulus를 만드는 `ultra-code`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
+- 완전 랜덤 `tool-call`, 문장별 폭의 네 opening·가로/세로 안전 통과·player보다 느린 속도를 갖는 `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` ballistic burst·중력 낙하, 반 화면 `download-access`, attempt 단위 snapshot과 비치명 completion을 갖는 `retry`, 첫 frame 120° circle warning과 edge inward safe sector 뒤 agent 응답 수렴 annulus를 만드는 `ultra-code`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
 - 회전한 text hitbox 충돌, 12초 단위 Stage 1–10 경계와 Stage 10 상한 테스트
-- `tool-call` 경로 독립성, approval opening과 label 중심·문장별 폭·도달 예산, QHD/FHD logical viewport 동등성, download-access 네 sector·반 화면·warning 판정, reasoning safe sector 고정, round-robin 360ms onset·active family 3개 cap, blackout warning·stack·180ms reveal grace와 responsive interval 회귀 테스트
+- `tool-call` 경로 독립성, approval opening과 label 중심·문장별 폭·도달 예산, QHD/FHD logical viewport 동등성, download-access 네 sector·반 화면·warning 판정, reasoning 120° safe sector 고정과 edge·corner inward orientation, round-robin 360ms onset·active family 3개 cap, blackout warning·stack·180ms reveal grace와 responsive interval 회귀 테스트
 - resize 뒤 retry/blackout 상태, 4분 ending 초기화와 ending 뒤 오디오 재시작 회귀 테스트
 - 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트
 - production build

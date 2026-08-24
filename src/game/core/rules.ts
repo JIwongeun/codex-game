@@ -106,11 +106,7 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     reasoningIntervalMs:
       lerp(11_500, 5_800, progress) * stageTenIntervalMultiplier,
     reasoningCollapseMs: lerp(1_000, 700, reasoningProgress),
-    reasoningSafeArc: lerp(
-      (85 * Math.PI) / 180,
-      (68 * Math.PI) / 180,
-      reasoningProgress,
-    ),
+    reasoningSafeArc: GAMEPLAY.reasoningSafeArc,
     parallelAgentsIntervalMs:
       lerp(9_500, 4_700, progress) * stageTenIntervalMultiplier,
     parallelAgentPairs: stage >= 10 ? 3 : stage >= 9 ? 2 : 1,

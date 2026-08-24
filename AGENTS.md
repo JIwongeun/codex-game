@@ -75,7 +75,7 @@
 - `services/`: guest session best와 sound.
 - `scenes/`: 위 모듈을 연결하고 lifecycle과 event만 조정한다.
 
-기본 `tool-call` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `approval`은 1.4초 warning 동안 문장 길이에 맞춘 네 gap을 제공하고 그중 하나는 생성 순간 player 축 위치에서 도달 가능하게 둔다. wall 속도는 Stage 10까지 player의 440 logical px/s보다 느리며 다른 major와 함께 공통 onset·family 상한 안에서 실행된다. `download-access`는 player를 조준하지 않고 상·하·좌·우 중 무작위 반 화면을 3.3초 warning 뒤 활성화한다. `reasoning`은 생성 순간 center와 safe sector를 고정한다. `retry`만 각 실패 뒤 다음 attempt의 player 위치를 새로 snapshot하며 한 attempt 중에는 재조준하지 않는다. 특수 패턴 onset은 최소 360ms 떨어뜨리고 동시에 살아 있는 서로 다른 major family는 세 개를 넘기지 않는다. 범위 공격과 blackout은 warning 중 무해하며 active 단계에서만 판정 또는 시야 차단을 만든다. blackout을 빠져나온 projectile에는 180ms reveal grace를 적용한다.
+기본 `tool-call` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `approval`은 1.4초 warning 동안 문장 길이에 맞춘 네 gap을 제공하고 그중 하나는 생성 순간 player 축 위치에서 도달 가능하게 둔다. wall 속도는 Stage 10까지 player의 440 logical px/s보다 느리며 다른 major와 함께 공통 onset·family 상한 안에서 실행된다. `download-access`는 player를 조준하지 않고 상·하·좌·우 중 무작위 반 화면을 3.3초 warning 뒤 활성화한다. `reasoning`은 생성 순간 center와 120° safe sector를 고정하며, center가 arena 바깥 20% band에 있으면 safe sector를 arena center 쪽으로 향하게 하고 중앙 60% 안에서만 random 방향을 사용한다. `retry`만 각 실패 뒤 다음 attempt의 player 위치를 새로 snapshot하며 한 attempt 중에는 재조준하지 않는다. 특수 패턴 onset은 최소 360ms 떨어뜨리고 동시에 살아 있는 서로 다른 major family는 세 개를 넘기지 않는다. 범위 공격과 blackout은 warning 중 무해하며 active 단계에서만 판정 또는 시야 차단을 만든다. blackout을 빠져나온 projectile에는 180ms reveal grace를 적용한다.
 
 ## 범위 제한
 
@@ -109,7 +109,7 @@ pnpm check
 - WASD·방향키 이동과 대각선 속도 정규화
 - viewport resize 중 player와 hazard 경계 유효성
 - `tool-call` 경로가 player 위치와 무관함
-- `approval` 문장별 폭의 네 gap·가로/세로 통과·player보다 느린 wall, `download-access` 네 반 화면과 warning/active 판정, `reasoning` safe sector 고정과 `retry` attempt 단위 snapshot
+- `approval` 문장별 폭의 네 gap·가로/세로 통과·player보다 느린 wall, `download-access` 네 반 화면과 warning/active 판정, `reasoning` 120° safe sector·edge inward orientation 고정과 `retry` attempt 단위 snapshot
 - major pattern onset 360ms 간격과 동시 major family 3개 상한
 - `rm *` blackout 720ms warning 뒤에만 시야 차단
 - 범위 공격 warning 무해·active 치명

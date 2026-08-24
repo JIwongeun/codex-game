@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-041 — Ultra Code는 첫 frame부터 120° safe circle을 우선 표시한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-040의 Ultra Code orbit presentation과 Stage별 safe arc 축소를 대체
+- 배경: 중앙의 agent node·packet 수렴을 먼저 보여주는 표현은 실제 회피 규칙인 원형 wave와 safe sector를 늦게 드러냈다. safe arc도 Stage 5의 85°에서 Stage 10의 68°까지 줄어 가독성이 낮았고, player snapshot이 edge·corner에 있을 때 safe sector가 arena 바깥을 향하면 입력으로 해결할 수 없는 경로가 생겼다.
+- 결정: Ultra Code warning은 첫 frame부터 위험 arc와 120° 빈 gap, 긴 gap boundary를 가진 원으로 표시한다. 8개 agent는 safe gap을 침범하지 않고 위험 원주의 response card로 놓이며 완료 packet을 중앙 document core로 전달한다. safe arc는 모든 Stage에서 120°로 고정한다. 생성 center가 arena의 왼쪽·오른쪽·위·아래 20% band에 있으면 safe angle은 arena center를 향하고, 중앙 60% 안에서만 seeded random 방향을 사용한다.
+- 결과: 이름이나 진행 label을 읽지 않아도 첫 frame에 원형 공격과 안전 방향을 파악할 수 있다. edge·corner 생성은 항상 화면 안쪽 회피 경로를 제공하고, active final response wave의 swept annulus 판정과 생성 뒤 angle snapshot은 유지된다.
+
 ## D-040 — QHD logical 비율과 렌더링 선명도를 분리하고 XHIGH를 Ultra Code로 대체한다
 
 - 날짜: 2026-08-24
-- 상태: 확정, D-039의 Download Access 색·active 장식과 D-031의 XHIGH 가지치기 표현을 대체
+- 상태: 일부 대체됨 — D-041이 Ultra Code orbit presentation과 safe arc 규칙을 변경. D-039의 Download Access 색·active 장식과 D-031의 XHIGH 가지치기 표현을 대체
 - 배경: QHD logical arena를 실제 browser 높이에 camera zoom으로 맞추면서 기존 pixel-art nearest-neighbor 설정이 9–11px Text와 1px 선을 비정수 크기로 축소해 QHD 화면에서도 자글거림을 만들었다. Download Access active의 대각 hatch는 반 화면 경계에서 언덕처럼 보였고, XHIGH의 동심원·8→4→2→1 branch는 이름을 제외하면 서브에이전트 작업과 최종 응답의 인과를 보여주지 못했다.
 - 결정: QHD `2560×1440` logical 좌표와 판정은 유지하되 Canvas는 linear antialiasing과 CSS `image-rendering: auto`를 사용하고 Phaser Text는 device pixel ratio를 고려한 최소 2× internal resolution로 만든다. Download Access는 success-green fill·scan front·중앙 경계만 사용하고 대각 hatch와 blue/red 전환을 제거한다. Stage 5는 `ULTRA CODE`로 이름을 바꾸고 8개 agent node가 8→4→2→1개 working 상태로 줄어들며 완료 response packet을 중앙 core에 전달한 뒤, 8/8 완료 순간 safe-sector final response wave로 합쳐지도록 표현한다.
 - 결과: FHD/QHD 비율과 난이도는 바뀌지 않으면서 축소된 Text와 선이 부드럽게 표시된다. 두 영역 공격은 green 반 화면 loading과 violet agent-response convergence라는 서로 다른 실루엣을 가지며, Ultra Code의 최종 inward wave 판정과 safe sector 규칙은 유지된다.

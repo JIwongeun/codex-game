@@ -575,56 +575,83 @@ export class GameRenderer {
     );
     const workingCount = ultraWorkingAgentCount(progress);
     const workingIndices = ultraWorkingAgentIndices(workingCount);
-    const orbitRadius = Math.min(70, Math.max(52, wave.maxRadius * 0.12));
-    const coreSize = 10;
+    const completedCount = 8 - workingCount;
+    const previewRadius = Math.min(190, Math.max(140, wave.maxRadius * 0.13));
+    const dangerousArc = Math.PI * 2 - wave.safeArc;
+    const responseStart = wave.safeAngle + wave.safeArc / 2;
 
-    this.world.lineStyle(1, tone, 0.68 + progress * 0.2);
+    this.strokeReasoningArc(wave, previewRadius, 10, tone, 0.045);
+    this.strokeReasoningArc(wave, previewRadius, 2, tone, 0.72);
+    this.drawUltraSafeSector(wave, previewRadius, tone, 0.72, true);
+
+    this.world.lineStyle(1, tone, 0.62 + progress * 0.24);
     this.world.strokeRect(
-      Math.round(wave.center.x - coreSize / 2),
-      Math.round(wave.center.y - coreSize / 2),
-      coreSize,
-      coreSize,
+      Math.round(wave.center.x) - 11,
+      Math.round(wave.center.y) - 8,
+      22,
+      16,
     );
-    this.world.fillStyle(tone, 0.38 + progress * 0.46);
-    this.world.fillRect(
-      Math.round(wave.center.x) - 1,
-      Math.round(wave.center.y) - 1,
-      3,
-      3,
-    );
+    for (let slot = 0; slot < 8; slot += 1) {
+      const completed = slot < completedCount;
+      this.world.lineStyle(
+        1,
+        completed ? tone : COLORS.muted,
+        completed ? 0.9 : 0.26,
+      );
+      const row = Math.floor(slot / 2);
+      const column = slot % 2;
+      const rowStartX = wave.center.x - 7 + column * 8;
+      this.world.lineBetween(
+        rowStartX,
+        wave.center.y - 5 + row * 3,
+        rowStartX + 5,
+        wave.center.y - 5 + row * 3,
+      );
+    }
 
     for (let index = 0; index < 8; index += 1) {
-      const angle = wave.safeAngle + (Math.PI * 2 * index) / 8;
-      const agentX = wave.center.x + Math.cos(angle) * orbitRadius;
-      const agentY = wave.center.y + Math.sin(angle) * orbitRadius;
+      const angle = responseStart + dangerousArc * ((index + 0.5) / 8);
+      const agentX = wave.center.x + Math.cos(angle) * previewRadius;
+      const agentY = wave.center.y + Math.sin(angle) * previewRadius;
       const working = workingIndices.includes(index);
 
       if (working) {
         this.world.lineStyle(1, tone, 0.48 + progress * 0.2);
         this.world.strokeRect(
-          Math.round(agentX) - 3,
-          Math.round(agentY) - 3,
-          6,
-          6,
+          Math.round(agentX) - 8,
+          Math.round(agentY) - 5,
+          16,
+          10,
         );
-        this.world.fillStyle(COLORS.ink, 0.56);
-        this.world.fillRect(
-          Math.round(agentX) - 1,
-          Math.round(agentY) - 1,
-          2,
-          2,
+        this.world.lineStyle(1, COLORS.ink, 0.46);
+        this.world.lineBetween(
+          Math.round(agentX) - 4,
+          Math.round(agentY) - 2,
+          Math.round(agentX) + 4,
+          Math.round(agentY) - 2,
+        );
+        this.world.lineBetween(
+          Math.round(agentX) - 4,
+          Math.round(agentY) + 2,
+          Math.round(agentX) + 1,
+          Math.round(agentY) + 2,
         );
         continue;
       }
 
       this.world.fillStyle(tone, 0.9);
-      this.world.fillRect(Math.round(agentX) - 2, Math.round(agentY) - 2, 5, 5);
-      this.world.lineStyle(1, tone, 0.24);
+      this.world.fillRect(
+        Math.round(agentX) - 6,
+        Math.round(agentY) - 4,
+        12,
+        8,
+      );
+      this.world.lineStyle(1, tone, 0.18);
       this.world.lineBetween(
-        agentX - Math.cos(angle) * 5,
-        agentY - Math.sin(angle) * 5,
-        wave.center.x + Math.cos(angle) * 7,
-        wave.center.y + Math.sin(angle) * 7,
+        agentX - Math.cos(angle) * 8,
+        agentY - Math.sin(angle) * 8,
+        wave.center.x + Math.cos(angle) * 14,
+        wave.center.y + Math.sin(angle) * 14,
       );
 
       const responseProgress = Phaser.Math.Clamp(
@@ -650,8 +677,6 @@ export class GameRenderer {
         3,
       );
     }
-
-    this.drawReasoningGapTicks(wave, orbitRadius, tone, 0.82);
   }
 
   private drawUltraCodeResponse(
@@ -679,12 +704,24 @@ export class GameRenderer {
     }
     this.world.lineStyle(1, tone, 0.72);
     this.world.strokeRect(
-      Math.round(wave.center.x) - 5,
-      Math.round(wave.center.y) - 5,
-      10,
-      10,
+      Math.round(wave.center.x) - 11,
+      Math.round(wave.center.y) - 8,
+      22,
+      16,
     );
-    this.drawReasoningGapTicks(wave, wave.radius, tone, 0.9);
+    this.world.lineStyle(1, tone, 0.92);
+    for (let slot = 0; slot < 8; slot += 1) {
+      const row = Math.floor(slot / 2);
+      const column = slot % 2;
+      const rowStartX = wave.center.x - 7 + column * 8;
+      this.world.lineBetween(
+        rowStartX,
+        wave.center.y - 5 + row * 3,
+        rowStartX + 5,
+        wave.center.y - 5 + row * 3,
+      );
+    }
+    this.drawUltraSafeSector(wave, wave.radius, tone, 0.9, false);
   }
 
   private strokeReasoningArc(
@@ -706,14 +743,17 @@ export class GameRenderer {
     this.world.strokePath();
   }
 
-  private drawReasoningGapTicks(
+  private drawUltraSafeSector(
     wave: ReasoningWaveState,
     radius: number,
     color: number,
     alpha: number,
+    extended: boolean,
   ): void {
-    const innerRadius = Math.max(8, radius - 6);
-    const outerRadius = radius + 7;
+    const innerRadius = extended
+      ? Math.max(28, radius * 0.48)
+      : Math.max(8, radius - 10);
+    const outerRadius = radius + (extended ? 12 : 9);
     this.world.lineStyle(1, color, alpha);
     for (const angle of [
       wave.safeAngle - wave.safeArc / 2,
@@ -724,6 +764,25 @@ export class GameRenderer {
         wave.center.y + Math.sin(angle) * innerRadius,
         wave.center.x + Math.cos(angle) * outerRadius,
         wave.center.y + Math.sin(angle) * outerRadius,
+      );
+    }
+
+    if (!extended) {
+      return;
+    }
+
+    this.world.lineStyle(2, color, alpha * 0.72);
+    for (const radiusRatio of [0.64, 0.79, 0.94]) {
+      const markerRadius = radius * radiusRatio;
+      const tangentX = -Math.sin(wave.safeAngle) * 4;
+      const tangentY = Math.cos(wave.safeAngle) * 4;
+      const markerX = wave.center.x + Math.cos(wave.safeAngle) * markerRadius;
+      const markerY = wave.center.y + Math.sin(wave.safeAngle) * markerRadius;
+      this.world.lineBetween(
+        markerX - tangentX,
+        markerY - tangentY,
+        markerX + tangentX,
+        markerY + tangentY,
       );
     }
   }
@@ -1018,12 +1077,13 @@ export class GameRenderer {
         1,
       );
       const workingCount = ultraWorkingAgentCount(progress);
-      const status =
+      const phaseStatus =
         wave.phase === "active"
           ? "[ultra] 8/8 done · FINAL RESPONSE"
           : workingCount === 8
             ? "[ultra] 8 agents running"
             : `[ultra] ${workingCount} agent${workingCount === 1 ? "" : "s"} remaining`;
+      const status = `${phaseStatus} · [safe] 120°`;
       this.updateRichLabel(view, {
         surface: "codex",
         label: status,
@@ -1041,7 +1101,7 @@ export class GameRenderer {
         Math.max(10, state.arena.width - labelWidth - 10),
       );
       const labelY = Phaser.Math.Clamp(
-        wave.center.y + 64,
+        wave.center.y + 36,
         16,
         Math.max(16, state.arena.height - 18),
       );

@@ -14,7 +14,7 @@
 - `RETRY`는 실패할 때마다 다음 attempt의 player 위치를 다시 snapshot하고 속도를 높인 뒤, 마지막 attempt가 끝나면 비치명 `RETRY COMPLETE` 상태로 짧게 마감한다.
 - `CONTEXT COMPACTION`은 넓은 frame 안의 context row를 한 점으로 압축한 뒤 실패하며 token 파편을 사방으로 잃어버린다.
 - `DOWNLOAD ACCESS`는 화면의 상·하·좌·우 반쪽 중 하나를 green loading fill로 점유한 뒤 같은 색 문법의 `ACCESS!` 영역으로 활성화한다.
-- `ULTRA CODE`는 8개 서브에이전트가 완료한 응답 packet을 중앙에 모으고, 8/8 완료 뒤 마지막 safe sector만 비운 final response wave로 합친다.
+- `ULTRA CODE`는 첫 frame부터 120° safe sector가 비어 있는 원을 먼저 보여주고, 원주의 8개 서브에이전트가 완료한 response packet을 중앙에 모은 뒤 같은 safe sector의 final response wave로 합친다.
 - `PARALLEL AGENTS`는 같은 작업 지점을 화면 반대편에서 동시에 차지하려 한다.
 - `REVIEW / FIX LOOP`는 finding을 고친 직후 `ONE MORE ISSUE`를 전방위로 다시 만든다.
 - `USAGE LIMIT`은 여러 usage 감소가 한 지점으로 수렴한 뒤 `LIMIT REACHED`를 전방위로 발산한다.
@@ -113,7 +113,7 @@
 | Stage 2 | `APPROVAL REQUIRED` | `[approval] ALLOW ONCE`, `ALLOW SESSION`, `REVIEW`, `DENY` | 1.4초 warning 뒤 player보다 느린 permission wall 하나가 edge에서 들어온다. 네 opening은 문장 실제 폭보다 8px 여유 있게 생성되고 label과 같은 중심을 쓰며, 하나는 player 축 위치에서 도달 가능하다. |
 | Stage 3 | `CONTEXT COMPACTION` | `[context] compacting 0–100%` → `COMPACTION FAILED` → `[tok] ...` | 기존 대비 가로·세로 1.5배인 snapshot frame 안에서 context row와 중첩 frame이 한 점으로 수축한다. 실패 순간 frame 전체가 장판으로 변하지 않고 12–20개의 짧은 token 파편이 서로 다른 속도로 튄 뒤 수평 감속·중력을 받아 포물선으로 떨어진다. |
 | Stage 4 | `RETRY LOOP` | `[tool] retry 1/3`, `FAILED · retry 2/3`, `RETRY COMPLETE · 3/3` | 한 attempt 동안 목표를 고정하고 실패 지점에 도달하면 560ms warning 뒤 현재 player 위치를 다시 snapshot한다. 후반에는 최대 5회이며 매번 1.12배 빨라진다. 마지막 attempt 뒤에는 판정을 끄고 420ms completion 표시 후 제거한다. |
-| Stage 5 | `ULTRA CODE` | `[ultra] 8 agents running` → `4/2/1 agents remaining` → `8/8 done · FINAL RESPONSE` | 중앙 주위 8개 agent node가 완료될 때마다 response packet을 중앙 core로 전달한다. 모두 완료되면 얇은 final response annulus가 viewport 바깥에서 center로 수축하며 생성 순간 고정된 safe sector만 무해하다. |
+| Stage 5 | `ULTRA CODE` | `[ultra] 8 agents running · [safe] 120°` → `4/2/1 agents remaining` → `8/8 done · FINAL RESPONSE` | 첫 frame부터 120° gap과 긴 양쪽 경계를 가진 원형 warning을 표시한다. 위험 원주의 8개 agent response card가 완료될 때마다 packet을 중앙 document core로 전달하고, 모두 완료되면 같은 gap의 final response annulus가 viewport 바깥에서 center로 수축한다. arena 바깥 20% band에서 생성된 safe sector는 화면 중앙 쪽으로 고정한다. |
 | Stage 6 | `PARALLEL AGENTS` | `[agent 1] working`, `[agent 2] working` | 같은 snapshot을 향해 화면 반대편 agent 두 개가 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
 | Stage 7 | `REVIEW / FIX LOOP` | 여러 `[review] Pn finding` → `[fix] ... reviewing again` → `ONE MORE ISSUE` | 네 finding이 한 지점으로 모이고, 수정 완료 순간 8–16개 새 issue가 원형 발산한다. 반복 review마다 새 문제를 찾는 경험을 행동으로 만든다. |
 | Stage 8 | `DOWNLOAD ACCESS` | `[download] loading 0–100%` → `[access] ACCESS!` | 상·하·좌·우 중 무작위 반 화면이 success-green으로 3.3초간 edge부터 채워지고 완료 뒤 같은 green active 영역이 720ms 유지된다. 대각 hatch를 사용하지 않고 중앙 경계선과 fill만으로 범위를 표시하며, player 위치를 조준하지 않는다. |
@@ -132,7 +132,7 @@
 | `CONTEXT COMPACTION` | 넓은 context frame과 row가 중심으로 수축한 뒤 token 조각이 물풍선처럼 튀고 아래로 쏟아짐 | frame에서 이탈한 뒤 낙하 파편 사이를 다시 회피 | 적용 완료 |
 | `DOWNLOAD ACCESS` | 화면 경계부터 상·하·좌·우 반쪽 하나를 채우는 loading fill과 `ACCESS!` 반화면 | 긴 loading 동안 중앙 경계를 넘어 안전한 반쪽으로 이탈 | 적용 완료 |
 | `RETRY LOOP` | 한 chain이 매 실패 때 목표를 다시 잡고 더 빨라짐 | attempt warning마다 새 경로를 읽고 시간차 회피 | 적용 완료 |
-| `ULTRA CODE` | 8개 agent node의 완료 응답이 중앙 core로 모이고 gap이 있는 final response wave로 전환 | safe sector 각도를 따라 이동 | 적용 완료 |
+| `ULTRA CODE` | 첫 frame부터 120°가 비어 있는 원형 warning 위의 8개 response card가 중앙 document core로 모이고 같은 gap의 final response wave로 전환 | 넓은 safe sector를 먼저 읽고 그 각도를 따라 이동 | 적용 완료 |
 | `PARALLEL AGENTS` | 반대 edge의 agent pair가 같은 snapshot을 교차하며 축별 corridor를 만듦 | 교차축 사이의 열린 corridor를 따라가기 | 적용 완료 |
 | `REVIEW / FIX LOOP` | 여러 finding이 fix 지점으로 모인 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산 | 수렴 중심에서 벗어난 뒤 넓은 radial gap 선택 | 적용 완료 |
 | `USAGE LIMIT` | 여러 usage 감소가 한 지점으로 소모된 뒤 limit 결과가 12–20방향으로 고밀도 발산 | 수렴점 반대편으로 선이동한 뒤 좁은 radial gap 유지 | 적용 완료 |
@@ -162,7 +162,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 
 - 모든 조준·영역·수렴 공격은 치명 단계 전에 경로 또는 진행률을 보인다.
 - 기본 `TOOL CALL STREAM`은 player를 조준하지 않고 방향 예고·rail도 표시하지 않는다. 생성 후 telegraph 시간 동안은 판정만 비활성이다.
-- approval의 네 opening, reasoning center·safe sector와 한 retry attempt의 목표는 생성 뒤 추적하지 않는다. retry는 다음 attempt warning이 시작될 때만 새 위치를 snapshot한다.
+- approval의 네 opening, reasoning center·120° safe sector와 한 retry attempt의 목표는 생성 뒤 추적하지 않는다. reasoning center가 arena의 바깥 20% band에 있으면 safe sector는 arena center를 향하고 중앙 60% 안에서만 random 방향을 사용한다. retry는 다음 attempt warning이 시작될 때만 새 위치를 snapshot한다.
 - 서로 다른 major pattern onset은 최소 360ms 떨어지고 동시에 active한 major family는 세 개를 넘지 않는다. 기본 tool stream은 이 상한과 무관하다.
 - approval wall은 Stage 10에서도 378 logical px/s 이하로 player의 440 logical px/s보다 느리다. wall은 한 번에 하나만 유지하지만 다른 major와 독립적으로 실행되며 공통 360ms onset·세 family 상한을 따른다.
 - download access는 정확히 logical arena의 절반만 차지하고 3.3초 loading 중에는 무해하다. QHD 좌·우 반 화면의 최장 이탈 시간보다 250ms 이상 긴 warning을 유지한다.

@@ -52,6 +52,8 @@ export const GAMEPLAY = {
   contextTokenHorizontalDragPerSecond: 0.72,
   reasoningTelegraphMs: 2_100,
   reasoningWaveThickness: 16,
+  reasoningSafeArc: (120 * Math.PI) / 180,
+  reasoningEdgeInsetRatio: 0.2,
   retryChainTelegraphMs: 560,
   retryChainHitboxWidth: 86,
   retryChainHitboxHeight: 15,

@@ -52,8 +52,8 @@ describe("survival rules", () => {
     expect(cap.limitFragmentCount).toBe(20);
     expect(
       difficultyAt(GAMEPLAY.reasoningFirstSpawnMs).reasoningSafeArc,
-    ).toBeCloseTo((85 * Math.PI) / 180);
-    expect(cap.reasoningSafeArc).toBeCloseTo((68 * Math.PI) / 180);
+    ).toBeCloseTo((120 * Math.PI) / 180);
+    expect(cap.reasoningSafeArc).toBeCloseTo((120 * Math.PI) / 180);
     expect(
       difficultyAt(GAMEPLAY.reasoningFirstSpawnMs).reasoningCollapseMs,
     ).toBeCloseTo(1_000);

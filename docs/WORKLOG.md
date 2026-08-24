@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — Ultra Code 120° safe circle과 edge inward 보정
+
+### 구현
+
+- Ultra Code warning 첫 frame부터 10px 저대비 danger band와 2px 원형 edge를 표시하고 120° safe gap 전체를 비워 실제 회피 규칙을 agent 연출보다 먼저 노출
+- 기존 작은 orbit node를 danger arc 위의 8개 response card로 바꾸고, 완료 card의 packet이 중앙 document core의 row를 채운 뒤 같은 gap을 가진 final response wave로 전환
+- safe sector를 Stage 5–10 모두 120°로 고정하고 status에도 `[safe] 120°`를 표시
+- wave center가 arena의 바깥 20% band에 있으면 safe angle을 arena center로 향하게 하고 중앙 60% 안에서만 seeded random 방향을 유지해 edge·corner outward gap을 차단
+
+### 검증
+
+- Stage 시작·최고 난이도 모두 safe arc 120°, top-left·top·right·bottom-right center에서 inward angle 정렬, 중앙 band의 seeded random 분포, safe angle snapshot과 기존 swept collision 회귀 테스트 통과
+- 최종 `pnpm check` 통과: typecheck, 전체 16개 test file의 126개 test, production build와 production verifier 완료
+- production 배포는 commit·push 뒤 진행
+
 ## 2026-08-24 — 축소 렌더링 선명도, green Access와 Ultra Code 응답 수렴
 
 ### 구현

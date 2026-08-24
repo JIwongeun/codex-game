@@ -1195,7 +1195,16 @@ function spawnUltraCode(
   }
 
   const center = { ...state.player.position };
-  const safeTarget = randomRectangleCenter(state, { width: 1, height: 1 });
+  const nearHorizontalEdge =
+    center.x <= state.arena.width * GAMEPLAY.reasoningEdgeInsetRatio ||
+    center.x >= state.arena.width * (1 - GAMEPLAY.reasoningEdgeInsetRatio);
+  const nearVerticalEdge =
+    center.y <= state.arena.height * GAMEPLAY.reasoningEdgeInsetRatio ||
+    center.y >= state.arena.height * (1 - GAMEPLAY.reasoningEdgeInsetRatio);
+  const safeTarget =
+    nearHorizontalEdge || nearVerticalEdge
+      ? { x: state.arena.width / 2, y: state.arena.height / 2 }
+      : randomRectangleCenter(state, { width: 1, height: 1 });
   const safeDirection = directionBetween(center, safeTarget);
   const maxRadius = farthestCornerDistance(center, state.arena);
   const speed = maxRadius / (collapseDurationMs / 1_000);

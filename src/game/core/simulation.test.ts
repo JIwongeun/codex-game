@@ -305,13 +305,65 @@ describe("survival simulation", () => {
     expect(spawned.phase).toBe("thinking");
     expect(state.projectiles).toEqual([]);
     expect(spawned.telegraphRemainingMs).toBe(GAMEPLAY.reasoningTelegraphMs);
-    expect(spawned.safeArc).toBeCloseTo((85 * Math.PI) / 180, 2);
+    expect(spawned.safeArc).toBeCloseTo((120 * Math.PI) / 180, 2);
     const initialSafeAngle = spawned.safeAngle;
     state.player.position = { x: 760, y: 40 };
     stepGame(state, EMPTY_INPUT, GAMEPLAY.reasoningTelegraphMs / 2);
     expect(state.phase).toBe("playing");
     expect(spawned.center).toEqual({ x: 240, y: 410 });
     expect(spawned.safeAngle).toBe(initialSafeAngle);
+  });
+
+  it.each([
+    ["top-left", { x: 40, y: 40 }],
+    ["top", { x: 400, y: 30 }],
+    ["right", { x: 780, y: 300 }],
+    ["bottom-right", { x: 780, y: 580 }],
+  ])("points an edge ultra-code safe sector inward from %s", (_, position) => {
+    const state = playingState(181, 800, 600);
+    state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
+    state.player.position = position;
+    state.spawn.reasoningMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    const spawned = state.reasoningWaves[0];
+    expect(spawned).toBeDefined();
+    if (!spawned) {
+      throw new Error("expected an ultra-code response wave");
+    }
+
+    const inward = {
+      x: state.arena.width / 2 - position.x,
+      y: state.arena.height / 2 - position.y,
+    };
+    const inwardLength = Math.hypot(inward.x, inward.y);
+    const alignment =
+      Math.cos(spawned.safeAngle) * inward.x +
+      Math.sin(spawned.safeAngle) * inward.y;
+    expect(alignment).toBeCloseTo(inwardLength, 5);
+  });
+
+  it("keeps seeded random ultra-code directions inside the central arena", () => {
+    const safeAngles = new Set<number>();
+
+    for (let seed = 1; seed <= 24; seed += 1) {
+      const state = playingState(seed, 800, 600);
+      state.elapsedMs = GAMEPLAY.reasoningFirstSpawnMs;
+      state.player.position = { x: 400, y: 300 };
+      state.spawn.reasoningMs = 0;
+
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      const spawned = state.reasoningWaves[0];
+      expect(spawned).toBeDefined();
+      if (!spawned) {
+        throw new Error("expected an ultra-code response wave");
+      }
+      safeAngles.add(Math.round(spawned.safeAngle * 1_000));
+    }
+
+    expect(safeAngles.size).toBeGreaterThan(12);
   });
 
   it("emits one answer event when ultra-code agents merge into an inward wave", () => {

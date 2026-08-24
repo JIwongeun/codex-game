@@ -65,7 +65,7 @@
 2. Stage 2 `APPROVAL REQUIRED` — player보다 느린 permission wall이 1.4초 warning 뒤 이동하며, 생성 순간 player 축 위치에서 도달 가능한 네 opening을 문장별 폭으로 고정
 3. Stage 3 `CONTEXT COMPACTION` — 넓은 context frame의 문장 조각이 중심으로 압축되고, 실패 순간 12–20개 token 파편이 물풍선처럼 튄 뒤 중력을 받아 아래로 떨어짐
 4. Stage 4 `RETRY LOOP` — 3–5번의 실패가 각 attempt 시작 때 player 위치를 다시 snapshot하고 더 빨라져 재시도하며, 마지막 attempt 뒤 `RETRY COMPLETE`로 짧게 마감
-5. Stage 5 `ULTRA CODE` — 8개 서브에이전트가 8→4→2→1개 working 상태로 줄어들며 완료 응답을 중앙에 전달하고, 8/8 완료 뒤 safe sector만 비운 final response wave로 합쳐짐
+5. Stage 5 `ULTRA CODE` — 첫 frame부터 120° safe sector를 비운 원형 warning을 표시하고, 원주의 8개 서브에이전트가 완료 응답을 중앙에 전달한 뒤 같은 safe sector를 유지한 final response wave로 합쳐짐. edge·corner에서 생성되면 safe sector는 화면 안쪽을 향함
 6. Stage 6 `PARALLEL AGENTS` — 여러 agent가 반대편에서 같은 snapshot을 동시에 교차
 7. Stage 7 `REVIEW / FIX LOOP` — 여러 finding을 고친 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산
 8. Stage 8 `DOWNLOAD ACCESS` + `USAGE LIMIT` — 상·하·좌·우 반 화면 중 하나가 loading 100% 뒤 `ACCESS!` 영역이 되며, 5h·weekly usage는 한 지점으로 소모된 뒤 세 limit 결말 중 하나가 12–20방향으로 발산
