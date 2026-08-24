@@ -2,6 +2,14 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-048 — `rm *`은 공격을 삭제하지 않는 다중 정사각형 시야 blackout이다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-034의 major geometry를 blackout 위에 표시한다는 규칙을 대체
+- 배경: 기존 renderer는 blackout을 world 뒤에 그리고 일반 projectile의 중심점만 강제로 숨겼다. 그 결과 검은 영역이 화면을 가리는 대신 탄막이 사라지는 것처럼 보였고 approval·retry·ultra·area pattern은 계속 노출됐다. width와 height도 따로 뽑아 정사각형이라는 의도와 달랐다.
+- 결정: `rm *`은 중앙 24% band를 피한 무작위 위치에 min-dimension 기준 정사각형으로 생성한다. 720ms outline warning 뒤 검은 square를 모든 공격·attack label·effect보다 위, player·blackout status보다 아래에 그려 아래를 지나가는 모든 패턴을 시각적으로 가린다. simulation entity와 collision은 삭제하거나 멈추지 않는다. 각 square 중앙에는 독립 `BACKING UP... n%`와 progress rail을 표시하고 100%에서 `BACKUP COMPLETE`로 바뀐 뒤 320ms 동안 중앙으로 접혀 사라진다. Stage 9 한 개에서 Stage 10 이후 2→3→최대 4개로 증가하는 곡선은 유지한다.
+- 결과: 여러 blackout은 서로 다른 위치에서 독립적으로 생성·복구되고, 안쪽 공격은 계속 움직이다 square가 걷힐 때 다시 나타난다. player와 HUD는 항상 읽을 수 있다.
+
 ## D-047 — volume hover·focus를 사각 outline으로 구분하고 ↑/↓로 channel을 이동한다
 
 - 날짜: 2026-08-24
@@ -109,7 +117,7 @@
 ## D-034 — 최고 난이도는 유지하되 읽을 수 없는 동시 발동을 제거한다
 
 - 날짜: 2026-08-24
-- 상태: 일부 대체됨 — D-037이 approval warning·gap·속도·major 격리 규칙을 변경
+- 상태: 일부 대체됨 — D-037이 approval warning·gap·속도·major 격리 규칙을, D-048이 blackout의 renderer layering을 변경
 - 배경: Stage 10 seed sweep에서 서로 다른 major warning이 같은 tick에 최대 세 종류, 500ms 안에 여섯 종류까지 시작했고 `rm *`은 warning 없이 즉시 탄막을 가렸다. approval gap도 player 위치와 무관해 viewport edge에서는 warning 안에 물리적으로 도달할 수 없는 seed가 있었다. 이는 높은 난이도가 아니라 입력으로 해결할 수 없는 사망이었다.
 - 결정: 기본 tool stream을 제외한 major onset을 최소 360ms 분리하고 active major family를 최대 세 개로 제한한다. due pattern은 round-robin으로 선택해 후반 pattern starvation을 막는다. approval gap은 1.05초 warning 동안 player가 도달 가능한 축 범위 안에서 선택한다. `rm *`은 720ms outline warning 뒤에만 projectile blackout이 되며 같은 family 안에서 Stage 10 최대 4개까지 겹친다. approval·retry·reasoning·area hazard geometry는 blackout 위에 계속 표시한다. 가림막을 빠져나온 projectile은 180ms 동안 반투명 reveal과 충돌 유예를 받는다. 작은 viewport는 속도 대신 spawn interval을 1.22배 늘린다. 공정성 guard로 완주 가능성이 올라가는 만큼 ending은 180초에서 240초로 연장해 Stage 10 최고 압력을 132초 버텨야 도달하도록 한다.
 - 결과: 어려움은 공격 수를 삭제하는 대신 읽고 선택할 수 있는 순서와 세 family 조합에서 나온다. ending은 이론적으로 가능하지만 일반 플레이에서는 거의 도달하기 어렵고, blackout은 warning 이후 선택한 시야 위험으로 남되 보이지 않던 탄의 출구 즉사는 막는다.

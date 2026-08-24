@@ -70,7 +70,7 @@
 6. Stage 6 `PARALLEL AGENTS` — 여러 agent가 반대편에서 같은 snapshot을 동시에 교차
 7. Stage 7 `REVIEW / FIX LOOP` — 여러 finding을 고친 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산
 8. Stage 8 `DOWNLOAD ACCESS` + `USAGE LIMIT` — 상·하·좌·우 반 화면 중 하나가 loading 100% 뒤 `ACCESS!` 영역이 되며, 5h·weekly usage는 한 지점으로 소모된 뒤 세 limit 결말 중 하나가 12–20방향으로 발산
-9. Stage 9 `rm *` — 720ms outline warning 뒤 무작위 영역을 가리고 backup 100%에서 복구하는 wildcard blackout
+9. Stage 9 `rm *` — 720ms outline warning 뒤 무작위 정사각형 영역이 모든 공격 presentation을 가리고, 각 square의 backup 100%에서 중앙으로 접혀 복구되는 wildcard blackout
 10. Stage 10 — 앞 패턴의 속도·빈도·분할 수와 blackout 중첩을 최고치까지 상승
 
 각 용어는 label뿐 아니라 이동과 결과로 의미를 전달한다. 고정 phrase bank에는 실제 작업에서 반복되는 terminal·browser 오류와 `rereading same file`, `waiting for output`, `still waiting`, `approve again` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.

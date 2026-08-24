@@ -167,7 +167,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 - 서로 다른 major pattern onset은 최소 360ms 떨어지고 동시에 active한 major family는 세 개를 넘지 않는다. 기본 tool stream은 이 상한과 무관하다.
 - approval wall은 Stage 10에서도 378 logical px/s 이하로 player의 440 logical px/s보다 느리다. wall은 한 번에 하나만 유지하지만 다른 major와 독립적으로 실행되며 공통 360ms onset·세 family 상한을 따른다.
 - download access는 정확히 logical arena의 절반만 차지하고 3.3초 loading 중에는 무해하다. QHD 좌·우 반 화면의 최장 이탈 시간보다 250ms 이상 긴 warning을 유지한다.
-- `rm *`은 720ms outline warning 뒤에만 projectile을 가리며 warning 중 player와 projectile은 그대로 보인다. approval·retry·reasoning·area hazard처럼 경로 자체가 위험인 major geometry는 blackout 위에 계속 표시한다. Stage 10에서는 하나의 major family로 계산하면서 최대 4개까지 겹칠 수 있다.
+- `rm *`은 화면 중앙 24% band를 피한 무작위 위치에 정사각형으로 생성되고 720ms outline warning 뒤에만 시야를 가린다. 활성 square는 모든 projectile·approval·retry·reasoning·area hazard·attack effect보다 위, player·HUD·각 square의 status보다 아래에 놓인다. 가려진 공격은 삭제되거나 멈추지 않고 simulation과 collision을 계속하며 square가 걷히면 진행된 위치에서 다시 보인다. 각 square 중앙의 `BACKING UP... n%`와 progress rail은 독립적으로 차고, 100%에서 `BACKUP COMPLETE`로 전환된 뒤 320ms 동안 중앙으로 접혀 사라진다. Stage 9에서는 한 개, Stage 10에서는 2→3→최대 4개까지 겹친다.
 - blackout을 빠져나온 projectile은 180ms 동안 반투명하게 다시 드러나고 충돌이 유예된다. blackout 안에 남아 있는 player와 projectile 사이 판정은 계속 위험하다.
 - QHD `2560×1440`을 logical reference로 사용한다. FHD는 같은 arena를 `0.75×`로 표시하며 다른 화면비는 logical 높이 1440을 유지한다. 기준 logical 면적의 55%보다 작은 viewport는 모든 spawn interval을 1.22배 늘리고 projectile 속도는 유지한다.
 - 회전한 문구와 collision rectangle은 같은 각도를 사용한다.
@@ -175,7 +175,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 - projectile은 최대 56개, compaction hazard와 convergence sequence는 각각 최대 4개다.
 - entity cap에 걸리면 일부 탄만 안전하게 생략하고 결정성은 유지한다.
 - 작은 viewport resize 후에도 player, context와 sequence 중심은 유효 범위에 남는다.
-- resize 뒤 retry velocity를 새 target으로 재계산하고 blackout 면적 비율을 보존한다.
+- resize 뒤 retry velocity를 새 target으로 재계산하고 blackout은 정사각형 비율과 유효 위치를 보존한다.
 
 ## 코드 책임
 

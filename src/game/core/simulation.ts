@@ -282,9 +282,11 @@ export function resizeArena(
   for (const blackout of state.blackouts) {
     const widthScale = state.arena.width / previousArena.width;
     const heightScale = state.arena.height / previousArena.height;
+    const squareScale = Math.min(widthScale, heightScale);
+    const side = blackout.hitbox.width * squareScale;
     blackout.hitbox = {
-      width: blackout.hitbox.width * widthScale,
-      height: blackout.hitbox.height * heightScale,
+      width: side,
+      height: side,
     };
     blackout.position = {
       x: blackout.position.x * widthScale,
@@ -1589,18 +1591,13 @@ function spawnBlackout(
     return false;
   }
 
-  const width = state.arena.width * randomBetween(
+  const side = Math.min(state.arena.width, state.arena.height) * randomBetween(
     state,
-    difficulty.blackoutWidthRatio[0],
-    difficulty.blackoutWidthRatio[1],
+    difficulty.blackoutSizeRatio[0],
+    difficulty.blackoutSizeRatio[1],
   );
-  const height = state.arena.height * randomBetween(
-    state,
-    difficulty.blackoutHeightRatio[0],
-    difficulty.blackoutHeightRatio[1],
-  );
-  const hitbox = { width, height };
-  let position = randomRectangleCenter(state, hitbox);
+  const hitbox = { width: side, height: side };
+  let position = randomBlackoutCenter(state, hitbox);
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     if (!state.blackouts.some((blackout) => blackoutOverlapRatio(
@@ -1611,7 +1608,7 @@ function spawnBlackout(
     ) > 0.72)) {
       break;
     }
-    position = randomRectangleCenter(state, hitbox);
+    position = randomBlackoutCenter(state, hitbox);
   }
 
   state.blackouts.push({
@@ -1737,6 +1734,23 @@ function randomRectangleCenter(
       state.arena.height - halfHeight,
     ),
   };
+}
+
+function randomBlackoutCenter(
+  state: GameState,
+  hitbox: RectangleHitbox,
+): Vec2 {
+  let position = randomRectangleCenter(state, hitbox);
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const insideCenterBand =
+      Math.abs(position.x - state.arena.width / 2) < state.arena.width * 0.12 &&
+      Math.abs(position.y - state.arena.height / 2) < state.arena.height * 0.12;
+    if (!insideCenterBand) {
+      return position;
+    }
+    position = randomRectangleCenter(state, hitbox);
+  }
+  return position;
 }
 
 function findHitSource(state: GameState): HitSource | null {

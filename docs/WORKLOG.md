@@ -2,6 +2,25 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — `rm *` 다중 정사각형 시야 blackout 재구현
+
+### 구현
+
+- 독립 width·height random rectangle을 min-dimension 기준 square로 변경하고 resize 뒤에도 정사각형 유지
+- 화면 중앙 24% band를 피한 무작위 위치에서 생성하며 기존 Stage 9 1개 → Stage 10 이후 2·3·최대 4개 독립 중첩 곡선 유지
+- blackout layer를 모든 공격 graphics·label·effect보다 위, player·status보다 아래로 이동
+- projectile을 renderer에서 삭제하듯 숨기던 중심점 visibility 분기를 제거해 모든 공격이 계속 그려지고 black square가 픽셀 단위로 덮도록 변경
+- 각 square 중앙에 독립 `BACKING UP... n%`와 progress rail을 표시하고 100%에서 `BACKUP COMPLETE` 뒤 320ms fold-out 적용
+
+### 검증
+
+- square spawn·resize·최대 4개 중첩, 중앙 band 회피, backup 100%와 fold scale, player 대비 depth 회귀 test 추가
+- targeted 18개 test file의 137개 test와 typecheck 통과
+
+### 남은 확인
+
+- 실제 Stage 9·10 화면에서 여러 square의 체감 크기·중첩과 fold 속도는 production 재배포 후 사용자 수동 확인 필요
+
 ## 2026-08-24 — volume hover·focus outline과 ↑/↓ channel 이동
 
 ### 구현

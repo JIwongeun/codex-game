@@ -51,3 +51,13 @@ export const FONTS = {
   browser: '-apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
   sans: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 } as const;
+
+export const RENDER_DEPTHS = {
+  background: -10,
+  world: 1,
+  attackLabelMax: 6,
+  effects: 7,
+  blackout: 8,
+  blackoutLabel: 9,
+  player: 10,
+} as const;

@@ -33,8 +33,7 @@ export interface Difficulty {
   blackoutIntervalMs: number;
   blackoutDurationMs: number;
   blackoutMaxActive: number;
-  blackoutWidthRatio: readonly [number, number];
-  blackoutHeightRatio: readonly [number, number];
+  blackoutSizeRatio: readonly [number, number];
   approvalUnlocked: boolean;
   compactionUnlocked: boolean;
   downloadAccessUnlocked: boolean;
@@ -133,8 +132,7 @@ export function difficultyAt(elapsedMs: number): Difficulty {
         ? GAMEPLAY.blackoutStageNineDurationMs
         : GAMEPLAY.blackoutStageTenDurationMs,
     blackoutMaxActive,
-    blackoutWidthRatio: stage < 10 ? [0.36, 0.46] : [0.26, 0.34],
-    blackoutHeightRatio: stage < 10 ? [0.28, 0.38] : [0.22, 0.3],
+    blackoutSizeRatio: stage < 10 ? [0.28, 0.38] : [0.22, 0.3],
     approvalUnlocked: safeElapsedMs >= GAMEPLAY.approvalFirstSpawnMs,
     compactionUnlocked: safeElapsedMs >= GAMEPLAY.compactionFirstSpawnMs,
     downloadAccessUnlocked:

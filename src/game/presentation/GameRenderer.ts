@@ -21,8 +21,18 @@ import {
   attackTextTokens,
   layoutAttackTextTokens,
 } from "./attackText";
+import {
+  blackoutVisualState,
+  pointInsideVisibleBlackout,
+} from "./blackoutPresentation";
 import { BlueScreenOverlay } from "./BlueScreenOverlay";
-import { ATTACK_TONES, COLORS, FONTS, TEXT_COLORS } from "./theme";
+import {
+  ATTACK_TONES,
+  COLORS,
+  FONTS,
+  RENDER_DEPTHS,
+  TEXT_COLORS,
+} from "./theme";
 
 type AttackTone = (typeof ATTACK_TONES)[keyof typeof ATTACK_TONES];
 const RICH_LABEL_STROKE_THICKNESS = 2;
@@ -119,11 +129,11 @@ export class GameRenderer {
   constructor(scene: Phaser.Scene, textResolution: number) {
     this.scene = scene;
     this.textResolution = textResolution;
-    this.background = scene.add.graphics().setDepth(-10);
-    this.world = scene.add.graphics().setDepth(1);
-    this.blackoutLayer = scene.add.graphics().setDepth(0);
-    this.playerLayer = scene.add.graphics().setDepth(10);
-    this.effectsLayer = scene.add.graphics().setDepth(11);
+    this.background = scene.add.graphics().setDepth(RENDER_DEPTHS.background);
+    this.world = scene.add.graphics().setDepth(RENDER_DEPTHS.world);
+    this.effectsLayer = scene.add.graphics().setDepth(RENDER_DEPTHS.effects);
+    this.blackoutLayer = scene.add.graphics().setDepth(RENDER_DEPTHS.blackout);
+    this.playerLayer = scene.add.graphics().setDepth(RENDER_DEPTHS.player);
     const parent = scene.game.canvas.parentElement ?? document.body;
     this.endingOverlay = new BlueScreenOverlay(parent);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -338,9 +348,6 @@ export class GameRenderer {
 
   private drawProjectiles(state: GameState): void {
     for (const projectile of state.projectiles) {
-      if (this.pointInsideActiveBlackout(state, projectile.position)) {
-        continue;
-      }
       if (projectile.kind === "tool-call") {
         continue;
       }
@@ -379,9 +386,6 @@ export class GameRenderer {
     }
 
     for (const projectile of state.projectiles) {
-      if (this.pointInsideActiveBlackout(state, projectile.position)) {
-        continue;
-      }
       this.drawProjectileSurfaceMark(projectile);
     }
   }
@@ -791,13 +795,8 @@ export class GameRenderer {
     const x = Math.round(state.player.position.x);
     const y = Math.round(state.player.position.y);
 
-    const insideBlackout = state.blackouts.some(
-      (blackout) =>
-        blackout.telegraphRemainingMs <= 0 &&
-        Math.abs(state.player.position.x - blackout.position.x) <=
-          blackout.hitbox.width / 2 &&
-        Math.abs(state.player.position.y - blackout.position.y) <=
-          blackout.hitbox.height / 2,
+    const insideBlackout = state.blackouts.some((blackout) =>
+      pointInsideVisibleBlackout(blackout, state.player.position)
     );
 
     this.playerLayer.fillStyle(
@@ -812,10 +811,6 @@ export class GameRenderer {
 
     for (const projectile of state.projectiles) {
       activeIds.add(projectile.id);
-      const hiddenByBlackout = this.pointInsideActiveBlackout(
-        state,
-        projectile.position,
-      );
       let view = this.projectileLabels.get(projectile.id);
       if (!view) {
         view = this.createRichLabel(6);
@@ -847,7 +842,7 @@ export class GameRenderer {
         .setRotation(this.readableProjectileRotation(projectile.velocity))
         .setAlpha(projectile.telegraphRemainingMs > 0 ? 0.42 : revealAlpha)
         .setScale(1)
-        .setVisible(!hiddenByBlackout);
+        .setVisible(true);
     }
 
     this.removeInactiveRichLabels(this.projectileLabels, activeIds);
@@ -1117,25 +1112,40 @@ export class GameRenderer {
 
   private drawBlackouts(state: GameState): void {
     for (const blackout of state.blackouts) {
-      const x = blackout.position.x - blackout.hitbox.width / 2;
-      const y = blackout.position.y - blackout.hitbox.height / 2;
       if (blackout.telegraphRemainingMs > 0) {
+        const x = blackout.position.x - blackout.hitbox.width / 2;
+        const y = blackout.position.y - blackout.hitbox.height / 2;
         this.blackoutLayer.lineStyle(1, COLORS.black, 0.5);
         this.blackoutLayer.strokeRect(x, y, blackout.hitbox.width, blackout.hitbox.height);
         continue;
       }
-      this.blackoutLayer.fillStyle(COLORS.black, 1);
-      this.blackoutLayer.fillRect(x, y, blackout.hitbox.width, blackout.hitbox.height);
-    }
-  }
 
-  private pointInsideActiveBlackout(state: GameState, point: Vec2): boolean {
-    return state.blackouts.some(
-      (blackout) =>
-        blackout.telegraphRemainingMs <= 0 &&
-        Math.abs(point.x - blackout.position.x) <= blackout.hitbox.width / 2 &&
-        Math.abs(point.y - blackout.position.y) <= blackout.hitbox.height / 2,
-    );
+      const visual = blackoutVisualState(blackout);
+      const width = blackout.hitbox.width * visual.scale;
+      const height = blackout.hitbox.height * visual.scale;
+      const x = blackout.position.x - width / 2;
+      const y = blackout.position.y - height / 2;
+      this.blackoutLayer.fillStyle(COLORS.black, 1);
+      this.blackoutLayer.fillRect(x, y, width, height);
+
+      const railWidth = Math.min(180, width * 0.46);
+      const railX = blackout.position.x - railWidth / 2;
+      const railY = blackout.position.y + Math.min(52, height * 0.18);
+      this.blackoutLayer.fillStyle(COLORS.background, 0.28);
+      this.blackoutLayer.fillRect(railX, railY, railWidth, 2);
+      this.blackoutLayer.fillStyle(COLORS.background, 0.92);
+      this.blackoutLayer.fillRect(
+        railX,
+        railY,
+        railWidth * visual.backupProgress,
+        2,
+      );
+
+      if (visual.recovering) {
+        this.blackoutLayer.lineStyle(1, COLORS.background, visual.scale);
+        this.blackoutLayer.strokeRect(x, y, width, height);
+      }
+    }
   }
 
   private syncBlackoutViews(state: GameState): void {
@@ -1153,7 +1163,7 @@ export class GameRenderer {
               fontSize: "10px",
             })
             .setResolution(this.textResolution)
-            .setDepth(9),
+            .setDepth(RENDER_DEPTHS.blackoutLabel),
           status: this.scene.add
             .text(0, 0, "", {
               align: "center",
@@ -1165,19 +1175,18 @@ export class GameRenderer {
             })
             .setResolution(this.textResolution)
             .setOrigin(0.5)
-            .setDepth(9),
+            .setDepth(RENDER_DEPTHS.blackoutLabel),
         };
         this.blackoutViews.set(blackout.id, view);
       }
 
-      const x = blackout.position.x - blackout.hitbox.width / 2;
-      const y = blackout.position.y - blackout.hitbox.height / 2;
       const telegraphing = blackout.telegraphRemainingMs > 0;
-      const progress = Phaser.Math.Clamp(
-        1 - blackout.remainingMs / blackout.durationMs,
-        0,
-        1,
-      );
+      const visual = blackoutVisualState(blackout);
+      const visualScale = telegraphing ? 1 : visual.scale;
+      const x = blackout.position.x -
+        (blackout.hitbox.width * visualScale) / 2;
+      const y = blackout.position.y -
+        (blackout.hitbox.height * visualScale) / 2;
       const telegraphProgress = Phaser.Math.Clamp(
         1 - blackout.telegraphRemainingMs / GAMEPLAY.blackoutTelegraphMs,
         0,
@@ -1185,18 +1194,24 @@ export class GameRenderer {
       );
       view.command
         .setColor(telegraphing ? TEXT_COLORS.ink : TEXT_COLORS.surface)
-        .setPosition(Math.round(x + 12), Math.round(y + 10));
+        .setPosition(Math.round(x + 12), Math.round(y + 10))
+        .setAlpha(visual.recovering ? visual.scale : 1)
+        .setVisible(!visual.recovering);
       view.status
         .setColor(telegraphing ? TEXT_COLORS.ink : TEXT_COLORS.surface)
         .setText(
           telegraphing
             ? `DELETE TARGET\n${Math.round(telegraphProgress * 100)}%`
-            : `BACKING UP...\n${Math.round(progress * 100)}%`,
+            : visual.recovering
+              ? "BACKUP COMPLETE\n100%"
+              : `BACKING UP...\n${Math.round(visual.backupProgress * 100)}%`,
         )
         .setPosition(
           Math.round(blackout.position.x),
           Math.round(blackout.position.y),
-        );
+        )
+        .setAlpha(visual.recovering ? visual.scale : 1)
+        .setVisible(telegraphing || visual.scale > 0.12);
     }
 
     for (const [id, view] of this.blackoutViews) {

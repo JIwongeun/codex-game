@@ -64,6 +64,7 @@ export const GAMEPLAY = {
   blackoutStageNineDurationMs: 3_600,
   blackoutStageTenDurationMs: 4_800,
   blackoutTelegraphMs: 720,
+  blackoutRecoveryMs: 320,
   blackoutRevealGraceMs: 180,
   blackoutStageNineIntervalMs: 10_500,
   blackoutStageTenStartIntervalMs: 3_000,

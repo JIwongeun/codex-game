@@ -643,11 +643,8 @@ describe("survival simulation", () => {
       approvalGateGapSize("REVIEW"),
     );
     expect(state.retryChains[0]!.velocity).toEqual({ x: 0, y: -1 });
-    expect(state.blackouts[0]!.hitbox.width / state.arena.width).toBeCloseTo(
-      0.3,
-    );
-    expect(state.blackouts[0]!.hitbox.height / state.arena.height).toBeCloseTo(
-      0.25,
+    expect(state.blackouts[0]!.hitbox.width).toBeCloseTo(
+      state.blackouts[0]!.hitbox.height,
     );
     expect(state.blackouts[0]!.position.x).toBeLessThanOrEqual(
       state.arena.width - state.blackouts[0]!.hitbox.width / 2,
@@ -1343,6 +1340,15 @@ describe("survival simulation", () => {
     expect(stageNine.blackouts[0]?.telegraphRemainingMs).toBe(
       GAMEPLAY.blackoutTelegraphMs,
     );
+    expect(stageNine.blackouts[0]?.hitbox.width).toBeCloseTo(
+      stageNine.blackouts[0]!.hitbox.height,
+    );
+    expect(
+      Math.abs(stageNine.blackouts[0]!.position.x - stageNine.arena.width / 2) >=
+        stageNine.arena.width * 0.12 ||
+      Math.abs(stageNine.blackouts[0]!.position.y - stageNine.arena.height / 2) >=
+        stageNine.arena.height * 0.12,
+    ).toBe(true);
     stepGame(stageNine, EMPTY_INPUT, GAMEPLAY.blackoutTelegraphMs / 2);
     expect(stageNine.blackouts[0]?.remainingMs).toBe(
       GAMEPLAY.blackoutStageNineDurationMs,
@@ -1363,6 +1369,9 @@ describe("survival simulation", () => {
     }
 
     expect(late.blackouts).toHaveLength(4);
+    expect(late.blackouts.every(({ hitbox }) =>
+      Math.abs(hitbox.width - hitbox.height) < 0.001
+    )).toBe(true);
     expect(late.blackouts.every(({ durationMs }) =>
       durationMs === GAMEPLAY.blackoutStageTenDurationMs
     )).toBe(true);
