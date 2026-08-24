@@ -100,7 +100,7 @@
 
 - 첫 시작 click 또는 Space로 AudioContext를 연 뒤 original 32-step E minor arpeggio·bass·pulse loop를 재생한다. 최초 저음량안보다 약 6dB 높여 gameplay 중 분명히 들리게 하되 warning·hit peak보다 낮게 유지한다. Stage 1의 132 BPM에서 stage마다 4 BPM씩 올라 Stage 10의 168 BPM에 고정된다.
 - BGM은 `playing`에서만 진행하고 game over·blur·hidden pause에서 즉시 멈춘다. 재시작과 명시적 pause 해제 뒤에는 첫 step부터 다시 시작한다.
-- Start에는 BGM과 효과음을 함께 조절하는 단일 `MASTER VOLUME` slider만 둔다. 기본 80%는 기존 출력의 약 1.6배, 최대 100%는 약 2배이며 두 음원군의 상대 gain은 유지한다. `M`은 slider 값과 별개로 전체를 즉시 음소거한다.
+- Start에는 `SFX VOLUME`과 `BGM VOLUME` slider를 각각 한 줄로 둔다. 둘 다 기본 50%이며 검정 1px rail과 검정색의 굵은 가로 직사각형 handle, Start의 monospace label과 검정 수치만 사용한다. 각 slider는 해당 음원군만 조절하고 `M`은 두 값을 보존한 채 전체를 즉시 음소거한다.
 - 기본 `TOOL CALL STREAM`은 별도 SFX 없이 흘러가고, `APPROVAL`, `COMPACTION`, `RETRY`, `ULTRA CODE`, `PARALLEL AGENTS`, `REVIEW`, `USAGE LIMIT`은 각각 prompt beep·impact·반복 click·agent collection charge·final response snap·dual tone·review pair·low alarm으로 구분한다. Retry 마지막에는 warning click과 구분되는 상승 2음 completion cue를 한 번 재생한다.
 - Stage가 바뀔 때는 push/webhook delivery를 연상시키는 2음과 agent task completion을 연상시키는 상승 3음을 번갈아 한 번만 재생하고 Stage 10은 4음으로 마감한다. compaction activation과 review 재발산에는 error popup형 하강음을, parallel agents에는 delivery cue를 겹친다.
 - Slack·Windows·macOS·ChatGPT의 실제 음원, sample과 고유 notification melody를 복제하지 않는다. 익숙한 짧은 attack·간격·상승/하강 contour만 E minor 기반 original motif로 재구성한다.

@@ -76,25 +76,40 @@ describe("SoundService", () => {
     expect(FakeAudioContext.instances).toHaveLength(0);
   });
 
-  it("uses one louder master volume for music and effects", () => {
+  it("uses separate 50 percent channels for music and effects", () => {
     const sound = new SoundService();
 
-    expect(sound.volume).toBe(0.8);
+    expect(sound.sfxVolume).toBe(0.5);
+    expect(sound.musicVolume).toBe(0.5);
     sound.unlock();
     const context = FakeAudioContext.instances[0];
-    const masterGain = context?.gains[0];
-    expect(masterGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1.6, 4);
+    const sfxGain = context?.gains[0];
+    const musicGain = context?.gains[1];
+    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 4);
+    expect(musicGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 4);
 
-    sound.setVolume(0.25);
-    expect(sound.volume).toBe(0.25);
-    expect(masterGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(0.5, 4);
+    sound.setSfxVolume(0.25);
+    sound.setMusicVolume(0.75);
+    expect(sound.sfxVolume).toBe(0.25);
+    expect(sound.musicVolume).toBe(0.75);
+    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(0.5, 4);
+    expect(musicGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1.5, 4);
 
     sound.consume(RUN_STARTED);
-    expect(context?.gains[1]?.connect).toHaveBeenCalledWith(masterGain);
+    expect(context?.gains[2]?.connect).toHaveBeenCalledWith(sfxGain);
+    sound.syncMusic(true, 0);
+    expect(
+      context?.gains
+        .slice(3)
+        .some((gain) => gain.connect.mock.calls[0]?.[0] === musicGain),
+    ).toBe(true);
 
-    sound.setVolume(2);
-    expect(sound.volume).toBe(1);
-    expect(masterGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(2, 4);
+    sound.setSfxVolume(2);
+    sound.setMusicVolume(-1);
+    expect(sound.sfxVolume).toBe(1);
+    expect(sound.musicVolume).toBe(0);
+    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(2, 4);
+    expect(musicGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 4);
   });
 
   it("plays one procedural music step once and advances with game time", () => {
@@ -126,7 +141,7 @@ describe("SoundService", () => {
 
     sound.unlock();
     sound.syncMusic(true, 0);
-    const gains = FakeAudioContext.instances[0]?.gains.slice(1).map(
+    const gains = FakeAudioContext.instances[0]?.gains.slice(2).map(
       (gain) => gain.gain.setValueAtTime.mock.calls[0]?.[0],
     );
 
@@ -157,7 +172,7 @@ describe("SoundService", () => {
     sound.unlock();
     sound.syncMusic(true, 0);
     const context = FakeAudioContext.instances[0];
-    const firstStepGains = context?.gains.slice(1) ?? [];
+    const firstStepGains = context?.gains.slice(2) ?? [];
     const firstStepOscillators = context?.oscillators.length ?? 0;
 
     sound.pauseMusic();
@@ -305,10 +320,10 @@ describe("SoundService", () => {
     const context = FakeAudioContext.instances[0];
     expect(context?.oscillators[0]?.start).toHaveBeenCalledOnce();
     expect(context?.oscillators[0]?.stop).toHaveBeenCalledOnce();
-    expect(context?.gains[1]?.connect).toHaveBeenCalledOnce();
+    expect(context?.gains[2]?.connect).toHaveBeenCalledOnce();
 
     sound.toggleMute();
-    expect(context?.gains[1]?.disconnect).toHaveBeenCalledOnce();
+    expect(context?.gains[2]?.disconnect).toHaveBeenCalledOnce();
   });
 
   it("resumes a suspended context and closes it on destroy", () => {

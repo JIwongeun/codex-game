@@ -12,8 +12,9 @@ interface Tone {
 
 const MUSIC_BASE_BPM = 132;
 const MUSIC_BPM_PER_STAGE = 4;
-const DEFAULT_MASTER_VOLUME = 0.8;
-const MASTER_GAIN_AT_MAX_VOLUME = 2;
+const DEFAULT_SFX_VOLUME = 0.5;
+const DEFAULT_MUSIC_VOLUME = 0.5;
+const CHANNEL_GAIN_AT_MAX_VOLUME = 2;
 const MUSIC_GAIN = {
   lead: 0.016,
   bass: 0.013,
@@ -57,7 +58,8 @@ const MUSIC_BASS_MIDI = [40, 40, 43, 38, 40, 43, 45, 47] as const;
 
 export class SoundService {
   private context: AudioContext | null = null;
-  private masterGain: GainNode | null = null;
+  private sfxGain: GainNode | null = null;
+  private musicGain: GainNode | null = null;
   private readonly activeGains = new Set<GainNode>();
   private readonly activeMusicGains = new Set<GainNode>();
   private musicStep = 0;
@@ -66,14 +68,19 @@ export class SoundService {
   private musicRunning = false;
   private endingActive = false;
   private muted = false;
-  private masterVolume = DEFAULT_MASTER_VOLUME;
+  private sfxVolumeValue = DEFAULT_SFX_VOLUME;
+  private musicVolumeValue = DEFAULT_MUSIC_VOLUME;
 
   get isMuted(): boolean {
     return this.muted;
   }
 
-  get volume(): number {
-    return this.masterVolume;
+  get sfxVolume(): number {
+    return this.sfxVolumeValue;
+  }
+
+  get musicVolume(): number {
+    return this.musicVolumeValue;
   }
 
   syncMusic(playing: boolean, elapsedMs: number): void {
@@ -173,10 +180,15 @@ export class SoundService {
 
     try {
       this.context ??= new AudioContext();
-      if (!this.masterGain) {
-        this.masterGain = this.context.createGain();
-        this.updateMasterGain();
-        this.masterGain.connect(this.context.destination);
+      if (!this.sfxGain) {
+        this.sfxGain = this.context.createGain();
+        this.updateSfxGain();
+        this.sfxGain.connect(this.context.destination);
+      }
+      if (!this.musicGain) {
+        this.musicGain = this.context.createGain();
+        this.updateMusicGain();
+        this.musicGain.connect(this.context.destination);
       }
 
       if (this.context.state === "suspended") {
@@ -197,9 +209,14 @@ export class SoundService {
     return this.muted;
   }
 
-  setVolume(volume: number): void {
-    this.masterVolume = Math.min(1, Math.max(0, volume));
-    this.updateMasterGain();
+  setSfxVolume(volume: number): void {
+    this.sfxVolumeValue = Math.min(1, Math.max(0, volume));
+    this.updateSfxGain();
+  }
+
+  setMusicVolume(volume: number): void {
+    this.musicVolumeValue = Math.min(1, Math.max(0, volume));
+    this.updateMusicGain();
   }
 
   consume(events: readonly GameEvent[]): void {
@@ -318,8 +335,10 @@ export class SoundService {
 
   destroy(): void {
     this.stopActiveTones();
-    this.masterGain?.disconnect();
-    this.masterGain = null;
+    this.sfxGain?.disconnect();
+    this.musicGain?.disconnect();
+    this.sfxGain = null;
+    this.musicGain = null;
 
     if (this.context) {
       const context = this.context;
@@ -337,7 +356,8 @@ export class SoundService {
 
     if (
       !this.context ||
-      !this.masterGain ||
+      !this.sfxGain ||
+      !this.musicGain ||
       this.context.state !== "running"
     ) {
       return;
@@ -357,7 +377,7 @@ export class SoundService {
     gain.gain.setValueAtTime(tone.gain, startTime);
     gain.gain.exponentialRampToValueAtTime(0.0001, endTime);
     oscillator.connect(gain);
-    gain.connect(this.masterGain);
+    gain.connect(music ? this.musicGain : this.sfxGain);
     this.activeGains.add(gain);
     if (music) {
       this.activeMusicGains.add(gain);
@@ -606,13 +626,24 @@ export class SoundService {
     this.musicRunning = false;
   }
 
-  private updateMasterGain(): void {
-    if (!this.context || !this.masterGain) {
+  private updateSfxGain(): void {
+    if (!this.context || !this.sfxGain) {
       return;
     }
 
-    this.masterGain.gain.setValueAtTime(
-      this.masterVolume * MASTER_GAIN_AT_MAX_VOLUME,
+    this.sfxGain.gain.setValueAtTime(
+      this.sfxVolumeValue * CHANNEL_GAIN_AT_MAX_VOLUME,
+      this.context.currentTime,
+    );
+  }
+
+  private updateMusicGain(): void {
+    if (!this.context || !this.musicGain) {
+      return;
+    }
+
+    this.musicGain.gain.setValueAtTime(
+      this.musicVolumeValue * CHANNEL_GAIN_AT_MAX_VOLUME,
       this.context.currentTime,
     );
   }

@@ -45,7 +45,7 @@
 - 이동은 `WASD` 또는 방향키 사용
 - 시작·재시작은 클릭 또는 Space
 - `Esc`는 현재 run을 기록하지 않고 Start 대기화면으로 복귀
-- Start의 단일 `MASTER VOLUME` slider가 BGM과 효과음을 함께 조절하며 `M`은 즉시 전체 음소거
+- Start의 `SFX VOLUME`과 `BGM VOLUME` slider가 두 음원군을 각각 조절하며 둘 다 기본 50%, `M`은 즉시 전체 음소거
 - 종료 후 현재 생존 시간과 Guest session 최고 기록을 표시
 
 ### 이동과 판정

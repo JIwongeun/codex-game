@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-044 — SFX와 BGM은 독립된 흑백 slider로 조절한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-043의 단일 master volume 결정을 대체
+- 배경: Start 화면의 녹색 native range와 원형 thumb는 각진 흑백 task surface 및 monospace 정보 문법과 맞지 않았다. BGM과 효과음의 체감 balance도 한 값으로 묶지 않고 사용자가 각각 정할 필요가 있다.
+- 결정: `SFX VOLUME`과 `BGM VOLUME`을 두 줄로 분리하고 각각 별도 Web Audio channel gain에 연결한다. 두 값의 default는 모두 50%다. slider는 검정 1px rail과 검정 18×5px 가로 직사각형 handle을 사용하고 label·수치는 Start의 monospace를 따르며 수치는 검정으로 표시한다. `M`은 두 slider 값을 보존한 채 전체를 즉시 음소거한다.
+- 결과: 녹색 진행 bar처럼 보이던 장식과 원형 control이 사라지고 Start의 직선·흑백 시각 문법 안에서 BGM과 SFX balance를 독립적으로 조절할 수 있다. 값은 현재 page lifetime 동안 유지되며 새로고침하면 각각 50%로 돌아간다.
+
 ## D-043 — BGM과 효과음은 하나의 master volume으로 조절한다
 
 - 날짜: 2026-08-24
-- 상태: 확정, D-029·D-030의 개별 gain 수치는 상대 balance로 유지
+- 상태: 대체됨 — D-044가 SFX·BGM 독립 slider와 기본 50%로 변경
 - 배경: procedural BGM과 pattern cue가 전체적으로 작게 들렸고 BGM·SFX를 각각 조절하는 두 옵션은 짧은 게임의 Start 화면에 불필요한 설정 복잡도를 만든다.
 - 결정: Start 화면에 0–100% `MASTER VOLUME` slider 하나만 추가해 BGM과 효과음을 같은 master gain으로 조절한다. 기본 80%는 기존 출력의 약 1.6배, 최대 100%는 약 2배로 두며 `M`은 slider 값을 보존한 채 즉시 전체 음소거한다.
 - 결과: 기존 tone별 상대 gain과 warning 우선순위는 유지하면서 사용자가 한 설정으로 전체 음량을 올릴 수 있다. 설정은 현재 실행 중인 page lifetime에 유지되고 새로고침하면 기본값으로 돌아간다.

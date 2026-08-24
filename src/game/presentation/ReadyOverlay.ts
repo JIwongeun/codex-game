@@ -137,8 +137,9 @@ export class ReadyOverlay {
 
   constructor(
     parent: HTMLElement,
-    initialVolume: number,
-    onVolumeChange: (volume: number) => void,
+    initialSfxVolume: number,
+    initialMusicVolume: number,
+    onVolumeChange: (channel: "sfx" | "music", volume: number) => void,
   ) {
     this.root = document.createElement("section");
     this.root.className = "ready-overlay";
@@ -180,18 +181,32 @@ export class ReadyOverlay {
           <span data-ready-action-suffix>TO START RUN</span>
         </div>
 
-        <label class="ready-volume">
-          <span>MASTER VOLUME</span>
-          <input
-            id="await-codex-master-volume"
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            value="${Math.round(initialVolume * 100)}"
-          />
-          <output for="await-codex-master-volume" data-ready-volume-output>${Math.round(initialVolume * 100)}%</output>
-        </label>
+        <div class="ready-volumes" aria-label="Audio volume controls">
+          <label class="ready-volume">
+            <span>SFX VOLUME</span>
+            <input
+              id="await-codex-sfx-volume"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value="${Math.round(initialSfxVolume * 100)}"
+            />
+            <output for="await-codex-sfx-volume" data-ready-sfx-volume-output>${Math.round(initialSfxVolume * 100)}%</output>
+          </label>
+          <label class="ready-volume">
+            <span>BGM VOLUME</span>
+            <input
+              id="await-codex-music-volume"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value="${Math.round(initialMusicVolume * 100)}"
+            />
+            <output for="await-codex-music-volume" data-ready-music-volume-output>${Math.round(initialMusicVolume * 100)}%</output>
+          </label>
+        </div>
       </main>
 
       <footer class="ready-footer">
@@ -207,36 +222,53 @@ export class ReadyOverlay {
     const actionSuffix = this.root.querySelector<HTMLElement>(
       "[data-ready-action-suffix]",
     );
-    const volumeInput = this.root.querySelector<HTMLInputElement>(
-      "#await-codex-master-volume",
+    const sfxVolumeInput = this.root.querySelector<HTMLInputElement>(
+      "#await-codex-sfx-volume",
     );
-    const volumeOutput = this.root.querySelector<HTMLOutputElement>(
-      "[data-ready-volume-output]",
+    const sfxVolumeOutput = this.root.querySelector<HTMLOutputElement>(
+      "[data-ready-sfx-volume-output]",
+    );
+    const musicVolumeInput = this.root.querySelector<HTMLInputElement>(
+      "#await-codex-music-volume",
+    );
+    const musicVolumeOutput = this.root.querySelector<HTMLOutputElement>(
+      "[data-ready-music-volume-output]",
     );
     if (
       !bestValue ||
       !lastRunValue ||
       !actionSuffix ||
-      !volumeInput ||
-      !volumeOutput
+      !sfxVolumeInput ||
+      !sfxVolumeOutput ||
+      !musicVolumeInput ||
+      !musicVolumeOutput
     ) {
       throw new Error("Ready overlay status targets were not found.");
     }
 
-    volumeInput.addEventListener("input", () => {
-      const volume = Number(volumeInput.value) / 100;
-      volumeOutput.textContent = `${volumeInput.value}%`;
-      onVolumeChange(volume);
-    });
-    volumeInput.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
-    });
-    volumeInput.addEventListener("keydown", (event) => {
-      event.stopPropagation();
-    });
-    volumeInput.addEventListener("keyup", (event) => {
-      event.stopPropagation();
-    });
+    const bindVolumeControl = (
+      channel: "sfx" | "music",
+      input: HTMLInputElement,
+      output: HTMLOutputElement,
+    ): void => {
+      input.addEventListener("input", () => {
+        const volume = Number(input.value) / 100;
+        output.textContent = `${input.value}%`;
+        onVolumeChange(channel, volume);
+      });
+      input.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+      });
+      input.addEventListener("keydown", (event) => {
+        event.stopPropagation();
+      });
+      input.addEventListener("keyup", (event) => {
+        event.stopPropagation();
+      });
+    };
+
+    bindVolumeControl("sfx", sfxVolumeInput, sfxVolumeOutput);
+    bindVolumeControl("music", musicVolumeInput, musicVolumeOutput);
 
     this.bestValue = bestValue;
     this.lastRunValue = lastRunValue;

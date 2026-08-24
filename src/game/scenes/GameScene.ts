@@ -61,9 +61,14 @@ export class GameScene extends Phaser.Scene {
     this.pauseOverlay = new PauseOverlay(gameParent);
     this.readyOverlay = new ReadyOverlay(
       gameParent,
-      this.soundService.volume,
-      (volume) => {
-        this.soundService.setVolume(volume);
+      this.soundService.sfxVolume,
+      this.soundService.musicVolume,
+      (channel, volume) => {
+        if (channel === "sfx") {
+          this.soundService.setSfxVolume(volume);
+        } else {
+          this.soundService.setMusicVolume(volume);
+        }
         if (volume > 0 && this.soundService.isMuted) {
           this.soundService.toggleMute();
         }

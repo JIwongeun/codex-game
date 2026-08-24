@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — SFX·BGM 독립 50% control과 흑백 slider
+
+### 구현
+
+- Start의 녹색 native `MASTER VOLUME`을 제거하고 `SFX VOLUME`·`BGM VOLUME` 두 줄로 분리
+- 두 channel default를 각각 50%로 설정하고 effect tone은 SFX gain, procedural music과 stage music cue는 BGM gain에 별도 연결
+- slider를 검정 1px rail과 검정 18×5px 가로 직사각형 handle로 만들고 label·검정 수치를 기존 Start monospace와 정렬
+- slider의 pointer·keyboard event 격리와 `M` 전체 mute 시 두 channel 값 보존 동작 유지
+
+### 검증
+
+- SoundService·ReadyOverlay 관련 2개 test file의 17개 test와 typecheck 통과
+- SFX·BGM 기본 50%, 독립 gain 연결, 0–100% clamp 회귀 test 통과
+- 최종 `pnpm check` 통과: typecheck, 전체 16개 test file의 132개 test, production build와 production verifier 완료
+- 새 slider의 실제 Chromium 시각과 스피커·헤드폰별 체감 balance는 사용자 수동 확인 전
+
 ## 2026-08-24 — 단일 master volume과 전체 출력 보강
 
 ### 구현
