@@ -35,6 +35,7 @@
 
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 하나의 terminal skin으로 통일하지 않고 `terminal`, `browser`, `codex` 작업 surface별 시각 문법을 사용한다.
 - HUD와 overlay는 self-hosted `Pretendard Variable`을 사용한다. Terminal 공격은 Codex terminal과 가까운 `Cascadia Mono`·`Consolas` system stack을, Browser는 system UI sans를, Codex는 Pretendard를 10–11px로 사용한다.
+- FHD와 QHD는 같은 QHD logical arena를 공유하되 각각 2×와 1.5× 고해상도 Canvas backing으로 렌더링한다. 표시 크기와 hitbox 비율은 유지하고 글자·1px line·회전 glyph의 source pixel만 늘린다.
 - 투사체는 큰 사각 UI block이 아니라 실제 command, browser error, tool-state처럼 작고 보통 굵기인 한 줄 문구다.
 - 투사체 전체에 한 색을 주지 않는다. 같은 한 줄 안에서도 executable, parameter, quoted string, error code, path, tool token과 본문을 각 surface의 실제 syntax 역할에 따라 나눈다.
 - 문구 기준선은 진행 벡터와 평행하게 회전한다. 뒤집혀 읽히는 각도는 180도 보정하되 충돌 사각형의 방향은 동일하게 유지한다.

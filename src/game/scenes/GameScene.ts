@@ -17,7 +17,10 @@ import { ReadyOverlay } from "../presentation/ReadyOverlay";
 import { FixedStepRunner } from "../runtime/FixedStepRunner";
 import { FocusPauseController } from "../runtime/FocusPauseController";
 import { logicalViewportFor } from "../runtime/logicalViewport";
-import { textTextureResolution } from "../runtime/renderQuality";
+import {
+  renderQualityFor,
+  textTextureResolution,
+} from "../runtime/renderQuality";
 import {
   readGuestSessionBest,
   saveGuestSessionBest,
@@ -204,10 +207,36 @@ export class GameScene extends Phaser.Scene {
 
   private applyViewport(viewportWidth: number, viewportHeight: number): void {
     const logicalViewport = logicalViewportFor(viewportWidth, viewportHeight);
+    const renderQuality = renderQualityFor(
+      viewportWidth,
+      viewportHeight,
+      window.devicePixelRatio,
+      window.screen?.width ?? viewportWidth,
+      window.screen?.height ?? viewportHeight,
+    );
+    const canvas = this.game.canvas;
+
+    if (
+      canvas.width !== renderQuality.backingWidth ||
+      canvas.height !== renderQuality.backingHeight
+    ) {
+      canvas.width = renderQuality.backingWidth;
+      canvas.height = renderQuality.backingHeight;
+      this.game.renderer.resize(
+        renderQuality.backingWidth,
+        renderQuality.backingHeight,
+      );
+    }
+
     resizeArena(this.state, logicalViewport.width, logicalViewport.height);
     this.cameras.main
-      .setViewport(0, 0, viewportWidth, viewportHeight)
-      .setZoom(logicalViewport.zoom)
+      .setViewport(
+        0,
+        0,
+        renderQuality.backingWidth,
+        renderQuality.backingHeight,
+      )
+      .setZoom(logicalViewport.zoom * renderQuality.renderScale)
       .setBounds(0, 0, logicalViewport.width, logicalViewport.height)
       .centerOn(logicalViewport.width / 2, logicalViewport.height / 2);
   }

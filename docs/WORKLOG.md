@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — FHD/QHD 고해상도 Canvas profile
+
+### 구현
+
+- QHD logical arena와 simulation 수치를 유지한 채 물리 display를 FHD/QHD 두 profile로 분류
+- FHD는 2×, QHD는 1.5× main Canvas backing buffer로 렌더링하고 camera viewport·zoom에 같은 배율을 적용해 보이는 arena와 이동·판정을 유지
+- backing 크기를 최대 `4096×2304`로 제한하고 기존 linear antialiasing·`image-rendering: auto`·Phaser Text 최소 2× internal resolution을 유지
+
+### 검증
+
+- FHD `1920×1080 → 3840×2160`, QHD `2560×1440 → 3840×2160`, 125% scaled QHD profile 감지와 ultrawide backing cap 단위 테스트 통과
+- local QHD display의 `1280×720` browser viewport에서 Canvas가 `1920×1080` backing으로 생성되고 CSS 크기·gameplay framing은 `1280×720`으로 유지됨을 확인
+- 최종 `pnpm check` 통과: typecheck, 전체 16개 test file의 131개 test, production build와 production verifier 완료
+- production 배포는 commit·push 뒤 진행
+
 ## 2026-08-24 — Ultra Code 120° safe circle과 edge inward 보정
 
 ### 구현

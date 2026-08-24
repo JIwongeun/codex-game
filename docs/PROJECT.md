@@ -92,7 +92,7 @@ Guest session 최고 기록 = 현재 browser page session에서 가장 긴 생�
 
 ## 6. 화면과 피드백
 
-- Canvas는 browser viewport 전체를 채우되 gameplay 좌표는 QHD `2560×1440`을 기준으로 정규화한다. FHD `1920×1080`은 같은 logical arena를 `0.75×`로 표시해 개체 크기·속도·간격의 화면 비율을 QHD와 같게 유지한다. 다른 화면비는 logical 높이 1440을 유지하고 가로 범위만 화면비에 맞춰 조정해 letterbox를 만들지 않는다. 비정수 camera zoom에서도 linear antialiasing을 사용하고 작은 Phaser Text는 최소 2× internal resolution로 생성해 폰트와 1px 선을 pixelated 방식으로 축소하지 않는다.
+- Canvas는 browser viewport 전체를 채우되 gameplay 좌표는 QHD `2560×1440`을 기준으로 정규화한다. FHD `1920×1080`은 같은 logical arena를 `0.75×`로 표시해 개체 크기·속도·간격의 화면 비율을 QHD와 같게 유지한다. 다른 화면비는 logical 높이 1440을 유지하고 가로 범위만 화면비에 맞춰 조정해 letterbox를 만들지 않는다. 물리 display는 FHD와 QHD 두 render profile로 분류하고 FHD는 기본 2×, QHD는 1.5× backing buffer에 그린 뒤 원래 viewport 크기로 표시한다. backing은 `4096×2304`를 넘지 않으며 camera zoom에 같은 배율을 곱해 arena·판정·이동 체감을 바꾸지 않는다. 비정수 camera zoom에서도 linear antialiasing과 Phaser Text 최소 2× internal resolution을 함께 사용한다.
 - 순백 웹페이지와 흰 Canvas를 이어 붙여 별도 게임 프레임처럼 보이지 않게 한다.
 - 격자, 패널, 상단 점수 바, 장식용 배경은 사용하지 않는다.
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 terminal의 monospace·ANSI 의미색, browser의 sans·page error glyph, Codex의 Pretendard·tool marker·context progress처럼 작업 출처별 문법을 사용한다.

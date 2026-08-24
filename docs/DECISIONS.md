@@ -2,6 +2,14 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-042 — FHD/QHD Canvas를 고해상도 backing profile로 렌더링한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-040의 Canvas 선명도 결정을 보강
+- 배경: pixel-art filtering을 제거하고 Text texture를 2×로 올려도 main Canvas 자체는 CSS viewport와 같은 backing 크기였다. QHD logical arena가 FHD나 browser chrome이 있는 QHD viewport에 camera zoom으로 축소될 때 회전 명령어와 1px 선의 최종 합성 해상도가 부족해 자글거림이 남았다.
+- 결정: gameplay는 기존 `2560×1440` logical arena와 viewport camera zoom을 유지한다. 물리 screen 해상도로 FHD/QHD 두 display profile을 선택하고 FHD는 2×, QHD는 1.5× main Canvas backing에 렌더링한다. backing은 최대 `4096×2304`로 제한하고 camera viewport와 zoom에 같은 render scale을 적용해 보이는 world 범위와 판정을 유지한다. Phaser Text의 최소 2× internal texture와 linear filtering도 유지한다.
+- 결과: FHD와 QHD 모두 최대 약 4K급 source pixel로 명령어·HUD·Graphics skill을 합성한 뒤 실제 viewport로 축소하므로 크기와 난이도를 바꾸지 않고 edge 품질을 높인다. ultrawide나 큰 DPR에서는 backing cap으로 GPU 비용을 제한한다.
+
 ## D-041 — Ultra Code는 첫 frame부터 120° safe circle을 우선 표시한다
 
 - 날짜: 2026-08-24
