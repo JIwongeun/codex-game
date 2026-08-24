@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-051 — Stage context load는 숫자만 남긴다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-050의 `SIM CTX` visible prefix를 대체
+- 배경: 상단 중앙의 `STAGE`, `SIM CTX`와 context 숫자를 모두 표기하면 짧은 HUD label 안에서 설명이 반복되고 시각적으로 복잡하다.
+- 결정: 두 배로 증가하는 fictional context progression과 실제 12초 Stage balance는 유지하되 visible label에서는 `SIM CTX`를 제거한다. 일반 Stage는 `STAGE 01 · 1K`, Stage 10은 `STAGE 10 · 512K // OVERFLOW`처럼 표시한다.
+- 결과: context doubling의 개발자 문법은 남고 상단 중앙 표시는 더 짧고 빠르게 읽힌다.
+
 ## D-050 — Stage progression은 두 배로 증가하는 fictional `SIM CTX`로 표시한다
 
 - 날짜: 2026-08-25
-- 상태: 확정, D-049의 Stage 10 label을 보강
+- 상태: 일부 대체됨 — D-051이 visible `SIM CTX` prefix를 제거. 두 배 증가와 Stage balance 유지 결정은 유효
 - 배경: 12초마다 증가하는 숫자 Stage만으로는 개발·Codex 문맥이 드러나지 않는다. 반면 실제 Stage 경계 시간을 2의 거듭제곱 간격으로 바꾸면 이미 맞춘 공격 해금과 난이도 곡선이 달라진다.
 - 결정: simulation의 12초 Stage 경계와 공격 balance는 유지한다. 상단 중앙 표시는 Stage 1–10을 fictional context load `1K → 2K → 4K → 8K → 16K → 32K → 64K → 128K → 256K → 512K`에 대응시킨다. 실제 Codex context 상태나 한도로 오인되지 않도록 `SIM CTX`를 붙이고 Stage 10은 `SIM CTX 512K // OVERFLOW`로 표시한다.
 - 결과: 플레이 난이도는 그대로 유지하면서 매 Stage가 context가 bit-shift처럼 두 배로 팽창하는 과정으로 읽힌다.

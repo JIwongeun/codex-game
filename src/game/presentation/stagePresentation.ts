@@ -14,7 +14,7 @@ export function stageDisplayLabel(stage: number): string {
     Math.max(1, Math.floor(stage)),
   );
   const prefix = `STAGE ${safeStage.toString().padStart(2, "0")}`;
-  const context = `SIM CTX ${simulatedContextLoadK(safeStage)}K`;
+  const context = `${simulatedContextLoadK(safeStage)}K`;
 
   return safeStage === GAMEPLAY.maxStage
     ? `${prefix}  ·  ${context} // OVERFLOW`

@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Stage label의 `SIM CTX` prefix 제거
+
+### 구현
+
+- 두 배로 증가하는 context load와 12초 Stage balance는 유지
+- 상단 중앙 label을 `STAGE 01 · 1K`부터 `STAGE 10 · 512K // OVERFLOW`까지의 compact 표기로 축약
+
+### 검증
+
+- 일반 Stage, Stage 10 overflow와 범위 clamp 기대 문자열 갱신
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 144개 test, production build와 verifier 완료
+
+### 남은 확인
+
+- production commit·배포 필요
+
 ## 2026-08-25 — 두 배로 증가하는 Stage `SIM CTX` 표기
 
 ### 구현
