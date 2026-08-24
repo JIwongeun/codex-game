@@ -136,6 +136,24 @@ describe("SoundService", () => {
     expect(musicBpmAt(999_000)).toBe(168);
   });
 
+  it("adds a low warning pulse to the stage ten music layer", () => {
+    const stageNineSound = new SoundService();
+    stageNineSound.unlock();
+    stageNineSound.syncMusic(true, 96_000);
+    const stageNineCount =
+      FakeAudioContext.instances[0]?.oscillators.length ?? 0;
+
+    const stageTenSound = new SoundService();
+    stageTenSound.unlock();
+    stageTenSound.syncMusic(true, 108_000);
+    const stageTenContext = FakeAudioContext.instances[1];
+
+    expect(stageTenContext?.oscillators).toHaveLength(stageNineCount + 1);
+    expect(
+      stageTenContext?.oscillators.at(-1)?.frequency.setValueAtTime,
+    ).toHaveBeenCalledWith(96, 4);
+  });
+
   it("keeps the louder music bed below effect-level gain", () => {
     const sound = new SoundService();
 

@@ -2,6 +2,27 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Stage 10 `CONTEXT // OVERFLOW` 비상 surface
+
+### 구현
+
+- Stage 표시를 좌측 task status row에서 분리해 모든 viewport의 Game 화면 상단 정중앙으로 이동
+- Stage 10 진입 시 180ms 단발 difference 반전 뒤 near-white red wash와 화면 가장자리 danger frame·corner bracket·diagnostic tick 적용
+- Stage 10 중앙 label을 `STAGE 10 · CONTEXT // OVERFLOW` danger red로 전환하고 기존 공격·player 색과 simulation 판정은 유지
+- procedural BGM의 Stage 10에만 96→82Hz low alarm pulse layer 추가
+
+### 검증
+
+- Stage 9 비활성, Stage 10 단발 transition 종료와 지속 border alpha 범위 회귀 test 추가
+- Stage 10 music layer가 기존 Stage보다 low pulse 하나를 추가하는 SoundService test 통과
+- 관련 2개 test file의 18개 test와 typecheck 통과
+- 최종 `pnpm check` 통과: typecheck, 19개 test file의 141개 test, production build와 verifier 완료
+
+### 남은 확인
+
+- production commit·배포 필요
+- 실제 QHD/FHD 화면에서 180ms difference 반전과 가장자리 frame의 체감 강도는 사용자 수동 확인 필요
+
 ## 2026-08-24 — `rm *` 다중 정사각형 시야 blackout 재구현
 
 ### 구현

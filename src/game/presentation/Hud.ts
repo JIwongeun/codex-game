@@ -2,11 +2,13 @@ import Phaser from "phaser";
 
 import type { GameState } from "../core/model";
 import { difficultyAt, formatSurvivalTime } from "../core/rules";
+import { overflowPresentationAt } from "./overflowPresentation";
 import { FONTS, TEXT_COLORS } from "./theme";
 
 export class Hud {
   private readonly brandText: Phaser.GameObjects.Text;
   private readonly statusText: Phaser.GameObjects.Text;
+  private readonly stageText: Phaser.GameObjects.Text;
   private readonly timeText: Phaser.GameObjects.Text;
   private readonly bestText: Phaser.GameObjects.Text;
   private readonly hintText: Phaser.GameObjects.Text;
@@ -34,6 +36,18 @@ export class Hud {
     )
       .setFontStyle("620")
       .setLetterSpacing(0.6)
+      .setDepth(21);
+    this.stageText = this.text(
+      scene,
+      0,
+      0,
+      9,
+      TEXT_COLORS.muted,
+      textResolution,
+    )
+      .setFontStyle("650")
+      .setLetterSpacing(0.8)
+      .setOrigin(0.5, 0)
       .setDepth(21);
     this.timeText = this.text(
       scene,
@@ -89,6 +103,7 @@ export class Hud {
     const showGameChrome = state.phase === "playing";
     this.brandText.setVisible(showGameChrome);
     this.statusText.setVisible(showGameChrome);
+    this.stageText.setVisible(showGameChrome);
     this.timeText.setVisible(showGameChrome);
     this.bestText.setVisible(showGameChrome);
     this.hintText.setVisible(showGameChrome);
@@ -100,18 +115,24 @@ export class Hud {
 
     this.layout(state);
     const difficulty = difficultyAt(state.elapsedMs);
+    const overflow = overflowPresentationAt(state.elapsedMs);
     this.brandText.setText("await CODEX");
     this.timeText.setText(formatSurvivalTime(state.elapsedMs));
     this.bestText.setText(`BEST  ${formatSurvivalTime(localBest)}`);
     this.statusText.setText(
       state.arena.width < 640
-        ? `■ SIM RUN  ·  STAGE ${difficulty.stage.toString().padStart(2, "0")}`
-        : `■ TASK RUNNING  ·  SIM RUN  ·  STAGE ${difficulty.stage
-            .toString()
-            .padStart(2, "0")}  ·  ${state.attacksDodged
+        ? `■ SIM RUN  ·  ${state.attacksDodged.toString().padStart(3, "0")} CLEARED`
+        : `■ TASK RUNNING  ·  SIM RUN  ·  ${state.attacksDodged
             .toString()
             .padStart(3, "0")} CLEARED`,
     );
+    this.stageText
+      .setText(
+        overflow.active
+          ? "STAGE 10  ·  CONTEXT // OVERFLOW"
+          : `STAGE ${difficulty.stage.toString().padStart(2, "0")}`,
+      )
+      .setColor(overflow.active ? TEXT_COLORS.danger : TEXT_COLORS.muted);
     this.hintText.setText(
       `WASD / ARROWS  MOVE   ·   ESC  EXIT   ·   M  ${muted ? "SOUND ON" : "MUTE"}`,
     );
@@ -129,6 +150,7 @@ export class Hud {
 
     this.brandText.setPosition(padding, padding);
     this.statusText.setPosition(padding, padding + 21);
+    this.stageText.setPosition(width / 2, padding + 1);
     this.timeText.setPosition(width - padding, padding - 3);
     this.bestText.setPosition(width - padding, padding + 27);
     this.hintText.setPosition(padding, height - Math.max(16, padding * 0.55));
@@ -139,6 +161,7 @@ export class Hud {
 
     this.brandText.setFontSize(compact ? 11 : 12);
     this.statusText.setFontSize(compact ? 8 : 9);
+    this.stageText.setFontSize(compact ? 8 : 9);
     this.timeText.setFontSize(compact ? 19 : 24);
     this.bestText.setFontSize(compact ? 8 : 9);
     this.hintText.setFontSize(compact ? 7 : 8);

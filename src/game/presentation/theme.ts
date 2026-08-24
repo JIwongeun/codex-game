@@ -9,6 +9,8 @@ export const COLORS = {
   border: 0xd4d4d0,
   soft: 0xf2f2ef,
   shadow: 0x111111,
+  overflowWash: 0xfff8f7,
+  overflowDanger: 0xb83d45,
 } as const;
 
 export const TEXT_COLORS = {
@@ -17,6 +19,7 @@ export const TEXT_COLORS = {
   faint: "#9a9a96",
   border: "#d4d4d0",
   surface: "#ffffff",
+  danger: "#b83d45",
 } as const;
 
 export const ATTACK_TONES = {
@@ -60,4 +63,5 @@ export const RENDER_DEPTHS = {
   blackout: 8,
   blackoutLabel: 9,
   player: 10,
+  overflowTransition: 20,
 } as const;

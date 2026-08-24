@@ -19,6 +19,7 @@ const MUSIC_GAIN = {
   lead: 0.016,
   bass: 0.013,
   pulse: 0.005,
+  overflow: 0.006,
 } as const;
 const MUSIC_LEAD_MIDI: readonly (number | null)[] = [
   64,
@@ -155,6 +156,19 @@ export class SoundService {
           durationSeconds: 0.025,
           gain: MUSIC_GAIN.pulse,
           wave: "square",
+        },
+        true,
+      );
+    }
+
+    if (stage === GAMEPLAY.maxStage && step % 8 === 0) {
+      this.play(
+        {
+          frequency: 96,
+          endFrequency: 82,
+          durationSeconds: 0.32,
+          gain: MUSIC_GAIN.overflow,
+          wave: "sine",
         },
         true,
       );

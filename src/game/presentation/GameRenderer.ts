@@ -26,6 +26,7 @@ import {
   pointInsideVisibleBlackout,
 } from "./blackoutPresentation";
 import { BlueScreenOverlay } from "./BlueScreenOverlay";
+import { overflowPresentationAt } from "./overflowPresentation";
 import {
   ATTACK_TONES,
   COLORS,
@@ -115,6 +116,7 @@ export class GameRenderer {
   private readonly blackoutLayer: Phaser.GameObjects.Graphics;
   private readonly playerLayer: Phaser.GameObjects.Graphics;
   private readonly effectsLayer: Phaser.GameObjects.Graphics;
+  private readonly overflowTransitionLayer: Phaser.GameObjects.Graphics;
   private readonly endingOverlay: BlueScreenOverlay;
   private readonly projectileLabels = new Map<number, RichLabelView>();
   private readonly hazardLabels = new Map<number, RichLabelView>();
@@ -134,6 +136,10 @@ export class GameRenderer {
     this.effectsLayer = scene.add.graphics().setDepth(RENDER_DEPTHS.effects);
     this.blackoutLayer = scene.add.graphics().setDepth(RENDER_DEPTHS.blackout);
     this.playerLayer = scene.add.graphics().setDepth(RENDER_DEPTHS.player);
+    this.overflowTransitionLayer = scene.add
+      .graphics()
+      .setDepth(RENDER_DEPTHS.overflowTransition)
+      .setBlendMode(Phaser.BlendModes.DIFFERENCE);
     const parent = scene.game.canvas.parentElement ?? document.body;
     this.endingOverlay = new BlueScreenOverlay(parent);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -171,6 +177,7 @@ export class GameRenderer {
     this.blackoutLayer.clear();
     this.playerLayer.clear();
     this.effectsLayer.clear();
+    this.overflowTransitionLayer.clear();
 
     this.drawHazards(state);
     this.drawSequences(state);
@@ -188,6 +195,7 @@ export class GameRenderer {
     this.syncBlackoutViews(state);
     this.drawPlayer(state);
     this.drawEffects();
+    this.drawOverflowTransition(state);
     this.endingOverlay.render(state.ending);
 
     if (this.hitFlashMs > 0) {
@@ -210,9 +218,83 @@ export class GameRenderer {
   }
 
   private drawBackground(state: GameState): void {
+    const overflow = overflowPresentationAt(state.elapsedMs);
+    const active = state.phase === "playing" && overflow.active;
     this.background.clear();
-    this.background.fillStyle(COLORS.background, 1);
+    this.background.fillStyle(
+      active ? COLORS.overflowWash : COLORS.background,
+      1,
+    );
     this.background.fillRect(0, 0, state.arena.width, state.arena.height);
+
+    if (!active) {
+      return;
+    }
+
+    const { width, height } = state.arena;
+    const inset = 2;
+    const cornerLength = Math.min(34, Math.max(22, height * 0.028));
+    const tickLength = Math.min(12, Math.max(7, height * 0.008));
+    this.background.lineStyle(2, COLORS.overflowDanger, overflow.frameAlpha);
+    this.background.strokeRect(inset, inset, width - inset * 2, height - inset * 2);
+    this.background.lineStyle(
+      2,
+      COLORS.overflowDanger,
+      Math.min(0.62, overflow.frameAlpha + 0.2),
+    );
+
+    for (const x of [inset, width - inset]) {
+      const direction = x === inset ? 1 : -1;
+      this.background.lineBetween(x, inset, x + cornerLength * direction, inset);
+      this.background.lineBetween(
+        x,
+        height - inset,
+        x + cornerLength * direction,
+        height - inset,
+      );
+    }
+    for (const y of [inset, height - inset]) {
+      const direction = y === inset ? 1 : -1;
+      this.background.lineBetween(inset, y, inset, y + cornerLength * direction);
+      this.background.lineBetween(
+        width - inset,
+        y,
+        width - inset,
+        y + cornerLength * direction,
+      );
+    }
+
+    this.background.lineStyle(1, COLORS.overflowDanger, overflow.frameAlpha + 0.08);
+    for (const ratio of [0.18, 0.32, 0.68, 0.82]) {
+      const x = width * ratio;
+      const y = height * ratio;
+      this.background.lineBetween(x, inset, x + tickLength, inset);
+      this.background.lineBetween(x, height - inset, x + tickLength, height - inset);
+      this.background.lineBetween(inset, y, inset, y + tickLength);
+      this.background.lineBetween(width - inset, y, width - inset, y + tickLength);
+    }
+  }
+
+  private drawOverflowTransition(state: GameState): void {
+    if (state.phase !== "playing") {
+      return;
+    }
+
+    const overflow = overflowPresentationAt(state.elapsedMs);
+    if (overflow.inversionAlpha <= 0) {
+      return;
+    }
+
+    this.overflowTransitionLayer.fillStyle(
+      COLORS.background,
+      overflow.inversionAlpha,
+    );
+    this.overflowTransitionLayer.fillRect(
+      0,
+      0,
+      state.arena.width,
+      state.arena.height,
+    );
   }
 
   private drawHazards(state: GameState): void {

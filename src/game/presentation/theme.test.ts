@@ -13,5 +13,8 @@ describe("RENDER_DEPTHS", () => {
       RENDER_DEPTHS.blackout,
     );
     expect(RENDER_DEPTHS.player).toBeGreaterThan(RENDER_DEPTHS.blackout);
+    expect(RENDER_DEPTHS.overflowTransition).toBeGreaterThan(
+      RENDER_DEPTHS.player,
+    );
   });
 });
