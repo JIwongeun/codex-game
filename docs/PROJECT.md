@@ -44,6 +44,7 @@
 - 첫 방문은 가입·로그인·닉네임 입력 없이 익명으로 시작
 - 이동은 `WASD` 또는 방향키 사용
 - 시작·재시작은 클릭 또는 Space
+- Game 중 `Tab`은 browser 기본 focus 이동을 막고 pause·재개를 toggle한다. Start에서는 volume slider의 keyboard 접근을 위해 기본 Tab 이동을 유지한다.
 - `Esc`는 현재 run을 기록하지 않고 Start 대기화면으로 복귀
 - Start의 `SFX VOLUME`과 `BGM VOLUME` slider가 두 음원군을 각각 조절하며 둘 다 기본 50%다. hover는 옅은 검정 사각 outline, click·keyboard focus는 진한 검정 사각 outline으로 표시한다. `↑`·`↓`로 두 slider를 이동하고 `←`·`→` 또는 `A`·`D`로 5%씩 조절하며 `M`은 즉시 전체 음소거
 - 종료 후 현재 생존 시간과 Guest session 최고 기록을 표시
@@ -54,7 +55,7 @@
 - 대각선 입력은 정규화해 직선보다 빠르지 않게 하며 가속과 관성은 사용하지 않는다.
 - 플레이어는 화면 경계를 넘지 않는다.
 - 화면에는 내부 glyph와 inset이 없는 12×12 black square를 player avatar로 직접 그리며 실제 OS cursor는 항상 기본 상태를 유지한다.
-- 탭 blur/hidden pause 중에는 simulation과 타이머를 동결하고 held movement key를 초기화한다. 복귀 후 클릭 또는 Space로 재개한다.
+- browser tab·window blur/hidden pause 중에는 simulation과 타이머를 동결하고 held movement key를 초기화한다. 페이지로 복귀하면 Canvas focus를 복원하며 `Tab`, 클릭 또는 Space로 재개한다.
 - 직선 공격은 보이는 명령어 외곽과 같은 방향으로 회전하는 사각 hitbox를 사용하고 player는 작은 원형 hitbox를 사용한다.
 - 프레임률과 관계없이 60 Hz 고정 timestep으로 이동과 충돌을 판정한다.
 

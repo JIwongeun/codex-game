@@ -39,7 +39,7 @@
 - 첫 방문자는 계정, 닉네임, 프로필 생성 없이 게스트로 시작한다.
 - 한 번 피격되면 종료하며 생존 시간을 기록한다. 4분을 버티면 task-crash ending 뒤 정상 완주로 종료한다.
 - 조작은 `WASD`와 방향키다. 실제 OS cursor는 게임 판정에 사용하지 않는다.
-- 클릭 또는 Space는 시작·재시작·pause 해제에 사용한다.
+- 클릭 또는 Space는 시작·재시작·pause 해제에 사용한다. Game 중 `Tab`은 browser focus 이동을 막고 pause·재개를 toggle하며 Start에서는 volume control 접근을 위해 기본 Tab 이동을 유지한다.
 - `Esc`는 현재 run을 기록하지 않고 즉시 시작 대기 화면으로 돌아간다.
 - 사용자에게 보이는 완전한 화면은 시작 화면과 게임 화면 두 개뿐이다. 내부 `results` phase는 마지막 run 정보를 보존하는 논리 상태이며 별도 결과 화면을 만들지 않고 시작 화면에 `LAST RUN`과 피격 원인만 갱신한다.
 - blur/hidden pause에서는 simulation과 타이머를 멈추고 held movement key를 비운다.
@@ -113,7 +113,7 @@ pnpm check
 - major pattern onset 360ms 간격과 동시 major family 3개 상한
 - `rm *` blackout 720ms warning 뒤에만 시야 차단
 - 범위 공격 warning 무해·active 치명
-- blur/hidden pause와 held-key reset
+- blur/hidden pause·Game 중 Tab pause toggle·복귀 시 Canvas focus 복원과 held-key reset
 - 개발 전용 `?qaElapsedSeconds=84` Stage 8 조합 공격 확인
 - production build에서 개발 query가 무시됨
 

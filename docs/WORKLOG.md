@@ -2,6 +2,25 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Tab pause toggle과 gameplay focus 복원
+
+### 구현
+
+- Game 중 `Tab`의 browser 기본 focus 이동을 차단하고 pause·재개 toggle로 연결
+- browser blur/hidden 뒤 page focus가 돌아오면 Canvas에 programmatic focus를 복원해 Space·click·Tab 재개 입력을 게임이 받도록 수정
+- Start에서는 volume slider keyboard 접근을 위해 기본 Tab 이동을 유지
+- Game HUD와 pause overlay에 `TAB PAUSE`·`TAB / SPACE / CLICK TO CONTINUE` 안내 반영
+
+### 검증
+
+- Ready에서는 Tab 기본 동작을 유지하고 Game에서는 repeat 없는 Tab만 pause toggle로 소비하는 입력 회귀 test 통과
+- InputController·FocusPauseController 2개 test file의 5개 test와 typecheck 통과
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 146개 test, production build와 verifier 완료
+
+### 남은 확인
+
+- production 배포와 실제 browser tab 전환 수동 확인 필요
+
 ## 2026-08-25 — Stage 10 적색 비상등과 3회 siren
 
 ### 구현

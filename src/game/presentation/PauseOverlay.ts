@@ -23,7 +23,7 @@ export class PauseOverlay {
 
     const action = document.createElement("p");
     action.className = "pause-overlay__action";
-    action.textContent = "CLICK / SPACE TO CONTINUE  ·  ESC TO EXIT";
+    action.textContent = "TAB / SPACE / CLICK TO CONTINUE  ·  ESC TO EXIT";
 
     copy.append(title, this.timeText, action);
     this.element.append(copy);

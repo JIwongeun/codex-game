@@ -75,7 +75,11 @@ export class GameScene extends Phaser.Scene {
         this.soundService.unlock();
       },
     );
-    this.inputController = new InputController(this);
+    this.game.canvas.tabIndex = -1;
+    this.inputController = new InputController(
+      this,
+      () => this.state.phase === "playing",
+    );
     this.focusPause = new FocusPauseController(
       this.fixedStep,
       this.inputController,
@@ -99,6 +103,21 @@ export class GameScene extends Phaser.Scene {
       if (!muted) {
         this.soundService.unlock();
       }
+    }
+
+    if (
+      this.inputController.consumePauseToggle() &&
+      this.state.phase === "playing"
+    ) {
+      if (this.focusPause.isPaused) {
+        this.soundService.unlock();
+        this.focusPause.resume();
+      } else {
+        this.soundService.pauseMusic();
+        this.focusPause.suspend(this.state.phase);
+      }
+      this.renderFrame(0);
+      return;
     }
 
     if (
@@ -214,6 +233,9 @@ export class GameScene extends Phaser.Scene {
 
   private readonly handleFocus = (): void => {
     this.focusPause.focus();
+    if (this.state.phase === "playing") {
+      this.game.canvas.focus({ preventScroll: true });
+    }
   };
 
   private readonly handleResize = (gameSize: Phaser.Structs.Size): void => {

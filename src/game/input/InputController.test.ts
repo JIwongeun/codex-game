@@ -96,4 +96,30 @@ describe("InputController keyboard input", () => {
     expect(controller.consumeMuteToggle()).toBe(true);
     expect(controller.consumeMuteToggle()).toBe(false);
   });
+
+  it("captures Tab as a pause toggle only while gameplay is active", () => {
+    const input = new TestInput();
+    let gameplayActive = false;
+    const controller = new InputController(
+      { input } as unknown as Phaser.Scene,
+      () => gameplayActive,
+    );
+
+    const readyTab = key("Tab");
+    input.keyboard.emit("keydown", readyTab);
+    expect(readyTab.preventDefault).not.toHaveBeenCalled();
+    expect(controller.consumePauseToggle()).toBe(false);
+
+    gameplayActive = true;
+    const gameplayTab = key("Tab");
+    input.keyboard.emit("keydown", gameplayTab);
+    expect(gameplayTab.preventDefault).toHaveBeenCalledOnce();
+    expect(controller.consumePauseToggle()).toBe(true);
+    expect(controller.consumePauseToggle()).toBe(false);
+
+    const repeatedTab = key("Tab", true);
+    input.keyboard.emit("keydown", repeatedTab);
+    expect(repeatedTab.preventDefault).toHaveBeenCalledOnce();
+    expect(controller.consumePauseToggle()).toBe(false);
+  });
 });

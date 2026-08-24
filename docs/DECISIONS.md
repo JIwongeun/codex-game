@@ -2,6 +2,14 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-055 — Game 중 Tab을 pause toggle로 소유하고 복귀 focus를 Canvas로 되돌린다
+
+- 날짜: 2026-08-25
+- 상태: 확정
+- 배경: Game에서 `Tab`의 browser 기본 동작이 주소창·toolbar control로 focus를 이동시켰고, 그 상태에서 Space를 누르면 게임 재개 대신 focus된 browser action이 실행될 수 있었다. browser tab을 떠났다 돌아온 뒤에도 같은 focus 이탈이 남을 수 있었다.
+- 결정: `playing` phase에서만 `Tab` 기본 동작을 막고 edge-triggered pause·재개 toggle로 처리한다. blur/hidden 뒤 page focus가 돌아오면 gameplay Canvas에 programmatic focus를 복원하며 기존 Space·click 재개도 유지한다. Start에서는 SFX·BGM slider keyboard 접근을 위해 기본 Tab 순회를 막지 않는다.
+- 결과: Game 중 `Tab`을 반복해도 browser chrome으로 focus가 빠지지 않고, tab/window 전환 뒤에도 `Tab`·Space·click으로 같은 frozen 위치에서 안전하게 재개한다.
+
 ## D-054 — Stage 10 transition은 적색 비상등과 3회 siren이다
 
 - 날짜: 2026-08-25

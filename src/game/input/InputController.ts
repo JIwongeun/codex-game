@@ -25,10 +25,14 @@ export class InputController {
   private readonly movementCodes = new Set<string>();
   private touchGesture: TouchGesture | null = null;
   private actionPending = false;
+  private pauseTogglePending = false;
   private exitPending = false;
   private muteTogglePending = false;
 
-  constructor(private readonly scene: Phaser.Scene) {
+  constructor(
+    private readonly scene: Phaser.Scene,
+    private readonly isGameplayActive: () => boolean = () => true,
+  ) {
     this.keyboard = scene.input.keyboard;
 
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown);
@@ -73,6 +77,12 @@ export class InputController {
     return pending;
   }
 
+  consumePauseToggle(): boolean {
+    const pending = this.pauseTogglePending;
+    this.pauseTogglePending = false;
+    return pending;
+  }
+
   consumeExit(): boolean {
     const pending = this.exitPending;
     this.exitPending = false;
@@ -81,6 +91,7 @@ export class InputController {
 
   clearTransient(): void {
     this.actionPending = false;
+    this.pauseTogglePending = false;
     this.exitPending = false;
     this.muteTogglePending = false;
     this.touchGesture = null;
@@ -146,6 +157,14 @@ export class InputController {
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.code === "Tab" && this.isGameplayActive()) {
+      event.preventDefault();
+      if (!event.repeat) {
+        this.pauseTogglePending = true;
+      }
+      return;
+    }
+
     if (
       event.code === "Space" ||
       event.code === "Escape" ||
