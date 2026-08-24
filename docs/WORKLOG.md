@@ -2,6 +2,23 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — Track 1 제출 패키지와 라이선스 릴리스 gate
+
+### 구현
+
+- 공식 Track 1 페이지·실제 신청서·참가 약관을 다시 확인하고 제목, 171자 게임 소개, 공개 링크, 썸네일, 데모 영상 shot list와 5,000자 이내 Codex 협업 설명을 `docs/SUBMISSION.md`에 정리
+- Phaser, eventemitter3, Phaser에 포함된 Matter.js와 Pretendard의 저작권·라이선스 전문을 `public/THIRD_PARTY_LICENSES.txt`로 추가하고 HTML `rel="license"`로 연결
+- 검색 색인 억제를 위한 `public/robots.txt`를 추가하고 production verifier가 license link·전문과 robots 규칙을 release gate로 확인하도록 보강
+
+### 검증
+
+- 변경 전 기준 `pnpm check` 통과: typecheck, 전체 16개 test file의 131개 test, production build와 production verifier 완료
+- `pnpm audit --prod`와 전체 `pnpm audit` 모두 알려진 취약점 0건
+- 공개 Sites v39와 HEAD `50c061c`의 source·asset 일치, sessionStorage 사용, QA query·source map·명백한 secret·browser console warning/error 없음 확인
+- 정상 200 static asset에는 Worker 보안 header가 적용되지 않는 Sites routing 제한을 재현했고 HTML meta CSP·referrer·robots와 무입력·무backend 구조를 근거로 accepted risk로 문서화
+- license·robots 추가 뒤 최종 `pnpm check` 재통과: typecheck, 전체 16개 test file의 131개 test, 100개 client file production build·verifier 완료
+- commit·push·production 배포와 live license·robots smoke test 필요
+
 ## 2026-08-24 — FHD/QHD 고해상도 Canvas profile
 
 ### 구현

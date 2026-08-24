@@ -6,6 +6,8 @@ const requiredPaths = [
   "dist/server/wrangler.json",
   "dist/client/index.html",
   "dist/client/og.png",
+  "dist/client/robots.txt",
+  "dist/client/THIRD_PARTY_LICENSES.txt",
   ".openai/hosting.json",
 ];
 
@@ -55,6 +57,31 @@ for (const requiredFaviconMarkup of [
     throw new Error(
       `Initial HTML favicon is missing: ${requiredFaviconMarkup}`,
     );
+  }
+}
+
+if (!html.includes('rel="license" href="/THIRD_PARTY_LICENSES.txt"')) {
+  throw new Error("Production license link is missing.");
+}
+
+const robots = await readFile("dist/client/robots.txt", "utf8");
+if (!robots.includes("User-agent: *") || !robots.includes("Disallow: /")) {
+  throw new Error("Production robots.txt does not block indexing.");
+}
+
+const thirdPartyLicenses = await readFile(
+  "dist/client/THIRD_PARTY_LICENSES.txt",
+  "utf8",
+);
+for (const requiredNotice of [
+  "Phaser 3.90.0",
+  "eventemitter3 5.0.4",
+  "Matter.js",
+  "Pretendard 1.3.9",
+  "SIL OPEN FONT LICENSE Version 1.1",
+]) {
+  if (!thirdPartyLicenses.includes(requiredNotice)) {
+    throw new Error(`Third-party license notice is missing: ${requiredNotice}`);
   }
 }
 const publicOgUrl =
@@ -130,7 +157,7 @@ if (ogStat.size > maximumSubmissionImageBytes) {
 }
 
 console.log(
-  `Production verified: ${clientFiles.length} client files, session-only best, Worker security headers, initial and runtime favicon, ${width}x${height} OG image (${ogStat.size} bytes), no QA query.`,
+  `Production verified: ${clientFiles.length} client files, session-only best, license notices, robots policy, Worker security headers, initial and runtime favicon, ${width}x${height} OG image (${ogStat.size} bytes), no QA query.`,
 );
 
 async function filesBelow(directory) {

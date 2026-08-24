@@ -7,7 +7,11 @@
 | 항목 | 버전 | 용도 | 라이선스·출처 |
 | --- | --- | --- | --- |
 | Phaser | 3.90.0 | Canvas 게임 runtime | MIT, Copyright 2024 Richard Davey, Phaser Studio Inc., `node_modules/phaser/LICENSE.md` |
+| eventemitter3 | 5.0.4 | Phaser event runtime dependency | MIT, Copyright 2014 Arnout Kazemier, `node_modules/.pnpm/eventemitter3@5.0.4/node_modules/eventemitter3/LICENSE` |
+| Matter.js | bundled with Phaser | Phaser package에 포함된 physics runtime | MIT, Copyright Liam Brummitt and contributors, `node_modules/phaser/src/physics/matter-js/lib/license.js` |
 | Pretendard | 1.3.9 | HUD와 Codex surface 서체 | SIL Open Font License 1.1, Kil Hyung-jin, [orioncactus/pretendard](https://github.com/orioncactus/pretendard) |
+
+배포물에는 위 저작권 고지와 라이선스 전문을 합친 `public/THIRD_PARTY_LICENSES.txt`를 포함하고 HTML의 `rel="license"`로 연결한다.
 
 ## development 도구
 
