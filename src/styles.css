@@ -143,7 +143,8 @@ body {
 .ready-footer,
 .ready-hero__eyebrow,
 .ready-spec dt,
-.ready-action {
+.ready-action,
+.ready-volume {
   font-family: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Monaco,
     Consolas, "Liberation Mono", monospace;
 }
@@ -289,6 +290,33 @@ body {
   font-size: 0.58rem;
 }
 
+.ready-volume {
+  display: grid;
+  width: max-content;
+  grid-template-columns: auto 152px 34px;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 0 3px;
+  pointer-events: auto;
+  color: #777773;
+  font-size: 0.58rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+}
+
+.ready-volume input {
+  width: 152px;
+  height: 12px;
+  margin: 0;
+  accent-color: #287a50;
+  cursor: pointer;
+}
+
+.ready-volume output {
+  color: #287a50;
+  text-align: right;
+}
+
 .ready-footer {
   position: absolute;
   z-index: 2;
@@ -397,6 +425,10 @@ body {
   .ready-action {
     margin-top: 24px;
   }
+
+  .ready-volume {
+    margin-top: 14px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -466,6 +498,16 @@ body {
 
   .ready-action > span:last-child {
     display: none;
+  }
+
+  .ready-volume {
+    grid-template-columns: auto 120px 32px;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .ready-volume input {
+    width: 120px;
   }
 
   .ready-footer {

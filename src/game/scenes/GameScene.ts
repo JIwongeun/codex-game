@@ -59,7 +59,17 @@ export class GameScene extends Phaser.Scene {
     this.hud = new Hud(this, textResolution);
     const gameParent = this.game.canvas.parentElement ?? document.body;
     this.pauseOverlay = new PauseOverlay(gameParent);
-    this.readyOverlay = new ReadyOverlay(gameParent);
+    this.readyOverlay = new ReadyOverlay(
+      gameParent,
+      this.soundService.volume,
+      (volume) => {
+        this.soundService.setVolume(volume);
+        if (volume > 0 && this.soundService.isMuted) {
+          this.soundService.toggleMute();
+        }
+        this.soundService.unlock();
+      },
+    );
     this.inputController = new InputController(this);
     this.focusPause = new FocusPauseController(
       this.fixedStep,

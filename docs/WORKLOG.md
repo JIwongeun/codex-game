@@ -2,6 +2,23 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — 단일 master volume과 전체 출력 보강
+
+### 구현
+
+- Start 화면에 BGM과 효과음을 함께 조절하는 0–100% `MASTER VOLUME` slider 하나를 추가하고 현재 page lifetime 동안 값을 유지
+- Web Audio tone별 gain 앞에 공통 master gain을 연결해 기본 80%에서 기존 출력의 약 1.6배, 최대 100%에서 약 2배가 되도록 조정하면서 BGM·warning·hit의 상대 balance는 유지
+- slider의 pointer·keyboard event가 게임 시작이나 이동 입력으로 전달되지 않게 분리하고, 양수 값 조절은 기존 `M` mute 상태를 해제한 뒤 AudioContext를 unlock하도록 연결
+- 기존 `M` 즉시 음소거, pause·game over music 중단과 active tone disconnect 동작은 유지
+
+### 검증
+
+- 관련 SoundService·ReadyOverlay 2개 test file의 17개 test와 별도 typecheck 통과
+- master gain 기본값·조절·0–100% clamp와 BGM·효과음 공통 연결 회귀 test 추가
+- 최종 `pnpm check` 통과: typecheck, 전체 16개 test file의 132개 test, production build와 production verifier 완료
+- 실제 스피커·헤드폰에서의 체감 음량과 slider 시각 배치는 아직 사용자 수동 확인 전
+- 사용자 후속 요청에 따라 이 변경을 commit·push·production 배포 대상으로 전환
+
 ## 2026-08-24 — Track 1 제출 패키지와 라이선스 릴리스 gate
 
 ### 구현

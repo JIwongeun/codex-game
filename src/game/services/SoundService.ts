@@ -12,6 +12,8 @@ interface Tone {
 
 const MUSIC_BASE_BPM = 132;
 const MUSIC_BPM_PER_STAGE = 4;
+const DEFAULT_MASTER_VOLUME = 0.8;
+const MASTER_GAIN_AT_MAX_VOLUME = 2;
 const MUSIC_GAIN = {
   lead: 0.016,
   bass: 0.013,
@@ -55,6 +57,7 @@ const MUSIC_BASS_MIDI = [40, 40, 43, 38, 40, 43, 45, 47] as const;
 
 export class SoundService {
   private context: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   private readonly activeGains = new Set<GainNode>();
   private readonly activeMusicGains = new Set<GainNode>();
   private musicStep = 0;
@@ -63,9 +66,14 @@ export class SoundService {
   private musicRunning = false;
   private endingActive = false;
   private muted = false;
+  private masterVolume = DEFAULT_MASTER_VOLUME;
 
   get isMuted(): boolean {
     return this.muted;
+  }
+
+  get volume(): number {
+    return this.masterVolume;
   }
 
   syncMusic(playing: boolean, elapsedMs: number): void {
@@ -165,6 +173,11 @@ export class SoundService {
 
     try {
       this.context ??= new AudioContext();
+      if (!this.masterGain) {
+        this.masterGain = this.context.createGain();
+        this.updateMasterGain();
+        this.masterGain.connect(this.context.destination);
+      }
 
       if (this.context.state === "suspended") {
         void this.context.resume().catch(() => undefined);
@@ -182,6 +195,11 @@ export class SoundService {
     }
 
     return this.muted;
+  }
+
+  setVolume(volume: number): void {
+    this.masterVolume = Math.min(1, Math.max(0, volume));
+    this.updateMasterGain();
   }
 
   consume(events: readonly GameEvent[]): void {
@@ -300,6 +318,8 @@ export class SoundService {
 
   destroy(): void {
     this.stopActiveTones();
+    this.masterGain?.disconnect();
+    this.masterGain = null;
 
     if (this.context) {
       const context = this.context;
@@ -315,7 +335,11 @@ export class SoundService {
 
     this.unlock();
 
-    if (!this.context || this.context.state !== "running") {
+    if (
+      !this.context ||
+      !this.masterGain ||
+      this.context.state !== "running"
+    ) {
       return;
     }
 
@@ -333,7 +357,7 @@ export class SoundService {
     gain.gain.setValueAtTime(tone.gain, startTime);
     gain.gain.exponentialRampToValueAtTime(0.0001, endTime);
     oscillator.connect(gain);
-    gain.connect(this.context.destination);
+    gain.connect(this.masterGain);
     this.activeGains.add(gain);
     if (music) {
       this.activeMusicGains.add(gain);
@@ -580,6 +604,17 @@ export class SoundService {
     this.musicStage = 1;
     this.nextMusicStepMs = 0;
     this.musicRunning = false;
+  }
+
+  private updateMasterGain(): void {
+    if (!this.context || !this.masterGain) {
+      return;
+    }
+
+    this.masterGain.gain.setValueAtTime(
+      this.masterVolume * MASTER_GAIN_AT_MAX_VOLUME,
+      this.context.currentTime,
+    );
   }
 }
 

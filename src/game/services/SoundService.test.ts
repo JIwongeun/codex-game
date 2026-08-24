@@ -76,6 +76,27 @@ describe("SoundService", () => {
     expect(FakeAudioContext.instances).toHaveLength(0);
   });
 
+  it("uses one louder master volume for music and effects", () => {
+    const sound = new SoundService();
+
+    expect(sound.volume).toBe(0.8);
+    sound.unlock();
+    const context = FakeAudioContext.instances[0];
+    const masterGain = context?.gains[0];
+    expect(masterGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1.6, 4);
+
+    sound.setVolume(0.25);
+    expect(sound.volume).toBe(0.25);
+    expect(masterGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(0.5, 4);
+
+    sound.consume(RUN_STARTED);
+    expect(context?.gains[1]?.connect).toHaveBeenCalledWith(masterGain);
+
+    sound.setVolume(2);
+    expect(sound.volume).toBe(1);
+    expect(masterGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(2, 4);
+  });
+
   it("plays one procedural music step once and advances with game time", () => {
     const sound = new SoundService();
 
@@ -105,7 +126,7 @@ describe("SoundService", () => {
 
     sound.unlock();
     sound.syncMusic(true, 0);
-    const gains = FakeAudioContext.instances[0]?.gains.map(
+    const gains = FakeAudioContext.instances[0]?.gains.slice(1).map(
       (gain) => gain.gain.setValueAtTime.mock.calls[0]?.[0],
     );
 
@@ -136,7 +157,7 @@ describe("SoundService", () => {
     sound.unlock();
     sound.syncMusic(true, 0);
     const context = FakeAudioContext.instances[0];
-    const firstStepGains = context?.gains.slice() ?? [];
+    const firstStepGains = context?.gains.slice(1) ?? [];
     const firstStepOscillators = context?.oscillators.length ?? 0;
 
     sound.pauseMusic();
@@ -284,10 +305,10 @@ describe("SoundService", () => {
     const context = FakeAudioContext.instances[0];
     expect(context?.oscillators[0]?.start).toHaveBeenCalledOnce();
     expect(context?.oscillators[0]?.stop).toHaveBeenCalledOnce();
-    expect(context?.gains[0]?.connect).toHaveBeenCalledOnce();
+    expect(context?.gains[1]?.connect).toHaveBeenCalledOnce();
 
     sound.toggleMute();
-    expect(context?.gains[0]?.disconnect).toHaveBeenCalledOnce();
+    expect(context?.gains[1]?.disconnect).toHaveBeenCalledOnce();
   });
 
   it("resumes a suspended context and closes it on destroy", () => {

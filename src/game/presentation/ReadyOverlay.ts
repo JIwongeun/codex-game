@@ -135,7 +135,11 @@ export class ReadyOverlay {
   private readonly lastRunValue: HTMLElement;
   private readonly actionSuffix: HTMLElement;
 
-  constructor(parent: HTMLElement) {
+  constructor(
+    parent: HTMLElement,
+    initialVolume: number,
+    onVolumeChange: (volume: number) => void,
+  ) {
     this.root = document.createElement("section");
     this.root.className = "ready-overlay";
     this.root.setAttribute("aria-label", "await CODEX 시작 화면");
@@ -175,6 +179,19 @@ export class ReadyOverlay {
           <strong>CLICK OR PRESS SPACE</strong>
           <span data-ready-action-suffix>TO START RUN</span>
         </div>
+
+        <label class="ready-volume">
+          <span>MASTER VOLUME</span>
+          <input
+            id="await-codex-master-volume"
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value="${Math.round(initialVolume * 100)}"
+          />
+          <output for="await-codex-master-volume" data-ready-volume-output>${Math.round(initialVolume * 100)}%</output>
+        </label>
       </main>
 
       <footer class="ready-footer">
@@ -190,9 +207,36 @@ export class ReadyOverlay {
     const actionSuffix = this.root.querySelector<HTMLElement>(
       "[data-ready-action-suffix]",
     );
-    if (!bestValue || !lastRunValue || !actionSuffix) {
+    const volumeInput = this.root.querySelector<HTMLInputElement>(
+      "#await-codex-master-volume",
+    );
+    const volumeOutput = this.root.querySelector<HTMLOutputElement>(
+      "[data-ready-volume-output]",
+    );
+    if (
+      !bestValue ||
+      !lastRunValue ||
+      !actionSuffix ||
+      !volumeInput ||
+      !volumeOutput
+    ) {
       throw new Error("Ready overlay status targets were not found.");
     }
+
+    volumeInput.addEventListener("input", () => {
+      const volume = Number(volumeInput.value) / 100;
+      volumeOutput.textContent = `${volumeInput.value}%`;
+      onVolumeChange(volume);
+    });
+    volumeInput.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+    volumeInput.addEventListener("keydown", (event) => {
+      event.stopPropagation();
+    });
+    volumeInput.addEventListener("keyup", (event) => {
+      event.stopPropagation();
+    });
 
     this.bestValue = bestValue;
     this.lastRunValue = lastRunValue;
