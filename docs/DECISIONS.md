@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-047 — volume hover·focus를 사각 outline으로 구분하고 ↑/↓로 channel을 이동한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-046의 focused keyboard control을 보강
+- 배경: 검정 rail과 handle만으로는 마우스가 올라간 control과 실제 keyboard target이 구분되지 않았다. SFX와 BGM 사이를 바꾸려면 다시 마우스를 클릭해야 해 keyboard 조절 흐름도 끊겼다.
+- 결정: volume row hover 중에는 range input 바깥에 24% black 사각 outline을 표시하고 click 또는 keyboard focus 뒤에는 100% black 사각 outline을 유지한다. focus 상태에서 `↑`는 SFX input, `↓`는 BGM input으로 이동하며 `←`·`→`·`A`·`D`의 5% 조절과 Game 진입 blur는 유지한다.
+- 결과: pointer hover와 실제 선택 상태가 같은 직사각형 문법의 대비로 구분된다. 한 slider를 클릭한 뒤 네 방향키만으로 channel 선택과 음량 조절을 모두 끝낼 수 있다.
+
 ## D-046 — 독립 volume은 50%로 시작하고 focus 뒤 방향키와 A/D를 받는다
 
 - 날짜: 2026-08-24
-- 상태: 확정, D-045의 최대 gain 5는 유지하고 default 20%만 대체
+- 상태: 확정, D-047이 hover·focus outline과 `↑`·`↓` channel 이동을 보강. D-045의 최대 gain 5는 유지하고 default 20%만 대체
 - 배경: 확장된 음량 범위는 충분했지만 매번 20%에서 올리기보다 SFX와 BGM을 모두 50%에서 시작하는 편이 현재 원하는 청취 기준에 맞다. 마우스 drag만으로 미세 조절하는 것보다 선택한 control을 키보드로 이어서 조절할 필요도 있다.
 - 결정: SFX와 BGM default를 각각 50%로 변경한다. slider를 마우스로 클릭해 focus하면 `←`·`A`는 5% 감소, `→`·`D`는 5% 증가시키며 0–100% 경계에서 clamp한다. Start가 숨겨져 Game으로 진입하면 두 slider를 blur해 `A`·`D`가 즉시 player 이동으로 돌아가게 한다. channel gain `slider × 5`, 독립 channel과 `M` mute는 유지한다.
 - 결과: 새로고침 직후 두 값은 50%이고 mouse drag 뒤 keyboard로 연속 조절할 수 있다. 같은 키가 Start volume과 Game movement에 동시에 작동하지 않는다.

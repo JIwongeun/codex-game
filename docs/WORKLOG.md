@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — volume hover·focus outline과 ↑/↓ channel 이동
+
+### 구현
+
+- volume row hover에 24% black 사각 outline, click·keyboard focus에 100% black 사각 outline 적용
+- focus 상태에서 `↑`는 SFX, `↓`는 BGM input으로 이동하고 기존 `←`·`→`·`A`·`D` 5% 조절 유지
+- Game 진입 시 blur로 volume focus와 gameplay movement를 분리하는 동작 유지
+
+### 검증
+
+- ReadyOverlay 단독 5개 test와 typecheck 통과
+- Up/Down focus 방향과 기존 Left/Right/A/D mapping 회귀 test 통과
+- 최종 `pnpm check` 통과: typecheck, 16개 test file의 134개 test, production build와 verifier 완료
+- 실제 browser hover·click outline 감각은 사용자 수동 확인 전
+
 ## 2026-08-24 — volume 50% default와 focus keyboard 조절
 
 ### 구현

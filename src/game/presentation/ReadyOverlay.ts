@@ -139,6 +139,16 @@ export function volumeStepDirection(key: string): -1 | 0 | 1 {
   return 0;
 }
 
+export function volumeFocusDirection(key: string): -1 | 0 | 1 {
+  if (key === "ArrowUp") {
+    return -1;
+  }
+  if (key === "ArrowDown") {
+    return 1;
+  }
+  return 0;
+}
+
 export class ReadyOverlay {
   private readonly root: HTMLElement;
   private readonly bestValue: HTMLElement;
@@ -202,7 +212,7 @@ export class ReadyOverlay {
               max="100"
               step="5"
               value="${Math.round(initialSfxVolume * 100)}"
-              aria-keyshortcuts="ArrowLeft ArrowRight A D"
+              aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight A D"
             />
             <output for="await-codex-sfx-volume" data-ready-sfx-volume-output>${Math.round(initialSfxVolume * 100)}%</output>
           </label>
@@ -215,7 +225,7 @@ export class ReadyOverlay {
               max="100"
               step="5"
               value="${Math.round(initialMusicVolume * 100)}"
-              aria-keyshortcuts="ArrowLeft ArrowRight A D"
+              aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight A D"
             />
             <output for="await-codex-music-volume" data-ready-music-volume-output>${Math.round(initialMusicVolume * 100)}%</output>
           </label>
@@ -276,6 +286,16 @@ export class ReadyOverlay {
       });
       input.addEventListener("keydown", (event) => {
         event.stopPropagation();
+        const focusDirection = volumeFocusDirection(event.key);
+        if (focusDirection !== 0) {
+          event.preventDefault();
+          if (focusDirection < 0) {
+            sfxVolumeInput.focus();
+          } else {
+            musicVolumeInput.focus();
+          }
+          return;
+        }
         const direction = volumeStepDirection(event.key);
         if (direction === 0) {
           return;

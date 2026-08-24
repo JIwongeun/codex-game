@@ -4,8 +4,18 @@ import { createGameState, startRun } from "../core/simulation";
 import {
   createAmbientPath,
   startScreenView,
+  volumeFocusDirection,
   volumeStepDirection,
 } from "./ReadyOverlay";
+
+describe("volumeFocusDirection", () => {
+  it("maps up and down arrows to the SFX and BGM rows", () => {
+    expect(volumeFocusDirection("ArrowUp")).toBe(-1);
+    expect(volumeFocusDirection("ArrowDown")).toBe(1);
+    expect(volumeFocusDirection("ArrowLeft")).toBe(0);
+    expect(volumeFocusDirection("w")).toBe(0);
+  });
+});
 
 describe("volumeStepDirection", () => {
   it("maps arrows and A/D to the focused slider direction", () => {
