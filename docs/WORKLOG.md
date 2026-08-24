@@ -2,6 +2,39 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — Approval 문장 정렬과 독립 반화면 Download Access
+
+### 구현
+
+- `[approval] DENY`, `REVIEW`, `ALLOW ONCE`, `ALLOW SESSION`의 9px Pretendard token stroke와 8px 여유를 반영해 opening 폭을 각각 94·103·138·153 logical px로 분리
+- approval label의 container 중심을 wall 좌표와 opening 중심에 직접 배치해 가로·세로 wall 모두 문구, 보이는 빈칸과 collision opening이 같은 geometry를 사용하도록 변경
+- QHD·FHD logical arena에서는 Stage 10까지 네 opening을 유지하고 wall 하나·1.4초 warning·player보다 느린 속도는 유지
+- Compaction의 추가 사각 장판으로 숨어 있던 `FULL ACCESS`를 제거하고 Stage 8 독립 `DOWNLOAD ACCESS` timer와 major family로 분리
+- 상·하·좌·우 중 무작위 반 화면이 3.3초 동안 browser-blue loading fill로 차오른 뒤 720ms red `ACCESS!` active 영역이 되도록 state·collision·renderer·browser token 문법을 재설계
+- approval의 양방향 major 격리를 제거해 다른 pattern과 함께 실행되도록 하되, 360ms onset 간격과 서로 다른 active major family 세 개 상한은 유지
+
+### 검증
+
+- 문장별 opening 폭, 가로·세로 label 중심 정렬, 네 반 화면 geometry와 sector seed 분포, loading warning 무해·ACCESS active 피격, compaction과 독립 spawn, approval과 다른 major 동시 실행 회귀 테스트 추가
+- QHD 반 화면 최장 이탈 시간보다 download warning이 250ms 이상 긴 수치 불변식 확인
+- 최종 `pnpm check` 통과: typecheck, 15개 test file의 119개 test, production build와 production verifier 완료
+- 실제 QHD 화면의 wall label 여백과 loading fill 체감은 사용자가 배포본에서 직접 확인
+
+## 2026-08-24 — 링크 공유 카드와 웹사이트 icon 통일
+
+### 구현
+
+- `public/og.png` 왼쪽에 남아 있던 이전 다중 회전 frame mark를 제거하고 Start header·initial SVG favicon·runtime PNG favicon과 같은 black square·inner frame·단일 45° white context loop·violet core로 교체
+- 기존 1672×941 카드의 제목, 본문, attack motif와 Open Graph·Twitter absolute URL은 변경하지 않음
+- 디자인·제출 checklist와 결정 기록에 링크 미리보기, browser tab, Start header가 같은 original game mark를 사용한다는 기준을 명시
+
+### 검증
+
+- 변경 전후 PNG 차이가 왼쪽 icon의 178×178 영역으로만 제한되고 나머지 카드 pixel은 동일함을 확인
+- 최종 `pnpm check` 통과: typecheck, 14개 test file의 114개 test, production build와 production verifier 완료
+- source와 `dist/client/og.png` SHA-256 일치, 1672×941 RGB PNG·723,011 bytes, production HTML의 `og:image`·`twitter:image` absolute URL 유지 확인
+- 요청 범위에 따라 stage·commit·push·production 배포는 수행하지 않음
+
 ## 2026-08-24 — Approval 긴급 공정성 조정과 QHD logical viewport 정규화
 
 ### 구현

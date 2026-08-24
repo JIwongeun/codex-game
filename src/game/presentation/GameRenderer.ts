@@ -2,6 +2,8 @@ import Phaser from "phaser";
 
 import { GAMEPLAY } from "../constants";
 import {
+  approvalGateLabelPlacement,
+  approvalGateLabelText,
   approvalGateDisplayPosition,
   approvalGateSegments,
 } from "../core/approvalGate";
@@ -182,7 +184,7 @@ export class GameRenderer {
       if (hazard.kind === "compaction") {
         this.drawCompaction(hazard);
       } else {
-        this.drawFullAccess(hazard);
+        this.drawDownloadAccess(hazard);
       }
     }
   }
@@ -250,46 +252,57 @@ export class GameRenderer {
     );
   }
 
-  private drawFullAccess(hazard: AreaHazardState): void {
+  private drawDownloadAccess(hazard: AreaHazardState): void {
     const { x, y, width, height } = this.hazardRect(hazard);
     const active = hazard.phase === "active";
     const progress = active
       ? 1
       : Phaser.Math.Clamp(
-          1 - hazard.remainingMs / GAMEPLAY.fullAccessTelegraphMs,
+          1 - hazard.remainingMs / GAMEPLAY.downloadAccessTelegraphMs,
           0,
           1,
         );
-    const tone = ATTACK_TONES.codex.value;
+    const warningTone = ATTACK_TONES.browserAccent.value;
+    const activeTone = ATTACK_TONES.browserError.value;
+    const tone = active ? activeTone : warningTone;
 
-    this.world.fillStyle(
-      active ? COLORS.ink : tone,
-      active ? 0.11 : 0.012 + progress * 0.018,
-    );
+    this.world.fillStyle(tone, active ? 0.14 : 0.018);
     this.world.fillRect(x, y, width, height);
-    this.world.lineStyle(1, active ? COLORS.ink : tone, active ? 0.86 : 0.3);
+    this.world.lineStyle(active ? 2 : 1, tone, active ? 0.92 : 0.52);
     this.world.strokeRect(x, y, width, height);
-    this.drawCornerBrackets(
-      x,
-      y,
-      width,
-      height,
-      active ? COLORS.ink : tone,
-      active ? 0.96 : 0.48 + progress * 0.34,
-      13,
-    );
 
     if (!active) {
-      const scanY = y + height * progress;
-      this.world.lineStyle(1, tone, 0.18 + progress * 0.3);
-      this.world.lineBetween(x + 8, scanY, x + width - 8, scanY);
-      this.world.fillStyle(tone, 0.54 + progress * 0.32);
-      this.world.fillRect(x, y, 3, Math.max(2, height * progress));
+      const sector = hazard.accessSector ?? "left";
+      let fillX = x;
+      let fillY = y;
+      let fillWidth = width;
+      let fillHeight = height;
+      if (sector === "left") {
+        fillWidth = width * progress;
+      } else if (sector === "right") {
+        fillWidth = width * progress;
+        fillX = x + width - fillWidth;
+      } else if (sector === "top") {
+        fillHeight = height * progress;
+      } else {
+        fillHeight = height * progress;
+        fillY = y + height - fillHeight;
+      }
+      this.world.fillStyle(warningTone, 0.035 + progress * 0.075);
+      this.world.fillRect(fillX, fillY, fillWidth, fillHeight);
+      this.world.lineStyle(2, warningTone, 0.64 + progress * 0.28);
+      if (sector === "left" || sector === "right") {
+        const scanX = sector === "left" ? fillX + fillWidth : fillX;
+        this.world.lineBetween(scanX, y, scanX, y + height);
+      } else {
+        const scanY = sector === "top" ? fillY + fillHeight : fillY;
+        this.world.lineBetween(x, scanY, x + width, scanY);
+      }
       return;
     }
 
     for (let offset = -height; offset < width; offset += 16) {
-      this.world.lineStyle(1, COLORS.ink, 0.12);
+      this.world.lineStyle(1, activeTone, 0.22);
       this.world.lineBetween(
         x + Math.max(0, offset),
         y + Math.max(0, -offset),
@@ -719,7 +732,7 @@ export class GameRenderer {
       const telegraphMs =
         hazard.kind === "compaction"
           ? GAMEPLAY.compactionTelegraphMs
-          : GAMEPLAY.fullAccessTelegraphMs;
+          : GAMEPLAY.downloadAccessTelegraphMs;
       const progress = active
         ? 1
         : Phaser.Math.Clamp(1 - hazard.remainingMs / telegraphMs, 0, 1);
@@ -729,22 +742,26 @@ export class GameRenderer {
             ? "[context] COMPACTION FAILED"
             : `[context] compacting ${Math.round(progress * 100)}%`
           : active
-            ? "[approval] FULL ACCESS GRANTED"
-            : `[approval] FULL ACCESS? ${Math.round(progress * 100)}%`;
+            ? "[access] ACCESS!"
+            : `[download] loading ${Math.round(progress * 100)}%`;
       const labelPosition =
         hazard.kind === "compaction"
           ? {
               x: rect.x + rect.width / 2,
               y: rect.y + rect.height / 2 + 34,
             }
-          : { x: rect.x + 108, y: rect.y + 18 };
+          : {
+              x: rect.x + rect.width / 2,
+              y: rect.y + rect.height / 2,
+            };
 
       this.updateRichLabel(view, {
-        surface: "codex",
+        surface: hazard.kind === "compaction" ? "codex" : "browser",
         label: text,
-        fontFamily: FONTS.sans,
-        fontSize: 11,
-        fontStyle: "500",
+        fontFamily:
+          hazard.kind === "compaction" ? FONTS.sans : FONTS.browser,
+        fontSize: hazard.kind === "compaction" ? 11 : active ? 18 : 14,
+        fontStyle: active ? "700" : "600",
       });
       view.container
         .setPosition(
@@ -832,14 +849,9 @@ export class GameRenderer {
     const activeIds = new Set<number>();
 
     for (const gate of state.approvalGates) {
-      const displayGate = {
-        ...gate,
-        position: approvalGateDisplayPosition(gate, state.arena),
-      };
-      const rotation = Math.abs(gate.direction.x) > 0 ? -Math.PI / 2 : 0;
-
       for (let index = 0; index < gate.gaps.length; index += 1) {
         const gap = gate.gaps[index]!;
+        const placement = approvalGateLabelPlacement(gate, gap, state.arena);
         const id = gate.id * 10 + index;
         activeIds.add(id);
         let view = this.approvalGateLabels.get(id);
@@ -849,7 +861,7 @@ export class GameRenderer {
         }
         this.updateRichLabel(view, {
           surface: "codex",
-          label: `[approval] ${gap.label}`,
+          label: approvalGateLabelText(gap.label),
           fontFamily: FONTS.sans,
           fontSize: 9,
           fontStyle: "600",
@@ -857,18 +869,10 @@ export class GameRenderer {
         });
         view.container
           .setPosition(
-            Math.round(
-              Math.abs(gate.direction.x) > 0
-                ? displayGate.position.x + gate.direction.x * 18
-                : gap.center,
-            ),
-            Math.round(
-              Math.abs(gate.direction.x) > 0
-                ? gap.center
-                : displayGate.position.y + gate.direction.y * 18,
-            ),
+            Math.round(placement.position.x),
+            Math.round(placement.position.y),
           )
-          .setRotation(rotation)
+          .setRotation(placement.rotation)
           .setAlpha(gate.telegraphRemainingMs > 0 ? 0.52 : 0.96)
           .setVisible(true);
       }
@@ -1292,26 +1296,6 @@ export class GameRenderer {
         2,
       );
     }
-  }
-
-  private drawCornerBrackets(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    color: number,
-    alpha: number,
-    size: number,
-  ): void {
-    this.world.lineStyle(1, color, alpha);
-    this.world.lineBetween(x, y, x + size, y);
-    this.world.lineBetween(x, y, x, y + size);
-    this.world.lineBetween(x + width, y, x + width - size, y);
-    this.world.lineBetween(x + width, y, x + width, y + size);
-    this.world.lineBetween(x, y + height, x + size, y + height);
-    this.world.lineBetween(x, y + height, x, y + height - size);
-    this.world.lineBetween(x + width, y + height, x + width - size, y + height);
-    this.world.lineBetween(x + width, y + height, x + width, y + height - size);
   }
 
   private hazardRect(hazard: AreaHazardState): {

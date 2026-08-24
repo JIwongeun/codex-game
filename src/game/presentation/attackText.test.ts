@@ -56,6 +56,18 @@ describe("attackTextTokens", () => {
       text: "502",
       role: "browserError",
     });
+    expect(attackTextTokens("browser", "[download] loading 72%")).toEqual([
+      { text: "[download]", role: "browserMeta" },
+      { text: " ", role: "ink" },
+      { text: "loading", role: "ink" },
+      { text: " ", role: "ink" },
+      { text: "72%", role: "browserMeta" },
+    ]);
+    expect(attackTextTokens("browser", "[access] ACCESS!")).toEqual([
+      { text: "[access]", role: "browserMeta" },
+      { text: " ", role: "ink" },
+      { text: "ACCESS!", role: "browserError" },
+    ]);
     expect(attackTextTokens("codex", "[context] 84% used")).toEqual([
       { text: "[context]", role: "codexToken" },
       { text: " ", role: "ink" },

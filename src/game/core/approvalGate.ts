@@ -1,13 +1,52 @@
 import type {
+  ApprovalGateGap,
   ApprovalGateState,
   ArenaBounds,
   RectangleHitbox,
   Vec2,
 } from "./model";
 
+const APPROVAL_GATE_GAP_SIZES: Record<ApprovalGateGap["label"], number> = {
+  "ALLOW ONCE": 138,
+  "ALLOW SESSION": 153,
+  REVIEW: 103,
+  DENY: 94,
+};
+
 export interface ApprovalGateSegment {
   position: Vec2;
   hitbox: RectangleHitbox;
+}
+
+export interface ApprovalGateLabelPlacement {
+  position: Vec2;
+  rotation: number;
+}
+
+export function approvalGateGapSize(label: ApprovalGateGap["label"]): number {
+  return APPROVAL_GATE_GAP_SIZES[label];
+}
+
+export function approvalGateLabelText(label: ApprovalGateGap["label"]): string {
+  return `[approval] ${label}`;
+}
+
+export function approvalGateLabelPlacement(
+  gate: ApprovalGateState,
+  gap: ApprovalGateGap,
+  arena: ArenaBounds,
+): ApprovalGateLabelPlacement {
+  const wallPosition = approvalGateDisplayPosition(gate, arena);
+  if (Math.abs(gate.direction.x) > 0) {
+    return {
+      position: { x: wallPosition.x, y: gap.center },
+      rotation: -Math.PI / 2,
+    };
+  }
+  return {
+    position: { x: gap.center, y: wallPosition.y },
+    rotation: 0,
+  };
 }
 
 export function approvalGateSegments(

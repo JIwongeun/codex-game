@@ -118,6 +118,7 @@
 - [x] 첫 로딩 후 오류 없음
 - [x] font API 미지원·reject·1.5초 timeout에서도 game boot 계속
 - [x] original context-loop PNG favicon이 production bundle에 포함
+- [x] Open Graph·Twitter 공유 카드가 favicon·Start header와 같은 original game mark 사용
 - [x] 조작법 표시
 - [ ] 별도 로그인 상태가 없는 브라우저에서 실제 플레이 확인
 - [ ] 다른 PC 또는 휴대폰 네트워크에서 접속

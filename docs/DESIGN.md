@@ -10,9 +10,10 @@
 
 공격 이름과 움직임은 분리될 수 없다. 이름을 다른 개발 용어로 바꿔도 성립하는 공격은 다시 설계한다.
 
-- `APPROVAL REQUIRED`는 요청 시점의 player 축 위치 근처 opening을 포함한 3–4개 승인 opening을 고정하고, player보다 느린 wall로 선택 시간을 준다.
+- `APPROVAL REQUIRED`는 요청 시점의 player 축 위치 근처 opening을 포함한 네 승인 opening을 문장 길이에 맞춰 고정하고, player보다 느린 wall로 선택 시간을 준다.
 - `RETRY`는 실패할 때마다 다음 attempt의 player 위치를 다시 snapshot하고 속도를 높인 뒤, 마지막 attempt가 끝나면 비치명 `RETRY COMPLETE` 상태로 짧게 마감한다.
 - `CONTEXT COMPACTION`은 넓은 frame 안의 context row를 한 점으로 압축한 뒤 실패하며 token 파편을 사방으로 잃어버린다.
+- `DOWNLOAD ACCESS`는 화면의 상·하·좌·우 반쪽 중 하나를 loading fill로 점유한 뒤 `ACCESS!`로 활성화한다.
 - `REASONING: XHIGH`는 긴 thinking 동안 후보 경로를 가지치기하고 마지막 safe sector만 남긴 inward response wave로 응답한다.
 - `PARALLEL AGENTS`는 같은 작업 지점을 화면 반대편에서 동시에 차지하려 한다.
 - `REVIEW / FIX LOOP`는 finding을 고친 직후 `ONE MORE ISSUE`를 전방위로 다시 만든다.
@@ -90,7 +91,7 @@
 
 ### 화면 상태
 
-- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·session best와 하나의 실행 CTA로 구성한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 viewport 바깥에서 생성되어 반대 edge 바깥까지, 플레이보다 느린 34–56초 속도로 흐른다. 최초 진입에서도 animation 중간 지점부터 갑자기 나타나지 않는다.
+- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon과 Open Graph·Twitter 공유 카드에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·session best와 하나의 실행 CTA로 구성한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 viewport 바깥에서 생성되어 반대 edge 바깥까지, 플레이보다 느린 34–56초 속도로 흐른다. 최초 진입에서도 animation 중간 지점부터 갑자기 나타나지 않는다.
 - Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 session best, 하단 이동·`Esc` 복귀·음소거 조작과 fictional feed 고지만 유지한다.
 - Pause는 별도 화면이 아니라 마지막 Game 장면 위의 일시적인 blur 계층이다.
 
@@ -104,20 +105,21 @@
 - Slack·Windows·macOS·ChatGPT의 실제 음원, sample과 고유 notification melody를 복제하지 않는다. 익숙한 짧은 attack·간격·상승/하강 contour만 E minor 기반 original motif로 재구성한다.
 - 외부 음원 파일과 음악 dependency를 사용하지 않고 Web Audio oscillator로 실시간 합성한다.
 
-## 8개 Codex 경험 공격 패턴
+## 9개 Codex 경험 공격 패턴
 
 | 해금 | 패턴 | 화면 문구 | 행동과 개연성 |
 |---|---|---|---|
 | Stage 1 | `TOOL CALL STREAM` | `$ rg --files -g AGENTS.md`, `[tool] rereading same file`, `ERR_*` 등 | player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge로 흐른다. 실제 작업 surface의 로그가 방향 예고 없이 화면을 가로지른다. |
-| Stage 2 | `APPROVAL REQUIRED` | `[approval] ALLOW ONCE`, `ALLOW SESSION`, `REVIEW`, `DENY` | 1.4초 warning 뒤 player보다 느린 permission wall 하나가 edge에서 들어온다. 3–4개 opening은 생성 시 고정되고 하나는 player 축 위치에서 도달 가능하다. 이 pattern이 살아 있는 동안 다른 major는 시작하지 않는다. |
+| Stage 2 | `APPROVAL REQUIRED` | `[approval] ALLOW ONCE`, `ALLOW SESSION`, `REVIEW`, `DENY` | 1.4초 warning 뒤 player보다 느린 permission wall 하나가 edge에서 들어온다. 네 opening은 문장 실제 폭보다 8px 여유 있게 생성되고 label과 같은 중심을 쓰며, 하나는 player 축 위치에서 도달 가능하다. |
 | Stage 3 | `CONTEXT COMPACTION` | `[context] compacting 0–100%` → `COMPACTION FAILED` → `[tok] ...` | 기존 대비 가로·세로 1.5배인 snapshot frame 안에서 context row와 중첩 frame이 한 점으로 수축한다. 실패 순간 frame 전체가 장판으로 변하지 않고 12–20개의 짧은 token 파편이 서로 다른 속도로 튄 뒤 수평 감속·중력을 받아 포물선으로 떨어진다. |
 | Stage 4 | `RETRY LOOP` | `[tool] retry 1/3`, `FAILED · retry 2/3`, `RETRY COMPLETE · 3/3` | 한 attempt 동안 목표를 고정하고 실패 지점에 도달하면 560ms warning 뒤 현재 player 위치를 다시 snapshot한다. 후반에는 최대 5회이며 매번 1.12배 빨라진다. 마지막 attempt 뒤에는 판정을 끄고 420ms completion 표시 후 제거한다. |
 | Stage 5 | `REASONING: XHIGH` | `[effort] xhigh · 8/4/2 paths` → `finalizing` → `[answer] final` | 2.1초 동안 후보 방향을 8→4→2→1로 가지치기해 생성 순간 정한 safe sector를 보여준다. 이후 얇은 response annulus가 viewport 바깥에서 center로 수축하며 그 sector만 무해하다. |
 | Stage 6 | `PARALLEL AGENTS` | `[agent 1] working`, `[agent 2] working` | 같은 snapshot을 향해 화면 반대편 agent 두 개가 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
 | Stage 7 | `REVIEW / FIX LOOP` | 여러 `[review] Pn finding` → `[fix] ... reviewing again` → `ONE MORE ISSUE` | 네 finding이 한 지점으로 모이고, 수정 완료 순간 8–16개 새 issue가 원형 발산한다. 반복 review마다 새 문제를 찾는 경험을 행동으로 만든다. |
+| Stage 8 | `DOWNLOAD ACCESS` | `[download] loading 0–100%` → `[access] ACCESS!` | 상·하·좌·우 중 무작위 반 화면이 browser-blue로 3.3초간 채워지고 완료 뒤 red active 영역이 720ms 유지된다. player 위치를 조준하지 않으며 가장 먼 QHD 지점에서도 반대 절반으로 이탈할 시간이 있다. |
 | Stage 8 | `USAGE LIMIT` | 여러 `[usage] -N%` → `[usage] N% left` → `5H LIMIT REACHED`·`WEEKLY LIMIT REACHED`·`RESETS IN 4 DAYS` | 4–8개 usage 감소가 player snapshot으로 수렴하고, seed로 정해진 실제 limit 결말이 12–20개 탄으로 원형 발산한다. |
 
-`TOOL CALL`, `CONTEXT TOKEN`, `AGENT`, `FINDING`, `LIMIT`은 projectile kind와 회전 사각 hitbox를 사용한다. `APPROVAL`은 gap이 있는 screen gate, `RETRY`는 attempt chain, `REASONING`은 safe sector가 있는 swept annulus 전용 state다. `COMPACTION` frame은 warning/failed visual state를 갖지만 큰 frame 자체는 치명 영역이 아니며, 실패 때 생성된 `CONTEXT TOKEN`이 실제 판정을 담당한다. `REVIEW LOOP`와 `USAGE LIMIT`은 수렴 완료 시 projectile을 생성하는 sequence state다.
+`TOOL CALL`, `CONTEXT TOKEN`, `AGENT`, `FINDING`, `LIMIT`은 projectile kind와 회전 사각 hitbox를 사용한다. `APPROVAL`은 gap이 있는 screen gate, `RETRY`는 attempt chain, `REASONING`은 safe sector가 있는 swept annulus 전용 state다. `COMPACTION` frame은 warning/failed visual state를 갖지만 큰 frame 자체는 치명 영역이 아니며, 실패 때 생성된 `CONTEXT TOKEN`이 실제 판정을 담당한다. `DOWNLOAD ACCESS`는 arena 절반의 browser loading fill과 active 판정을 가진 독립 hazard다. `REVIEW LOOP`와 `USAGE LIMIT`은 수렴 완료 시 projectile을 생성하는 sequence state다.
 
 ### 공격군 차별화 재설계 기준
 
@@ -128,6 +130,7 @@
 | `TOOL CALL STREAM` | 실제 작업 문구가 임의 edge를 계속 가로지르는 유일한 일반 text 탄막 | 작은 방향 전환으로 흐름 피하기 | 현재 baseline 유지 |
 | `APPROVAL REQUIRED` | permission wall이 3–4개의 서로 떨어진 approval opening을 남김 | 가까운 opening을 고르고 wall보다 빠르게 위치를 맞춤 | 적용 완료 |
 | `CONTEXT COMPACTION` | 넓은 context frame과 row가 중심으로 수축한 뒤 token 조각이 물풍선처럼 튀고 아래로 쏟아짐 | frame에서 이탈한 뒤 낙하 파편 사이를 다시 회피 | 적용 완료 |
+| `DOWNLOAD ACCESS` | 화면 경계부터 상·하·좌·우 반쪽 하나를 채우는 loading fill과 `ACCESS!` 반화면 | 긴 loading 동안 중앙 경계를 넘어 안전한 반쪽으로 이탈 | 적용 완료 |
 | `RETRY LOOP` | 한 chain이 매 실패 때 목표를 다시 잡고 더 빨라짐 | attempt warning마다 새 경로를 읽고 시간차 회피 | 적용 완료 |
 | `REASONING: XHIGH` | 후보 sector를 8→4→2→1로 가지치기하고 gap이 있는 inward wave로 전환 | safe sector 각도를 따라 이동 | 적용 완료 |
 | `PARALLEL AGENTS` | 반대 edge의 agent pair가 같은 snapshot을 교차하며 축별 corridor를 만듦 | 교차축 사이의 열린 corridor를 따라가기 | 적용 완료 |
@@ -149,9 +152,9 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 | 5 | 48–59.99초 | safe-sector `REASONING: XHIGH` 해금 |
 | 6 | 60–71.99초 | `PARALLEL AGENTS` 1 pair 해금, retry 4회 |
 | 7 | 72–83.99초 | `REVIEW / FIX LOOP` 4개 수렴·8방향 발산 해금 |
-| 8 | 84–95.99초 | `USAGE LIMIT` 4개 수렴·12방향 발산, 세 limit 결말 중 하나 선택, compaction 2개 조합 |
+| 8 | 84–95.99초 | 독립 `DOWNLOAD ACCESS` 반화면과 `USAGE LIMIT` 4개 수렴·12방향 발산, 세 limit 결말 중 하나 선택 |
 | 9 | 96–107.99초 | `rm *` blackout 해금, retry 5회, review 12방향, usage 6개·16방향 |
-| 10 | 108초 이후 | compaction 3개, agent 3 pair, review 16방향, usage 8개·20방향, blackout 최대 4개와 최대 속도·최저 간격 |
+| 10 | 108초 이후 | download access 최저 간격, agent 3 pair, review 16방향, usage 8개·20방향, blackout 최대 4개와 최대 속도·최저 간격 |
 
 단계 사이에서 속도와 생성 간격은 연속 보간한다. 해금·동시 수·분할 수는 표의 stage 경계에서만 바뀐다.
 
@@ -159,9 +162,10 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 
 - 모든 조준·영역·수렴 공격은 치명 단계 전에 경로 또는 진행률을 보인다.
 - 기본 `TOOL CALL STREAM`은 player를 조준하지 않고 방향 예고·rail도 표시하지 않는다. 생성 후 telegraph 시간 동안은 판정만 비활성이다.
-- approval의 3–4개 opening, reasoning center·safe sector와 한 retry attempt의 목표는 생성 뒤 추적하지 않는다. retry는 다음 attempt warning이 시작될 때만 새 위치를 snapshot한다.
+- approval의 네 opening, reasoning center·safe sector와 한 retry attempt의 목표는 생성 뒤 추적하지 않는다. retry는 다음 attempt warning이 시작될 때만 새 위치를 snapshot한다.
 - 서로 다른 major pattern onset은 최소 360ms 떨어지고 동시에 active한 major family는 세 개를 넘지 않는다. 기본 tool stream은 이 상한과 무관하다.
-- approval wall은 Stage 10에서도 378 logical px/s 이하로 player의 440 logical px/s보다 느리다. 다른 major가 남아 있으면 생성이 연기되고, wall이 살아 있는 동안 다른 major도 생성하지 않는다.
+- approval wall은 Stage 10에서도 378 logical px/s 이하로 player의 440 logical px/s보다 느리다. wall은 한 번에 하나만 유지하지만 다른 major와 독립적으로 실행되며 공통 360ms onset·세 family 상한을 따른다.
+- download access는 정확히 logical arena의 절반만 차지하고 3.3초 loading 중에는 무해하다. QHD 좌·우 반 화면의 최장 이탈 시간보다 250ms 이상 긴 warning을 유지한다.
 - `rm *`은 720ms outline warning 뒤에만 projectile을 가리며 warning 중 player와 projectile은 그대로 보인다. approval·retry·reasoning·area hazard처럼 경로 자체가 위험인 major geometry는 blackout 위에 계속 표시한다. Stage 10에서는 하나의 major family로 계산하면서 최대 4개까지 겹칠 수 있다.
 - blackout을 빠져나온 projectile은 180ms 동안 반투명하게 다시 드러나고 충돌이 유예된다. blackout 안에 남아 있는 player와 projectile 사이 판정은 계속 위험하다.
 - QHD `2560×1440`을 logical reference로 사용한다. FHD는 같은 arena를 `0.75×`로 표시하며 다른 화면비는 logical 높이 1440을 유지한다. 기준 logical 면적의 55%보다 작은 viewport는 모든 spawn interval을 1.22배 늘리고 projectile 속도는 유지한다.

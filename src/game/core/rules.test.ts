@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GAMEPLAY } from "../constants";
+import { DEFAULT_GAME_WIDTH, GAMEPLAY } from "../constants";
 import { difficultyAt, formatSurvivalTime } from "./rules";
 
 describe("survival rules", () => {
@@ -25,12 +25,10 @@ describe("survival rules", () => {
     expect(cap.progress).toBe(1);
     expect(start.stage).toBe(1);
     expect(cap.stage).toBe(10);
-    expect(start.compactionCount).toBe(1);
-    expect(cap.compactionCount).toBe(3);
     expect(
       difficultyAt(GAMEPLAY.approvalFirstSpawnMs).approvalGapCount,
     ).toBe(4);
-    expect(cap.approvalGapCount).toBe(3);
+    expect(cap.approvalGapCount).toBe(4);
     expect(cap.approvalSpeed).toBeLessThan(GAMEPLAY.playerSpeed);
     expect(cap.approvalIntervalMs).toBeGreaterThan(
       GAMEPLAY.approvalGateTelegraphMs +
@@ -44,6 +42,9 @@ describe("survival rules", () => {
     expect(cap.compactionFragmentCount).toBe(20);
     expect(start.compactionFragmentSpeed).toBeLessThan(
       cap.compactionFragmentSpeed,
+    );
+    expect(start.downloadAccessIntervalMs).toBeGreaterThan(
+      cap.downloadAccessIntervalMs,
     );
     expect(start.parallelAgentPairs).toBe(1);
     expect(cap.parallelAgentPairs).toBe(3);
@@ -59,13 +60,17 @@ describe("survival rules", () => {
     expect(cap.reasoningCollapseMs).toBeCloseTo(700);
   });
 
-  it("unlocks all eight Codex patterns across ten explicit stages", () => {
+  it("unlocks all nine Codex patterns across ten explicit stages", () => {
     expect(difficultyAt(0).approvalUnlocked).toBe(false);
     expect(difficultyAt(GAMEPLAY.approvalFirstSpawnMs).approvalUnlocked).toBe(
       true,
     );
     expect(
       difficultyAt(GAMEPLAY.compactionFirstSpawnMs).compactionUnlocked,
+    ).toBe(true);
+    expect(
+      difficultyAt(GAMEPLAY.downloadAccessFirstSpawnMs)
+        .downloadAccessUnlocked,
     ).toBe(true);
     expect(
       difficultyAt(GAMEPLAY.retryLoopFirstSpawnMs).retryLoopUnlocked,
@@ -83,6 +88,15 @@ describe("survival rules", () => {
       difficultyAt(GAMEPLAY.usageLimitFirstSpawnMs).usageLimitUnlocked,
     ).toBe(true);
     expect(difficultyAt(GAMEPLAY.difficultyRampMs).stage).toBe(10);
+  });
+
+  it("gives a full QHD half-screen download enough time to escape", () => {
+    const longestExitMs =
+      (DEFAULT_GAME_WIDTH / 2 / GAMEPLAY.playerSpeed) * 1_000;
+
+    expect(GAMEPLAY.downloadAccessTelegraphMs).toBeGreaterThan(
+      longestExitMs + 250,
+    );
   });
 
   it("teaches one blackout at stage nine and stacks four after stage ten", () => {

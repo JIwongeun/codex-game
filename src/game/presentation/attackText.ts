@@ -149,6 +149,12 @@ function browserTokens(label: string): AttackTextToken[] {
     if (/^\s+$/.test(text)) {
       return token(text, "ink");
     }
+    if (/^\[(download|access)\]$/i.test(text) || /^\d+%$/.test(text)) {
+      return token(text, "browserMeta");
+    }
+    if (/^ACCESS!$/i.test(text)) {
+      return token(text, "browserError");
+    }
     if (/^([45]\d{2}|ERR_[A-Z_]+|PAGE_[A-Z_]+)$/i.test(text)) {
       return token(text, "browserError");
     }

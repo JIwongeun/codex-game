@@ -100,6 +100,7 @@ const HIT_SOURCE_LABEL: Record<HitSource, string> = {
   agent: "PARALLEL AGENT",
   finding: "ONE MORE ISSUE",
   limit: "USAGE LIMIT",
+  access: "ACCESS GRANTED",
 };
 
 export interface StartScreenView {

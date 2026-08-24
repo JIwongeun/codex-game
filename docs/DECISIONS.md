@@ -2,10 +2,26 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-039 — Approval opening과 label을 하나의 geometry로 맞추고 반화면 Access를 독립시킨다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-037의 동일 opening 폭·major 단독 실행과 D-031의 compaction 다중 조합을 대체
+- 배경: 네 approval 문장의 길이가 다른데 opening은 모두 같은 폭이었고 label은 wall에서 18px 떨어져 있어 문구와 실제 안전 공간이 정렬되지 않았다. Compaction의 추가 개수로 생성되던 `FULL ACCESS`는 정체가 숨겨져 있었고 player 주변의 작은 사각 장판이라 별도 회피 문법도 약했다. Approval을 다른 major와 완전히 격리한 scheduler는 후반에도 여러 패턴이 동시에 실행되지 않는 체감을 만들었다.
+- 결정: approval opening은 9px Pretendard label의 token stroke와 8px 여유를 포함한 문장별 폭 94–153px을 사용하고 label 중심을 wall의 opening 중심에 정확히 둔다. QHD·FHD logical arena에서는 네 opening을 계속 유지하며 wall 하나·player보다 느린 속도는 유지한다. Approval의 양방향 major 격리를 제거하되 360ms onset 간격과 active major family 세 개 상한은 유지한다. `DOWNLOAD ACCESS`는 Compaction에서 분리해 Stage 8부터 상·하·좌·우 중 하나의 정확한 반 화면을 3.3초간 browser-blue loading fill로 예고한 뒤 720ms `ACCESS!` red active 영역으로 만드는 독립 major로 실행한다.
+- 결과: 보이는 문장의 길이와 통과 판정이 일치하고 edge warning에서도 label이 wall 안에 놓인다. Compaction은 항상 한 frame과 token burst만 담당하며 Access는 넓은 영역 이탈이라는 독자 회피 행동을 갖는다. 가장 먼 QHD 좌·우 반 화면에서도 player가 경계를 넘을 수 있는 3.3초가 주어지고, 후반 난이도는 단독 approval이 아니라 읽을 수 있게 stagger된 최대 세 패턴 조합에서 상승한다.
+
+## D-038 — 공유 미리보기와 웹사이트 game mark를 하나로 통일한다
+
+- 날짜: 2026-08-24
+- 상태: 확정
+- 배경: browser tab과 Start header는 black square·inner frame·white context loop·violet core로 구성한 현재 original mark를 사용하지만, `public/og.png`에는 회전 frame이 여러 겹인 이전 mark가 남아 링크 공유 카드와 실제 사이트의 첫인상이 달랐다.
+- 결정: Open Graph·Twitter 공유 카드의 왼쪽 mark를 현재 favicon과 같은 단일 45° white context loop, 저대비 inner frame과 violet core로 교체한다. 카드의 1672×941 비율, 문구와 나머지 공격 motif는 유지한다.
+- 결과: 링크 미리보기, browser tab과 Start header가 같은 game identity를 사용하며 OpenAI·Codex 제품 logo를 모사하지 않는 기존 원칙도 유지한다.
+
 ## D-037 — Approval wall은 QHD 기준의 느린 단독 다중-opening 패턴으로 운용한다
 
 - 날짜: 2026-08-24
-- 상태: 확정, D-034의 approval warning·단일 gap 수치를 대체
+- 상태: 일부 대체됨 — D-039가 문장별 opening 폭과 major 동시 실행 규칙을 변경
 - 배경: 단일 opening wall은 특히 위·아래에서 들어올 때 화면 너비 대비 opening 비율이 작고, Stage 10 wall 속도가 player보다 빨랐다. player snapshot에서 터지는 compaction·usage 계열과 동시에 발생하면 올바른 opening에 도달하는 경로 자체가 막혔다. 물리 FHD와 QHD를 그대로 simulation 좌표로 사용해 같은 공격의 화면 점유율과 이동 체감도 달랐다.
 - 결정: approval warning을 1.4초로 늘리고 한 번에 wall 하나만 생성하되 wall 안에 고정된 opening을 3–4개 만든다. 좁은 수직축에서는 최소 폭을 지키기 위해 3개, QHD·FHD 16:9 logical arena에서는 4개를 사용하며 하나는 생성 순간 player 축 위치에 배치한다. wall은 Stage 2의 약 306 logical px/s에서 Stage 10 최대 378 logical px/s까지만 올라 player의 440 logical px/s보다 항상 느리다. 생성 주기는 wall 횡단 시간보다 길게 두며, approval이 존재하면 다른 major를 시작하지 않고 다른 major가 남아 있을 때 approval도 시작하지 않는다. Canvas는 물리 viewport를 채우되 simulation은 QHD `2560×1440` 높이를 기준으로 정규화하고 FHD는 같은 arena를 zoom 0.75로 표시한다.
 - 결과: 가로·세로 wall 모두 여러 선택지가 있고 player가 warning 뒤에도 wall보다 빠르게 opening에 맞출 수 있다. compaction·usage·reasoning 같은 major와의 강제 양자택일이 사라지며, QHD와 FHD에서 개체 크기·속도·거리의 화면 비율이 같아진다. 다른 화면비는 logical 높이 1440을 유지하고 가로 범위만 조정해 letterbox를 만들지 않는다.

@@ -17,6 +17,7 @@ import type {
   AttackSurface,
   AttackSequenceState,
   ArenaBounds,
+  DownloadAccessSector,
   GameEvent,
   GameState,
   HitSource,
@@ -31,7 +32,10 @@ import type {
   ToolCallLabel,
   Vec2,
 } from "./model";
-import { approvalGateSegments } from "./approvalGate";
+import {
+  approvalGateGapSize,
+  approvalGateSegments,
+} from "./approvalGate";
 import { nextRandom, normalizeSeed } from "./random";
 import { difficultyAt } from "./rules";
 import { TOOL_CALL_ENTRIES } from "./toolCallCorpus";
@@ -101,6 +105,7 @@ const CONTEXT_TOKEN_LABELS = [
 const MAJOR_PATTERN_ORDER: readonly AttackPatternKind[] = [
   "approval-required",
   "context-compaction",
+  "download-access",
   "retry-loop",
   "reasoning-xhigh",
   "parallel-agents",
@@ -146,6 +151,7 @@ export function createGameState(
       toolCallMs: GAMEPLAY.toolCallFirstSpawnMs,
       approvalMs: GAMEPLAY.approvalFirstSpawnMs,
       compactionMs: GAMEPLAY.compactionFirstSpawnMs,
+      downloadAccessMs: GAMEPLAY.downloadAccessFirstSpawnMs,
       retryLoopMs: GAMEPLAY.retryLoopFirstSpawnMs,
       reasoningMs: GAMEPLAY.reasoningFirstSpawnMs,
       parallelAgentsMs: GAMEPLAY.parallelAgentsFirstSpawnMs,
@@ -194,14 +200,19 @@ export function resizeArena(
     if (hazard.kind === "compaction") {
       const size = fitSquareSize(hazard.hitbox.width, state.arena);
       hazard.hitbox = { width: size, height: size };
+      hazard.position = clampRectangleCenter(
+        hazard.position,
+        hazard.hitbox,
+        state.arena,
+      );
     } else {
-      hazard.hitbox = fitFullAccessHitbox(hazard.hitbox, state.arena);
+      const geometry = downloadAccessGeometry(
+        hazard.accessSector ?? "left",
+        state.arena,
+      );
+      hazard.position = geometry.position;
+      hazard.hitbox = geometry.hitbox;
     }
-    hazard.position = clampRectangleCenter(
-      hazard.position,
-      hazard.hitbox,
-      state.arena,
-    );
   }
 
   for (const sequence of state.sequences) {
@@ -224,8 +235,16 @@ export function resizeArena(
         ? previousArena.height
         : previousArena.width;
     const scale = perpendicularSize / previousPerpendicularSize;
+    const gapLimit = Math.max(
+      GAMEPLAY.playerRadius * 4,
+      perpendicularSize / Math.max(1, gate.gaps.length) - 12,
+    );
     gate.gaps = gate.gaps.map((gap) => {
-      const size = Math.min(perpendicularSize, gap.size * scale);
+      const size = Math.min(
+        perpendicularSize,
+        gapLimit,
+        approvalGateGapSize(gap.label),
+      );
       return {
         ...gap,
         center: clampAxis(gap.center * scale, perpendicularSize, size / 2),
@@ -467,7 +486,7 @@ function updateHazards(
       hazard.remainingMs =
         hazard.kind === "compaction"
           ? GAMEPLAY.compactionActiveMs
-          : GAMEPLAY.fullAccessActiveMs;
+          : GAMEPLAY.downloadAccessActiveMs;
       survivors.push(hazard);
       if (hazard.kind === "compaction") {
         const difficulty = difficultyAt(state.elapsedMs);
@@ -693,6 +712,7 @@ function spawnScheduledAttacks(
   state.spawn.toolCallMs -= stepMs;
   state.spawn.approvalMs -= stepMs;
   state.spawn.compactionMs -= stepMs;
+  state.spawn.downloadAccessMs -= stepMs;
   state.spawn.retryLoopMs -= stepMs;
   state.spawn.reasoningMs -= stepMs;
   state.spawn.parallelAgentsMs -= stepMs;
@@ -743,46 +763,30 @@ function spawnScheduledAttacks(
     difficulty.compactionUnlocked &&
     state.spawn.compactionMs <= 0
   ) {
-    const available = Math.min(
-      difficulty.compactionCount,
-      GAMEPLAY.maxHazards - state.hazards.length,
-    );
-    let spawnedPattern = false;
-    for (let index = 0; index < available; index += 1) {
-      if (index === 0) {
-        if (
-          spawnCompaction(
-            state,
-            difficulty.compactionSize,
-            state.player.position,
-          )
-        ) {
-          events.push({ type: "hazard-warning", kind: "compaction" });
-          spawnedPattern = true;
-        }
-        continue;
-      }
-
-      const accessHitbox = fitFullAccessHitbox(
-        {
-          width: GAMEPLAY.fullAccessWidth,
-          height: GAMEPLAY.fullAccessHeight,
-        },
-        state.arena,
-      );
-      const target =
-        index === 1
-          ? state.player.position
-          : randomRectangleCenter(state, accessHitbox);
-      if (spawnFullAccess(state, target, accessHitbox)) {
-        events.push({ type: "hazard-warning", kind: "full-access" });
-        spawnedPattern = true;
-      }
-    }
-    if (spawnedPattern) {
+    if (
+      spawnCompaction(
+        state,
+        difficulty.compactionSize,
+        state.player.position,
+      )
+    ) {
+      events.push({ type: "hazard-warning", kind: "compaction" });
       reserveMajorPattern("context-compaction");
     }
     state.spawn.compactionMs += difficulty.compactionIntervalMs * intervalScale;
+  }
+
+  if (
+    selectedMajorPattern === "download-access" &&
+    difficulty.downloadAccessUnlocked &&
+    state.spawn.downloadAccessMs <= 0
+  ) {
+    if (spawnDownloadAccess(state)) {
+      events.push({ type: "hazard-warning", kind: "download-access" });
+      reserveMajorPattern("download-access");
+    }
+    state.spawn.downloadAccessMs +=
+      difficulty.downloadAccessIntervalMs * intervalScale;
   }
 
   if (
@@ -900,17 +904,6 @@ function selectMajorPattern(
     return null;
   }
 
-  if (active.has("approval-required")) {
-    return null;
-  }
-
-  if (
-    active.size > 0 &&
-    majorPatternIsDue("approval-required", state, difficulty)
-  ) {
-    return null;
-  }
-
   if (
     active.has("wildcard-blackout") &&
     state.blackouts.length < difficulty.blackoutMaxActive &&
@@ -947,6 +940,11 @@ function majorPatternIsDue(
   if (kind === "context-compaction") {
     return difficulty.compactionUnlocked && state.spawn.compactionMs <= 0;
   }
+  if (kind === "download-access") {
+    return (
+      difficulty.downloadAccessUnlocked && state.spawn.downloadAccessMs <= 0
+    );
+  }
   if (kind === "retry-loop") {
     return difficulty.retryLoopUnlocked && state.spawn.retryLoopMs <= 0;
   }
@@ -973,10 +971,13 @@ function activeMajorPatternFamilies(state: GameState): Set<AttackPatternKind> {
     active.add("approval-required");
   }
   if (
-    state.hazards.length > 0 ||
+    state.hazards.some(({ kind }) => kind === "compaction") ||
     state.projectiles.some(({ kind }) => kind === "context-token")
   ) {
     active.add("context-compaction");
+  }
+  if (state.hazards.some(({ kind }) => kind === "download-access")) {
+    active.add("download-access");
   }
   if (state.retryChains.length > 0) {
     active.add("retry-loop");
@@ -1105,18 +1106,16 @@ function createApprovalGaps(
   playerAlong: number,
 ): ApprovalGateGap[] {
   let count = Math.max(3, Math.min(4, Math.floor(requestedCount)));
+  const largestLabelGap = Math.max(
+    ...APPROVAL_GAP_LABELS.slice(0, count).map(approvalGateGapSize),
+  );
   while (
     count > 3 &&
-    (perpendicularSize / count) * 0.58 < GAMEPLAY.approvalGateMinGap
+    perpendicularSize / count < largestLabelGap + 12
   ) {
     count -= 1;
   }
   const slotSize = perpendicularSize / count;
-  const gapSize = Math.min(
-    GAMEPLAY.approvalGateMaxGap,
-    Math.max(GAMEPLAY.approvalGateMinGap, perpendicularSize * 0.055),
-    slotSize * 0.58,
-  );
   const playerSlot = Math.max(
     0,
     Math.min(count - 1, Math.floor(playerAlong / slotSize)),
@@ -1124,6 +1123,11 @@ function createApprovalGaps(
   const gaps: ApprovalGateGap[] = [];
 
   for (let index = 0; index < count; index += 1) {
+    const label = APPROVAL_GAP_LABELS[index] ?? "DENY";
+    const gapSize = Math.min(
+      approvalGateGapSize(label),
+      Math.max(GAMEPLAY.playerRadius * 4, slotSize - 12),
+    );
     const slotStart = index * slotSize;
     const minimumCenter = slotStart + gapSize / 2;
     const maximumCenter = slotStart + slotSize - gapSize / 2;
@@ -1138,7 +1142,7 @@ function createApprovalGaps(
     gaps.push({
       center: Math.min(maximumCenter, Math.max(minimumCenter, center)),
       size: gapSize,
-      label: APPROVAL_GAP_LABELS[index] ?? "DENY",
+      label,
     });
   }
 
@@ -1540,23 +1544,30 @@ function spawnCompaction(
   return true;
 }
 
-function spawnFullAccess(
-  state: GameState,
-  target: Vec2,
-  hitbox: RectangleHitbox,
-): boolean {
+function spawnDownloadAccess(state: GameState): boolean {
   if (state.hazards.length >= GAMEPLAY.maxHazards) {
     return false;
   }
 
+  const sectors: readonly DownloadAccessSector[] = [
+    "top",
+    "bottom",
+    "left",
+    "right",
+  ];
+  const sector = sectors[Math.floor(randomBetween(state, 0, sectors.length))] ??
+    "top";
+  const geometry = downloadAccessGeometry(sector, state.arena);
+
   state.hazards.push({
     id: takeEntityId(state),
-    kind: "full-access",
-    label: "FULL ACCESS",
-    position: clampRectangleCenter(target, hitbox, state.arena),
-    hitbox,
+    kind: "download-access",
+    label: "DOWNLOAD ACCESS",
+    position: geometry.position,
+    hitbox: geometry.hitbox,
     phase: "telegraph",
-    remainingMs: GAMEPLAY.fullAccessTelegraphMs,
+    remainingMs: GAMEPLAY.downloadAccessTelegraphMs,
+    accessSector: sector,
   });
   return true;
 }
@@ -1650,25 +1661,28 @@ function fitSquareSize(size: number, arena: ArenaBounds): number {
   );
 }
 
-function fitFullAccessHitbox(
-  hitbox: RectangleHitbox,
+function downloadAccessGeometry(
+  sector: DownloadAccessSector,
   arena: ArenaBounds,
-): RectangleHitbox {
+): { position: Vec2; hitbox: RectangleHitbox } {
+  if (sector === "top" || sector === "bottom") {
+    const hitbox = { width: arena.width, height: arena.height / 2 };
+    return {
+      position: {
+        x: arena.width / 2,
+        y: sector === "top" ? arena.height / 4 : arena.height * 0.75,
+      },
+      hitbox,
+    };
+  }
+
+  const hitbox = { width: arena.width / 2, height: arena.height };
   return {
-    width: Math.max(
-      1,
-      Math.min(
-        hitbox.width,
-        arena.width * GAMEPLAY.fullAccessMaxViewportWidthRatio,
-      ),
-    ),
-    height: Math.max(
-      1,
-      Math.min(
-        hitbox.height,
-        arena.height * GAMEPLAY.fullAccessMaxViewportHeightRatio,
-      ),
-    ),
+    position: {
+      x: sector === "left" ? arena.width / 4 : arena.width * 0.75,
+      y: arena.height / 2,
+    },
+    hitbox,
   };
 }
 
@@ -1749,7 +1763,7 @@ function findHitSource(state: GameState): HitSource | null {
 
   for (const hazard of state.hazards) {
     if (
-      hazard.kind === "full-access" &&
+      hazard.kind === "download-access" &&
       hazard.phase === "active" &&
       circleOverlapsOrientedRectangle(
         state.player.position,
@@ -1759,7 +1773,7 @@ function findHitSource(state: GameState): HitSource | null {
         { x: 1, y: 0 },
       )
     ) {
-      return "approval";
+      return "access";
     }
   }
 

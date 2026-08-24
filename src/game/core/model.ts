@@ -17,20 +17,21 @@ export type ProjectileKind =
   | "agent"
   | "finding"
   | "limit";
-export type HazardKind = "compaction" | "full-access";
+export type HazardKind = "compaction" | "download-access";
 export type HazardPhase = "telegraph" | "active";
 export type SequenceKind = "review-loop" | "usage-limit";
 export type AttackPatternKind =
   | "tool-stream"
   | "approval-required"
   | "context-compaction"
+  | "download-access"
   | "retry-loop"
   | "reasoning-xhigh"
   | "parallel-agents"
   | "review-fix-loop"
   | "usage-limit"
   | "wildcard-blackout";
-export type HitSource = ProjectileKind | "reasoning";
+export type HitSource = ProjectileKind | "reasoning" | "access";
 export type AttackSurface = "terminal" | "browser" | "codex";
 
 export type ToolCallLabel = string;
@@ -51,7 +52,8 @@ export type SequenceResultLabel =
   | "RESETS IN 4 DAYS";
 
 export type ProjectileLabel = ToolCallLabel | ApprovalLabel | string;
-export type HazardLabel = "CONTEXT COMPACTION" | "FULL ACCESS";
+export type HazardLabel = "CONTEXT COMPACTION" | "DOWNLOAD ACCESS";
+export type DownloadAccessSector = "top" | "bottom" | "left" | "right";
 
 export interface RectangleHitbox {
   width: number;
@@ -87,6 +89,7 @@ export interface AreaHazardState {
   hitbox: RectangleHitbox;
   phase: HazardPhase;
   remainingMs: number;
+  accessSector?: DownloadAccessSector;
 }
 
 export interface ApprovalGateGap {
@@ -165,6 +168,7 @@ export interface SpawnTimers {
   toolCallMs: number;
   approvalMs: number;
   compactionMs: number;
+  downloadAccessMs: number;
   retryLoopMs: number;
   reasoningMs: number;
   parallelAgentsMs: number;

@@ -18,6 +18,7 @@ import {
   startRun,
   stepGame,
 } from "./simulation";
+import { approvalGateGapSize } from "./approvalGate";
 
 function playingState(seed = 1, width = 1280, height = 720): GameState {
   const state = createGameState(seed, width, height);
@@ -26,6 +27,7 @@ function playingState(seed = 1, width = 1280, height = 720): GameState {
     toolCallMs: 1_000_000,
     approvalMs: 1_000_000,
     compactionMs: 1_000_000,
+    downloadAccessMs: 1_000_000,
     retryLoopMs: 1_000_000,
     reasoningMs: 1_000_000,
     parallelAgentsMs: 1_000_000,
@@ -270,9 +272,10 @@ describe("survival simulation", () => {
     expect(spawned.gaps.length).toBeLessThanOrEqual(4);
     expect(
       spawned.gaps.every(
-        ({ size }) =>
+        ({ label, size }) =>
           size >= GAMEPLAY.approvalGateMinGap &&
-          size <= GAMEPLAY.approvalGateMaxGap,
+          size <= GAMEPLAY.approvalGateMaxGap &&
+          size === approvalGateGapSize(label),
       ),
     ).toBe(true);
     const initialGaps = structuredClone(spawned.gaps);
@@ -584,7 +587,9 @@ describe("survival simulation", () => {
     expect(state.sequences[0]!.origins[0]!.x).toBeLessThanOrEqual(375);
     expect(state.approvalGates[0]!.position.x).toBeCloseTo(281.25);
     expect(state.approvalGates[0]!.gaps[0]!.center).toBeCloseTo(320);
-    expect(state.approvalGates[0]!.gaps[0]!.size).toBeCloseTo(80);
+    expect(state.approvalGates[0]!.gaps[0]!.size).toBe(
+      approvalGateGapSize("REVIEW"),
+    );
     expect(state.retryChains[0]!.velocity).toEqual({ x: 0, y: -1 });
     expect(state.blackouts[0]!.hitbox.width / state.arena.width).toBeCloseTo(
       0.3,
@@ -834,12 +839,13 @@ describe("survival simulation", () => {
     expect(state.lastHitSource).toBeNull();
   });
 
-  it("keeps full access harmless while warning and lethal while active", () => {
+  it("keeps download access harmless while loading and lethal at ACCESS", () => {
     const state = playingState();
     state.hazards = [
       hazard(state, {
-        kind: "full-access",
-        label: "FULL ACCESS",
+        kind: "download-access",
+        label: "DOWNLOAD ACCESS",
+        accessSector: "left",
       }),
     ];
 
@@ -849,25 +855,58 @@ describe("survival simulation", () => {
     const events = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(events).toContainEqual({
       type: "hazard-activated",
-      kind: "full-access",
+      kind: "download-access",
       position: { ...state.player.position },
     });
-    expect(events).toContainEqual({ type: "player-hit", source: "approval" });
+    expect(events).toContainEqual({ type: "player-hit", source: "access" });
     expect(state.phase).toBe("results");
-    expect(state.lastHitSource).toBe("approval");
+    expect(state.lastHitSource).toBe("access");
   });
 
-  it("adds full access as the distinct area attack in late stages", () => {
+  it("spawns download access independently from compaction in late stages", () => {
     const state = playingState(41, 1280, 720);
     state.elapsedMs = GAMEPLAY.stageDurationMs * 7;
     state.spawn.compactionMs = 0;
+    state.spawn.downloadAccessMs = 0;
 
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    stepGame(state, EMPTY_INPUT, GAMEPLAY.majorPatternSeparationMs);
 
     expect(state.hazards.map(({ kind }) => kind)).toEqual([
       "compaction",
-      "full-access",
+      "download-access",
     ]);
+  });
+
+  it("selects all four exact half-screen download access sectors", () => {
+    const seen = new Set<string>();
+
+    for (let seed = 1; seed <= 64; seed += 1) {
+      const state = playingState(seed, 1_280, 720);
+      state.elapsedMs = GAMEPLAY.downloadAccessFirstSpawnMs;
+      state.spawn.downloadAccessMs = 0;
+
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      const access = state.hazards.find(
+        ({ kind }) => kind === "download-access",
+      );
+      expect(access).toBeDefined();
+      if (!access?.accessSector) {
+        continue;
+      }
+      seen.add(access.accessSector);
+      expect(access.hitbox.width * access.hitbox.height).toBeCloseTo(
+        state.arena.width * state.arena.height / 2,
+      );
+      if (access.accessSector === "left" || access.accessSector === "right") {
+        expect(access.hitbox).toEqual({ width: 640, height: 720 });
+      } else {
+        expect(access.hitbox).toEqual({ width: 1_280, height: 360 });
+      }
+    }
+
+    expect(seen).toEqual(new Set(["top", "bottom", "left", "right"]));
   });
 
   it("makes burst context tokens arc outward and then fall", () => {
@@ -948,26 +987,28 @@ describe("survival simulation", () => {
     expect(new Set(gaps).size).toBeGreaterThan(5);
   });
 
-  it("fits late-stage compaction and full access to a small viewport", () => {
+  it("fits compaction and download access to a small viewport", () => {
     const state = playingState(17, 375, 640);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
     state.spawn.compactionMs = 0;
+    state.spawn.downloadAccessMs = 0;
 
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    stepGame(state, EMPTY_INPUT, GAMEPLAY.majorPatternSeparationMs);
 
-    expect(state.hazards).toHaveLength(3);
+    expect(state.hazards).toHaveLength(2);
     expect(state.hazards.map(({ kind }) => kind)).toEqual([
       "compaction",
-      "full-access",
-      "full-access",
+      "download-access",
     ]);
     for (const hazard of state.hazards) {
       if (hazard.kind === "compaction") {
         expect(hazard.hitbox.width).toBe(375 * 0.675);
         expect(hazard.hitbox.height).toBe(375 * 0.675);
       } else {
-        expect(hazard.hitbox.width).toBe(375 * 0.72);
-        expect(hazard.hitbox.height).toBe(190);
+        expect(hazard.hitbox.width * hazard.hitbox.height).toBeCloseTo(
+          375 * 640 / 2,
+        );
       }
       expect(hazard.position.x).toBeGreaterThanOrEqual(
         hazard.hitbox.width / 2,
@@ -1004,6 +1045,7 @@ describe("survival simulation", () => {
       toolCallMs: 0,
       approvalMs: 0,
       compactionMs: 0,
+      downloadAccessMs: 0,
       retryLoopMs: 0,
       reasoningMs: 0,
       parallelAgentsMs: 0,
@@ -1016,7 +1058,7 @@ describe("survival simulation", () => {
 
     const seen = new Set<string>();
     let sawToolStream = false;
-    for (let onset = 0; onset < 8; onset += 1) {
+    for (let onset = 0; onset < 9; onset += 1) {
       const events = stepGame(
         state,
         EMPTY_INPUT,
@@ -1032,9 +1074,12 @@ describe("survival simulation", () => {
           families.add(event.kind);
           seen.add(event.kind);
         } else if (event.type === "hazard-warning") {
-          families.add("context-compaction");
           if (event.kind === "compaction") {
+            families.add("context-compaction");
             seen.add("context-compaction");
+          } else {
+            families.add("download-access");
+            seen.add("download-access");
           }
         } else if (event.type === "blackout-started") {
           families.add("wildcard-blackout");
@@ -1057,6 +1102,7 @@ describe("survival simulation", () => {
       new Set([
         "approval-required",
         "context-compaction",
+        "download-access",
         "retry-loop",
         "reasoning-xhigh",
         "parallel-agents",
@@ -1099,39 +1145,19 @@ describe("survival simulation", () => {
     }
   });
 
-  it("keeps approval isolated from every other major family", () => {
+  it("lets another major family start while an approval wall is active", () => {
     const state = playingState(301, 1_280, 720);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
     state.approvalGates = [
       approvalGate(state, { telegraphRemainingMs: 1_000_000 }),
     ];
-    state.reasoningWaves = [reasoningWave(state, { phase: "thinking" })];
-    state.blackouts = [
-      {
-        id: 340,
-        position: { x: 900, y: 500 },
-        hitbox: { width: 300, height: 180 },
-        telegraphRemainingMs: GAMEPLAY.blackoutTelegraphMs,
-        remainingMs: GAMEPLAY.blackoutStageTenDurationMs,
-        durationMs: GAMEPLAY.blackoutStageTenDurationMs,
-      },
-    ];
     state.spawn.compactionMs = 0;
 
-    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
-    expect(state.hazards).toEqual([]);
-    expect(state.spawn.compactionMs).toBeLessThanOrEqual(0);
-
-    state.blackouts = [];
-    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
-    expect(state.hazards).toEqual([]);
-
-    state.approvalGates = [];
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(state.hazards.some(({ kind }) => kind === "compaction")).toBe(true);
   });
 
-  it("queues approval until an existing major family has cleared", () => {
+  it("stages independent due patterns until the three-family cap is full", () => {
     const state = playingState(302, 2_560, 1_440);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
     state.hazards = [
@@ -1144,13 +1170,12 @@ describe("survival simulation", () => {
     state.spawn.retryLoopMs = 0;
 
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
-    expect(state.approvalGates).toEqual([]);
-    expect(state.retryChains).toEqual([]);
-    expect(state.spawn.approvalMs).toBeLessThanOrEqual(0);
-
-    state.hazards = [];
-    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(state.approvalGates).toHaveLength(1);
+    expect(state.retryChains).toEqual([]);
+
+    stepGame(state, EMPTY_INPUT, GAMEPLAY.majorPatternSeparationMs);
+    expect(state.approvalGates).toHaveLength(1);
+    expect(state.retryChains).toHaveLength(1);
   });
 
   it("slows spawn cadence on a small viewport without changing attack speed", () => {
@@ -1528,6 +1553,7 @@ describe("survival simulation", () => {
         toolCallMs: 0,
         approvalMs: 0,
         compactionMs: 0,
+        downloadAccessMs: 0,
         retryLoopMs: 0,
         reasoningMs: 0,
         parallelAgentsMs: 0,

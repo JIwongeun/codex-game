@@ -10,10 +10,10 @@ export interface Difficulty {
   approvalSpeed: number;
   approvalGapCount: number;
   compactionIntervalMs: number;
-  compactionCount: number;
   compactionSize: number;
   compactionFragmentCount: number;
   compactionFragmentSpeed: number;
+  downloadAccessIntervalMs: number;
   retryLoopIntervalMs: number;
   retryLoopCount: number;
   retryLoopSpeed: number;
@@ -37,6 +37,7 @@ export interface Difficulty {
   blackoutHeightRatio: readonly [number, number];
   approvalUnlocked: boolean;
   compactionUnlocked: boolean;
+  downloadAccessUnlocked: boolean;
   retryLoopUnlocked: boolean;
   reasoningUnlocked: boolean;
   parallelAgentsUnlocked: boolean;
@@ -85,10 +86,9 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     approvalIntervalMs:
       lerp(14_000, 12_000, progress) * stageTenIntervalMultiplier,
     approvalSpeed: lerp(300, 350, progress) * stageTenSpeedMultiplier,
-    approvalGapCount: stage >= 8 ? 3 : 4,
+    approvalGapCount: 4,
     compactionIntervalMs:
       lerp(8_400, 4_200, progress) * stageTenIntervalMultiplier,
-    compactionCount: stage >= 10 ? 3 : stage >= 8 ? 2 : 1,
     compactionSize: lerp(
       GAMEPLAY.compactionStartSize,
       GAMEPLAY.compactionEndSize,
@@ -97,6 +97,8 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     compactionFragmentCount: stage >= 10 ? 20 : stage >= 8 ? 16 : 12,
     compactionFragmentSpeed:
       lerp(300, 520, progress) * stageTenSpeedMultiplier,
+    downloadAccessIntervalMs:
+      lerp(12_000, 7_500, progress) * stageTenIntervalMultiplier,
     retryLoopIntervalMs:
       lerp(9_800, 4_800, progress) * stageTenIntervalMultiplier,
     retryLoopCount: stage >= 9 ? 5 : stage >= 6 ? 4 : 3,
@@ -139,6 +141,8 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     blackoutHeightRatio: stage < 10 ? [0.28, 0.38] : [0.22, 0.3],
     approvalUnlocked: safeElapsedMs >= GAMEPLAY.approvalFirstSpawnMs,
     compactionUnlocked: safeElapsedMs >= GAMEPLAY.compactionFirstSpawnMs,
+    downloadAccessUnlocked:
+      safeElapsedMs >= GAMEPLAY.downloadAccessFirstSpawnMs,
     retryLoopUnlocked: safeElapsedMs >= GAMEPLAY.retryLoopFirstSpawnMs,
     reasoningUnlocked: safeElapsedMs >= GAMEPLAY.reasoningFirstSpawnMs,
     parallelAgentsUnlocked:
