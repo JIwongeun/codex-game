@@ -8,6 +8,7 @@ export interface Difficulty {
   toolCallSpeed: number;
   approvalIntervalMs: number;
   approvalSpeed: number;
+  approvalGapCount: number;
   compactionIntervalMs: number;
   compactionCount: number;
   compactionSize: number;
@@ -15,6 +16,7 @@ export interface Difficulty {
   compactionFragmentSpeed: number;
   retryLoopIntervalMs: number;
   retryLoopCount: number;
+  retryLoopSpeed: number;
   reasoningIntervalMs: number;
   reasoningCollapseMs: number;
   reasoningSafeArc: number;
@@ -81,8 +83,9 @@ export function difficultyAt(elapsedMs: number): Difficulty {
       lerp(1_050, 380, progress) * stageTenIntervalMultiplier,
     toolCallSpeed: lerp(270, 570, progress) * stageTenSpeedMultiplier,
     approvalIntervalMs:
-      lerp(6_200, 3_100, progress) * stageTenIntervalMultiplier,
-    approvalSpeed: lerp(470, 740, progress) * stageTenSpeedMultiplier,
+      lerp(14_000, 12_000, progress) * stageTenIntervalMultiplier,
+    approvalSpeed: lerp(300, 350, progress) * stageTenSpeedMultiplier,
+    approvalGapCount: stage >= 8 ? 3 : 4,
     compactionIntervalMs:
       lerp(8_400, 4_200, progress) * stageTenIntervalMultiplier,
     compactionCount: stage >= 10 ? 3 : stage >= 8 ? 2 : 1,
@@ -97,6 +100,7 @@ export function difficultyAt(elapsedMs: number): Difficulty {
     retryLoopIntervalMs:
       lerp(9_800, 4_800, progress) * stageTenIntervalMultiplier,
     retryLoopCount: stage >= 9 ? 5 : stage >= 6 ? 4 : 3,
+    retryLoopSpeed: lerp(440, 696, progress) * stageTenSpeedMultiplier,
     reasoningIntervalMs:
       lerp(11_500, 5_800, progress) * stageTenIntervalMultiplier,
     reasoningCollapseMs: lerp(1_000, 700, reasoningProgress),

@@ -2,6 +2,40 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — Approval 긴급 공정성 조정과 QHD logical viewport 정규화
+
+### 구현
+
+- 단일 approval gap을 고정된 3–4개 opening으로 교체하고 `ALLOW ONCE`, `ALLOW SESSION`, `REVIEW`, `DENY`를 각 opening에 직접 배치. 작은 수직축에서는 최소 opening 폭을 지키기 위해 3개로 축소
+- approval warning을 1.05초에서 1.4초로 늘리고 wall은 한 번에 하나만 유지. 속도를 Stage 2 약 306 logical px/s, Stage 10 최대 378 logical px/s로 낮춰 player 440 logical px/s보다 항상 느리게 조정하고 생성 주기도 wall 횡단 시간보다 길게 변경
+- approval이 살아 있는 동안 다른 major가 시작되지 않고, 다른 major가 남아 있을 때도 approval이 대기하도록 scheduler를 양방향 격리해 compaction·usage 폭발과의 강제 겹침 제거
+- wall 속도에서 분리된 `retryLoopSpeed`를 추가해 approval nerf가 retry chain 속도까지 의도치 않게 낮추지 않도록 분리
+- QHD `2560×1440`을 logical reference arena로 설정하고 FHD `1920×1080`은 동일 arena를 camera zoom 0.75로 표시. 다른 화면비는 logical 높이 1440을 유지하면서 가로 범위만 맞춰 letterbox 없이 렌더링
+- 병행 작업의 retry final attempt를 420ms 비치명 `RETRY COMPLETE` 상태와 전용 completion cue로 마감하는 변경을 함께 통합
+
+### 검증
+
+- 가로·세로 approval opening 안전 통과, wall segment 피격, 3–4개 opening 고정·도달 예산, Stage 10 wall 속도 상한, approval major 양방향 격리 회귀 테스트 추가
+- QHD 1:1, FHD 동일 logical arena·zoom 0.75, 4:3 viewport의 화면비 보존 회귀 테스트 추가
+- 최종 `pnpm check` 통과: typecheck, 14개 test file의 114개 test, production build와 production verifier 완료
+- 실제 QHD·FHD 플레이 감각과 opening label의 화면 가독성은 사용자가 배포본에서 직접 확인하기로 했으므로 자동 검증까지만 완료
+
+## 2026-08-24 — Retry chain completion 마감
+
+### 구현
+
+- 마지막 retry attempt가 목표에 도달하면 충돌 판정을 즉시 끄고 `[tool] RETRY COMPLETE · N/N`과 작은 endpoint marker를 420ms 유지한 뒤 마지막 120ms에 fade하도록 변경
+- completion 전환 event를 한 번만 발생시키고 warning의 3회 square click과 구분되는 660→990Hz 상승 2음 cue를 재생
+- 완료 상태에서는 재조준·가속을 더 진행하지 않고 `attacksDodged`를 한 번만 올린 뒤 시각 마감이 끝나면 retry state를 제거
+- 제품·디자인·기술 결정 문서에 retry completion의 문구, 시간, 무해 판정과 사운드 규칙을 반영
+
+### 검증
+
+- 관련 simulation·SoundService 2개 test file의 65개 test와 별도 typecheck 통과
+- 최종 `pnpm check` 통과: typecheck, 14개 test file의 114개 test, production build와 production verifier 완료
+- local browser의 Stage 4 개발 경로가 정상 시작되고 browser warning/error log 0건 확인. 동시에 작업 중인 approval pattern이 먼저 피격을 발생시켜 420ms completion 프레임 자체는 browser에서 포착하지 못했으며, 해당 전환·무해 판정·1회 sound event는 자동화 test로 검증
+- 요청에 따라 stage·commit·push·production 배포는 수행하지 않음
+
 ## 2026-08-24 — 제출 전 공정성·lifecycle·배포 보안 감사
 
 ### 구현

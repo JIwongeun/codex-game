@@ -89,12 +89,17 @@ export interface AreaHazardState {
   remainingMs: number;
 }
 
+export interface ApprovalGateGap {
+  center: number;
+  size: number;
+  label: "ALLOW ONCE" | "ALLOW SESSION" | "REVIEW" | "DENY";
+}
+
 export interface ApprovalGateState {
   id: number;
   position: Vec2;
   direction: Vec2;
-  gapCenter: number;
-  gapSize: number;
+  gaps: ApprovalGateGap[];
   thickness: number;
   speed: number;
   telegraphRemainingMs: number;
@@ -110,6 +115,7 @@ export interface RetryChainState {
   attempt: number;
   totalAttempts: number;
   telegraphRemainingMs: number;
+  completionRemainingMs: number;
 }
 
 export interface ReasoningWaveState {
@@ -214,6 +220,7 @@ export type GameEvent =
       kind: SequenceKind | "reasoning-xhigh";
       position: Vec2;
     }
+  | { type: "pattern-complete"; kind: "retry-loop"; position: Vec2 }
   | { type: "blackout-started"; position: Vec2 }
   | { type: "ending-started" }
   | { type: "player-hit"; source: HitSource }

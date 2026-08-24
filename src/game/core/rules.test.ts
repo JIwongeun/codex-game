@@ -27,6 +27,17 @@ describe("survival rules", () => {
     expect(cap.stage).toBe(10);
     expect(start.compactionCount).toBe(1);
     expect(cap.compactionCount).toBe(3);
+    expect(
+      difficultyAt(GAMEPLAY.approvalFirstSpawnMs).approvalGapCount,
+    ).toBe(4);
+    expect(cap.approvalGapCount).toBe(3);
+    expect(cap.approvalSpeed).toBeLessThan(GAMEPLAY.playerSpeed);
+    expect(cap.approvalIntervalMs).toBeGreaterThan(
+      GAMEPLAY.approvalGateTelegraphMs +
+        ((2560 + GAMEPLAY.approvalGateThickness * 2) /
+          cap.approvalSpeed) *
+          1_000,
+    );
     expect(start.compactionSize).toBe(255);
     expect(cap.compactionSize).toBe(375);
     expect(start.compactionFragmentCount).toBe(12);

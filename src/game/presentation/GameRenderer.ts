@@ -422,16 +422,38 @@ export class GameRenderer {
         this.world.strokeRect(x, y, segment.hitbox.width, segment.hitbox.height);
       }
 
-      const gapHalf = gate.gapSize / 2;
       this.world.lineStyle(1, COLORS.ink, telegraphing ? 0.38 : 0.7);
-      if (Math.abs(gate.direction.x) > 0) {
-        const x = displayGate.position.x;
-        this.world.lineBetween(x - 7, gate.gapCenter - gapHalf, x + 7, gate.gapCenter - gapHalf);
-        this.world.lineBetween(x - 7, gate.gapCenter + gapHalf, x + 7, gate.gapCenter + gapHalf);
-      } else {
-        const y = displayGate.position.y;
-        this.world.lineBetween(gate.gapCenter - gapHalf, y - 7, gate.gapCenter - gapHalf, y + 7);
-        this.world.lineBetween(gate.gapCenter + gapHalf, y - 7, gate.gapCenter + gapHalf, y + 7);
+      for (const gap of gate.gaps) {
+        const gapHalf = gap.size / 2;
+        if (Math.abs(gate.direction.x) > 0) {
+          const x = displayGate.position.x;
+          this.world.lineBetween(
+            x - 7,
+            gap.center - gapHalf,
+            x + 7,
+            gap.center - gapHalf,
+          );
+          this.world.lineBetween(
+            x - 7,
+            gap.center + gapHalf,
+            x + 7,
+            gap.center + gapHalf,
+          );
+        } else {
+          const y = displayGate.position.y;
+          this.world.lineBetween(
+            gap.center - gapHalf,
+            y - 7,
+            gap.center - gapHalf,
+            y + 7,
+          );
+          this.world.lineBetween(
+            gap.center + gapHalf,
+            y - 7,
+            gap.center + gapHalf,
+            y + 7,
+          );
+        }
       }
     }
   }
@@ -440,7 +462,27 @@ export class GameRenderer {
     const tone = ATTACK_TONES.codex.value;
 
     for (const retry of state.retryChains) {
-      if (retry.telegraphRemainingMs > 0) {
+      if (retry.completionRemainingMs > 0) {
+        const alpha = Phaser.Math.Clamp(
+          retry.completionRemainingMs / 120,
+          0,
+          1,
+        );
+        this.world.lineStyle(1, tone, 0.62 * alpha);
+        this.world.strokeRect(
+          Math.round(retry.position.x) - 4,
+          Math.round(retry.position.y) - 4,
+          8,
+          8,
+        );
+        this.world.fillStyle(tone, 0.36 * alpha);
+        this.world.fillRect(
+          Math.round(retry.position.x) - 1,
+          Math.round(retry.position.y) - 1,
+          3,
+          3,
+        );
+      } else if (retry.telegraphRemainingMs > 0) {
         const distance = Math.hypot(
           retry.target.x - retry.position.x,
           retry.target.y - retry.position.y,
@@ -794,11 +836,10 @@ export class GameRenderer {
         ...gate,
         position: approvalGateDisplayPosition(gate, state.arena),
       };
-      const segments = approvalGateSegments(displayGate, state.arena);
       const rotation = Math.abs(gate.direction.x) > 0 ? -Math.PI / 2 : 0;
 
-      for (let index = 0; index < segments.length; index += 1) {
-        const segment = segments[index]!;
+      for (let index = 0; index < gate.gaps.length; index += 1) {
+        const gap = gate.gaps[index]!;
         const id = gate.id * 10 + index;
         activeIds.add(id);
         let view = this.approvalGateLabels.get(id);
@@ -808,7 +849,7 @@ export class GameRenderer {
         }
         this.updateRichLabel(view, {
           surface: "codex",
-          label: `[approval] ${segment.label}`,
+          label: `[approval] ${gap.label}`,
           fontFamily: FONTS.sans,
           fontSize: 9,
           fontStyle: "600",
@@ -816,45 +857,21 @@ export class GameRenderer {
         });
         view.container
           .setPosition(
-            Math.round(segment.position.x),
-            Math.round(segment.position.y),
+            Math.round(
+              Math.abs(gate.direction.x) > 0
+                ? displayGate.position.x + gate.direction.x * 18
+                : gap.center,
+            ),
+            Math.round(
+              Math.abs(gate.direction.x) > 0
+                ? gap.center
+                : displayGate.position.y + gate.direction.y * 18,
+            ),
           )
           .setRotation(rotation)
           .setAlpha(gate.telegraphRemainingMs > 0 ? 0.52 : 0.96)
           .setVisible(true);
       }
-
-      const denyId = gate.id * 10 + 9;
-      activeIds.add(denyId);
-      let denyView = this.approvalGateLabels.get(denyId);
-      if (!denyView) {
-        denyView = this.createRichLabel(9);
-        this.approvalGateLabels.set(denyId, denyView);
-      }
-      this.updateRichLabel(denyView, {
-        surface: "codex",
-        label: "[approval] DENY",
-        fontFamily: FONTS.sans,
-        fontSize: 10,
-        fontStyle: "600",
-        letterSpacing: 0.1,
-      });
-      denyView.container
-        .setPosition(
-          Math.round(
-            Math.abs(gate.direction.x) > 0
-              ? displayGate.position.x
-              : gate.gapCenter,
-          ),
-          Math.round(
-            Math.abs(gate.direction.x) > 0
-              ? gate.gapCenter
-              : displayGate.position.y,
-          ),
-        )
-        .setRotation(rotation)
-        .setAlpha(gate.telegraphRemainingMs > 0 ? 0.64 : 1)
-        .setVisible(true);
     }
 
     this.removeInactiveRichLabels(this.approvalGateLabels, activeIds);
@@ -873,7 +890,9 @@ export class GameRenderer {
       this.updateRichLabel(view, {
         surface: "codex",
         label:
-          retry.attempt === 1
+          retry.completionRemainingMs > 0
+            ? `[tool] RETRY COMPLETE · ${retry.totalAttempts}/${retry.totalAttempts}`
+            : retry.attempt === 1
             ? `[tool] retry ${retry.attempt}/${retry.totalAttempts}`
             : `[tool] FAILED · retry ${retry.attempt}/${retry.totalAttempts}`,
         fontFamily: FONTS.sans,
@@ -887,7 +906,13 @@ export class GameRenderer {
           Math.round(retry.position.y),
         )
         .setRotation(this.readableProjectileRotation(retry.velocity))
-        .setAlpha(retry.telegraphRemainingMs > 0 ? 0.52 : 0.98)
+        .setAlpha(
+          retry.completionRemainingMs > 0
+            ? Phaser.Math.Clamp(retry.completionRemainingMs / 120, 0, 1)
+            : retry.telegraphRemainingMs > 0
+              ? 0.52
+              : 0.98,
+        )
         .setVisible(true);
     }
 

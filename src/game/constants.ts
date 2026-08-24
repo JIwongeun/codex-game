@@ -1,5 +1,5 @@
-export const DEFAULT_GAME_WIDTH = 1280;
-export const DEFAULT_GAME_HEIGHT = 720;
+export const DEFAULT_GAME_WIDTH = 2560;
+export const DEFAULT_GAME_HEIGHT = 1440;
 
 export const FIXED_STEP_MS = 1_000 / 60;
 export const MAX_FRAME_DELTA_MS = 100;
@@ -13,10 +13,10 @@ export const GAMEPLAY = {
   toolCallHitboxMinWidth: 54,
   toolCallHitboxMaxWidth: 386,
   approvalGateThickness: 14,
-  approvalGateMinGap: 72,
-  approvalGateMaxGap: 116,
-  approvalGateTelegraphMs: 1_050,
-  approvalGateReachBudgetRatio: 0.68,
+  approvalGateMinGap: 96,
+  approvalGateMaxGap: 144,
+  approvalGateTelegraphMs: 1_400,
+  approvalGateReachBudgetRatio: 0.72,
   fragmentHitboxHeight: 15,
   maxProjectiles: 56,
   maxHazards: 4,
@@ -59,6 +59,7 @@ export const GAMEPLAY = {
   retryChainHitboxWidth: 86,
   retryChainHitboxHeight: 15,
   retryChainSpeedGain: 1.12,
+  retryChainCompleteMs: 420,
   reviewLoopConvergeMs: 1_450,
   usageLimitConvergeMs: 1_800,
   blackoutStageNineDurationMs: 3_600,

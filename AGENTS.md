@@ -43,7 +43,7 @@
 - `Esc`는 현재 run을 기록하지 않고 즉시 시작 대기 화면으로 돌아간다.
 - 사용자에게 보이는 완전한 화면은 시작 화면과 게임 화면 두 개뿐이다. 내부 `results` phase는 마지막 run 정보를 보존하는 논리 상태이며 별도 결과 화면을 만들지 않고 시작 화면에 `LAST RUN`과 피격 원인만 갱신한다.
 - blur/hidden pause에서는 simulation과 타이머를 멈추고 held movement key를 비운다.
-- 게임은 전체 browser viewport를 Phaser `RESIZE` arena로 사용한다.
+- 게임 Canvas는 전체 browser viewport를 Phaser `RESIZE`로 사용하되 simulation은 QHD `2560×1440` 높이를 기준으로 정규화한 logical arena를 사용한다. FHD `1920×1080`은 같은 logical arena를 `0.75×`로 표시하며 다른 화면비는 세로 1440을 유지한 채 가로만 확장·축소한다.
 - 백엔드 없이도 게임이 끝까지 플레이되어야 한다.
 - 랭킹을 추가한다면 비동기 점수 공유만 사용하며 실시간 multiplayer는 만들지 않는다.
 - OpenAI API 호출은 핵심 플레이에 포함하지 않는다.
@@ -75,7 +75,7 @@
 - `services/`: guest session best와 sound.
 - `scenes/`: 위 모듈을 연결하고 lifecycle과 event만 조정한다.
 
-기본 `tool-call` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `approval`은 생성 순간 player 축 위치에서 1.05초 안에 도달 가능한 gap을 고정하고, `reasoning`은 생성 순간 center와 safe sector를 고정한다. `retry`만 각 실패 뒤 다음 attempt의 player 위치를 새로 snapshot하며 한 attempt 중에는 재조준하지 않는다. 특수 패턴 onset은 최소 360ms 떨어뜨리고 동시에 살아 있는 서로 다른 major family는 세 개를 넘기지 않는다. 범위 공격과 blackout은 warning 중 무해하며 active 단계에서만 판정 또는 시야 차단을 만든다. blackout을 빠져나온 projectile에는 180ms reveal grace를 적용한다.
+기본 `tool-call` 공격은 생성·예고·이동 중 player 좌표를 읽지 않는다. `approval`은 1.4초 warning 동안 고정된 3–4개 gap을 제공하고 그중 하나는 생성 순간 player 축 위치에서 도달 가능하게 둔다. wall 속도는 Stage 10까지 player의 440 logical px/s보다 느리며, 살아 있는 동안 다른 major family를 시작하지 않고 다른 major family가 남아 있을 때도 시작을 대기한다. `reasoning`은 생성 순간 center와 safe sector를 고정한다. `retry`만 각 실패 뒤 다음 attempt의 player 위치를 새로 snapshot하며 한 attempt 중에는 재조준하지 않는다. 특수 패턴 onset은 최소 360ms 떨어뜨리고 동시에 살아 있는 서로 다른 major family는 세 개를 넘기지 않는다. 범위 공격과 blackout은 warning 중 무해하며 active 단계에서만 판정 또는 시야 차단을 만든다. blackout을 빠져나온 projectile에는 180ms reveal grace를 적용한다.
 
 ## 범위 제한
 
@@ -109,7 +109,7 @@ pnpm check
 - WASD·방향키 이동과 대각선 속도 정규화
 - viewport resize 중 player와 hazard 경계 유효성
 - `tool-call` 경로가 player 위치와 무관함
-- `approval` gap 도달 가능성, `reasoning` safe sector 고정과 `retry` attempt 단위 snapshot
+- `approval` 3–4개 gap·가로/세로 통과·player보다 느린 wall·major 단독 실행, `reasoning` safe sector 고정과 `retry` attempt 단위 snapshot
 - major pattern onset 360ms 간격과 동시 major family 3개 상한
 - `rm *` blackout 720ms warning 뒤에만 시야 차단
 - 범위 공격 warning 무해·active 치명

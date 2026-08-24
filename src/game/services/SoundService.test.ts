@@ -159,6 +159,7 @@ describe("SoundService", () => {
         position: { x: 1, y: 1 },
       },
       { type: "pattern-warning", kind: "retry-loop" },
+      { type: "pattern-complete", kind: "retry-loop", position: { x: 1, y: 1 } },
       { type: "pattern-warning", kind: "reasoning-xhigh" },
       {
         type: "pattern-burst",
@@ -179,6 +180,28 @@ describe("SoundService", () => {
       sound.consume([event]);
       expect(context?.oscillators.length).toBeGreaterThan(before);
     }
+  });
+
+  it("plays a separate two-note completion cue after the final retry", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    const context = FakeAudioContext.instances[0];
+    sound.consume([
+      {
+        type: "pattern-complete",
+        kind: "retry-loop",
+        position: { x: 1, y: 1 },
+      },
+    ]);
+
+    const completionTones = context?.oscillators.slice(-2) ?? [];
+    expect(completionTones).toHaveLength(2);
+    expect(
+      completionTones.map(
+        (oscillator) => oscillator.frequency.setValueAtTime.mock.calls[0]?.[0],
+      ),
+    ).toEqual([660, 990]);
   });
 
   it("separates xhigh branch pruning from the final answer snap", () => {

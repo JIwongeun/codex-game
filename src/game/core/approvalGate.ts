@@ -8,56 +8,58 @@ import type {
 export interface ApprovalGateSegment {
   position: Vec2;
   hitbox: RectangleHitbox;
-  label: "ALLOW ONCE" | "ALLOW SESSION";
 }
 
 export function approvalGateSegments(
   gate: ApprovalGateState,
   arena: ArenaBounds,
-): readonly [ApprovalGateSegment, ApprovalGateSegment] {
-  if (Math.abs(gate.direction.x) > 0) {
-    const gapStart = clamp(gate.gapCenter - gate.gapSize / 2, 0, arena.height);
-    const gapEnd = clamp(gate.gapCenter + gate.gapSize / 2, 0, arena.height);
-    return [
-      {
-        position: { x: gate.position.x, y: gapStart / 2 },
-        hitbox: { width: gate.thickness, height: gapStart },
-        label: "ALLOW ONCE",
-      },
-      {
-        position: {
-          x: gate.position.x,
-          y: gapEnd + (arena.height - gapEnd) / 2,
-        },
-        hitbox: {
-          width: gate.thickness,
-          height: arena.height - gapEnd,
-        },
-        label: "ALLOW SESSION",
-      },
-    ];
+): ApprovalGateSegment[] {
+  const horizontalMovement = Math.abs(gate.direction.x) > 0;
+  const axisSize = horizontalMovement ? arena.height : arena.width;
+  const intervals = gate.gaps
+    .map((gap) => ({
+      start: clamp(gap.center - gap.size / 2, 0, axisSize),
+      end: clamp(gap.center + gap.size / 2, 0, axisSize),
+    }))
+    .sort((left, right) => left.start - right.start);
+  const segments: ApprovalGateSegment[] = [];
+  let segmentStart = 0;
+
+  for (const interval of intervals) {
+    if (interval.start > segmentStart) {
+      segments.push(
+        createSegment(gate, horizontalMovement, segmentStart, interval.start),
+      );
+    }
+    segmentStart = Math.max(segmentStart, interval.end);
   }
 
-  const gapStart = clamp(gate.gapCenter - gate.gapSize / 2, 0, arena.width);
-  const gapEnd = clamp(gate.gapCenter + gate.gapSize / 2, 0, arena.width);
-  return [
-    {
-      position: { x: gapStart / 2, y: gate.position.y },
-      hitbox: { width: gapStart, height: gate.thickness },
-      label: "ALLOW ONCE",
-    },
-    {
-      position: {
-        x: gapEnd + (arena.width - gapEnd) / 2,
-        y: gate.position.y,
-      },
-      hitbox: {
-        width: arena.width - gapEnd,
-        height: gate.thickness,
-      },
-      label: "ALLOW SESSION",
-    },
-  ];
+  if (segmentStart < axisSize) {
+    segments.push(
+      createSegment(gate, horizontalMovement, segmentStart, axisSize),
+    );
+  }
+
+  return segments;
+}
+
+function createSegment(
+  gate: ApprovalGateState,
+  horizontalMovement: boolean,
+  start: number,
+  end: number,
+): ApprovalGateSegment {
+  const length = Math.max(0, end - start);
+  const center = start + length / 2;
+  return horizontalMovement
+    ? {
+        position: { x: gate.position.x, y: center },
+        hitbox: { width: gate.thickness, height: length },
+      }
+    : {
+        position: { x: center, y: gate.position.y },
+        hitbox: { width: length, height: gate.thickness },
+      };
 }
 
 export function approvalGateDisplayPosition(

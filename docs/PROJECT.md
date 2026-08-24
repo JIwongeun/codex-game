@@ -62,9 +62,9 @@
 난이도는 12초 단위 Stage 1–10으로 표시한다. 속도와 생성 간격은 108초까지 연속 상승하고, 해금·동시 수·분할 수는 stage 경계에서 증가한 뒤 Stage 10 상한에 고정된다.
 
 1. Stage 1 `TOOL CALL STREAM` — player 좌표와 무관하며 방향선도 없는 terminal·browser·Codex 작업 탄막
-2. Stage 2 `APPROVAL REQUIRED` — 화면을 가로막는 permission gate가 생성 순간 player 축 위치에서 도달 가능한 `DENY` gap 하나를 고정
+2. Stage 2 `APPROVAL REQUIRED` — player보다 느린 permission wall이 1.4초 warning 뒤 이동하며, 생성 순간 player 축 위치에서 도달 가능한 opening을 포함한 3–4개 opening을 고정
 3. Stage 3 `CONTEXT COMPACTION` — 넓은 context frame의 문장 조각이 중심으로 압축되고, 실패 순간 12–20개 token 파편이 물풍선처럼 튄 뒤 중력을 받아 아래로 떨어짐
-4. Stage 4 `RETRY LOOP` — 3–5번의 실패가 각 attempt 시작 때 player 위치를 다시 snapshot하고 더 빨라져 재시도
+4. Stage 4 `RETRY LOOP` — 3–5번의 실패가 각 attempt 시작 때 player 위치를 다시 snapshot하고 더 빨라져 재시도하며, 마지막 attempt 뒤 `RETRY COMPLETE`로 짧게 마감
 5. Stage 5 `REASONING: XHIGH` — 2.1초 동안 8→4→2→1 후보를 가지치기해 safe sector를 고정한 뒤 그 틈만 비운 inward response wave
 6. Stage 6 `PARALLEL AGENTS` — 여러 agent가 반대편에서 같은 snapshot을 동시에 교차
 7. Stage 7 `REVIEW / FIX LOOP` — 여러 finding을 고친 뒤 `ONE MORE ISSUE`가 8–16방향으로 재발산
@@ -74,7 +74,7 @@
 
 각 용어는 label뿐 아니라 이동과 결과로 의미를 전달한다. 고정 phrase bank에는 실제 작업에서 반복되는 terminal·browser 오류와 `rereading same file`, `waiting for output`, `still waiting`, `approve again` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
 
-예고 단계는 항상 무해하고, 활성화 단계만 피격 또는 시야 차단을 발생시킨다. 특수 패턴 onset은 최소 360ms 떨어뜨리고 서로 다른 active major family는 최대 세 개로 제한한다. 작은 viewport에서는 공격 속도를 낮추지 않고 생성 간격만 1.22배 늘린다. 공격 개체와 범위 수에는 별도 상한을 둔다.
+예고 단계는 항상 무해하고, 활성화 단계만 피격 또는 시야 차단을 발생시킨다. 특수 패턴 onset은 최소 360ms 떨어뜨리고 서로 다른 active major family는 최대 세 개로 제한한다. `APPROVAL`은 다른 major와 겹치지 않는 단독 패턴으로 예약한다. 작은 logical viewport에서는 공격 속도를 낮추지 않고 생성 간격만 1.22배 늘린다. 공격 개체와 범위 수에는 별도 상한을 둔다.
 
 ## 5. 점수 원칙
 
@@ -92,7 +92,7 @@ Guest session 최고 기록 = 현재 browser page session에서 가장 긴 생�
 
 ## 6. 화면과 피드백
 
-- 브라우저 viewport 전체가 논리 화면이다. Phaser `RESIZE`로 창 크기 변경을 즉시 반영하며 고정 16:9 frame이나 letterbox를 만들지 않는다.
+- Canvas는 browser viewport 전체를 채우되 gameplay 좌표는 QHD `2560×1440`을 기준으로 정규화한다. FHD `1920×1080`은 같은 logical arena를 `0.75×`로 표시해 개체 크기·속도·간격의 화면 비율을 QHD와 같게 유지한다. 다른 화면비는 logical 높이 1440을 유지하고 가로 범위만 화면비에 맞춰 조정해 letterbox를 만들지 않는다.
 - 순백 웹페이지와 흰 Canvas를 이어 붙여 별도 게임 프레임처럼 보이지 않게 한다.
 - 격자, 패널, 상단 점수 바, 장식용 배경은 사용하지 않는다.
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 terminal의 monospace·ANSI 의미색, browser의 sans·page error glyph, Codex의 Pretendard·tool marker·context progress처럼 작업 출처별 문법을 사용한다.

@@ -10,8 +10,8 @@
 
 공격 이름과 움직임은 분리될 수 없다. 이름을 다른 개발 용어로 바꿔도 성립하는 공격은 다시 설계한다.
 
-- `APPROVAL REQUIRED`는 요청 시점의 player 축 위치 근처에 도달 가능한 하나의 승인 gap을 고정한다.
-- `RETRY`는 실패할 때마다 다음 attempt의 player 위치를 다시 snapshot하고 속도를 높인다.
+- `APPROVAL REQUIRED`는 요청 시점의 player 축 위치 근처 opening을 포함한 3–4개 승인 opening을 고정하고, player보다 느린 wall로 선택 시간을 준다.
+- `RETRY`는 실패할 때마다 다음 attempt의 player 위치를 다시 snapshot하고 속도를 높인 뒤, 마지막 attempt가 끝나면 비치명 `RETRY COMPLETE` 상태로 짧게 마감한다.
 - `CONTEXT COMPACTION`은 넓은 frame 안의 context row를 한 점으로 압축한 뒤 실패하며 token 파편을 사방으로 잃어버린다.
 - `REASONING: XHIGH`는 긴 thinking 동안 후보 경로를 가지치기하고 마지막 safe sector만 남긴 inward response wave로 응답한다.
 - `PARALLEL AGENTS`는 같은 작업 지점을 화면 반대편에서 동시에 차지하려 한다.
@@ -99,7 +99,7 @@
 - 첫 시작 click 또는 Space로 AudioContext를 연 뒤 original 32-step E minor arpeggio·bass·pulse loop를 재생한다. 최초 저음량안보다 약 6dB 높여 gameplay 중 분명히 들리게 하되 warning·hit peak보다 낮게 유지한다. Stage 1의 132 BPM에서 stage마다 4 BPM씩 올라 Stage 10의 168 BPM에 고정된다.
 - BGM은 `playing`에서만 진행하고 game over·blur·hidden pause에서 즉시 멈춘다. 재시작과 명시적 pause 해제 뒤에는 첫 step부터 다시 시작한다.
 - `M`은 BGM과 효과음을 함께 음소거한다. 공격 warning·burst·hit 효과음이 BGM보다 항상 앞에서 들리도록 BGM gain을 낮게 유지한다.
-- 기본 `TOOL CALL STREAM`은 별도 SFX 없이 흘러가고, `APPROVAL`, `COMPACTION`, `RETRY`, `XHIGH`, `PARALLEL AGENTS`, `REVIEW`, `USAGE LIMIT`은 각각 prompt beep·impact·반복 click·charge·dual tone·review pair·low alarm으로 구분한다.
+- 기본 `TOOL CALL STREAM`은 별도 SFX 없이 흘러가고, `APPROVAL`, `COMPACTION`, `RETRY`, `XHIGH`, `PARALLEL AGENTS`, `REVIEW`, `USAGE LIMIT`은 각각 prompt beep·impact·반복 click·charge·dual tone·review pair·low alarm으로 구분한다. Retry 마지막에는 warning click과 구분되는 상승 2음 completion cue를 한 번 재생한다.
 - Stage가 바뀔 때는 push/webhook delivery를 연상시키는 2음과 agent task completion을 연상시키는 상승 3음을 번갈아 한 번만 재생하고 Stage 10은 4음으로 마감한다. compaction activation과 review 재발산에는 error popup형 하강음을, parallel agents에는 delivery cue를 겹친다.
 - Slack·Windows·macOS·ChatGPT의 실제 음원, sample과 고유 notification melody를 복제하지 않는다. 익숙한 짧은 attack·간격·상승/하강 contour만 E minor 기반 original motif로 재구성한다.
 - 외부 음원 파일과 음악 dependency를 사용하지 않고 Web Audio oscillator로 실시간 합성한다.
@@ -109,9 +109,9 @@
 | 해금 | 패턴 | 화면 문구 | 행동과 개연성 |
 |---|---|---|---|
 | Stage 1 | `TOOL CALL STREAM` | `$ rg --files -g AGENTS.md`, `[tool] rereading same file`, `ERR_*` 등 | player 좌표를 전혀 읽지 않고 임의 edge에서 반대 edge로 흐른다. 실제 작업 surface의 로그가 방향 예고 없이 화면을 가로지른다. |
-| Stage 2 | `APPROVAL REQUIRED` | `[approval] ALLOW ONCE`, `ALLOW SESSION`, `DENY` | 화면 전체를 가로지르는 permission gate가 edge에서 들어온다. gap은 생성 순간 player의 수직축 위치에서 1.05초 warning 동안 도달 가능한 범위에 고정된다. |
+| Stage 2 | `APPROVAL REQUIRED` | `[approval] ALLOW ONCE`, `ALLOW SESSION`, `REVIEW`, `DENY` | 1.4초 warning 뒤 player보다 느린 permission wall 하나가 edge에서 들어온다. 3–4개 opening은 생성 시 고정되고 하나는 player 축 위치에서 도달 가능하다. 이 pattern이 살아 있는 동안 다른 major는 시작하지 않는다. |
 | Stage 3 | `CONTEXT COMPACTION` | `[context] compacting 0–100%` → `COMPACTION FAILED` → `[tok] ...` | 기존 대비 가로·세로 1.5배인 snapshot frame 안에서 context row와 중첩 frame이 한 점으로 수축한다. 실패 순간 frame 전체가 장판으로 변하지 않고 12–20개의 짧은 token 파편이 서로 다른 속도로 튄 뒤 수평 감속·중력을 받아 포물선으로 떨어진다. |
-| Stage 4 | `RETRY LOOP` | `[tool] retry 1/3`, `2/3`, `3/3` | 한 attempt 동안 목표를 고정하고 실패 지점에 도달하면 560ms warning 뒤 현재 player 위치를 다시 snapshot한다. 후반에는 최대 5회이며 매번 1.12배 빨라진다. |
+| Stage 4 | `RETRY LOOP` | `[tool] retry 1/3`, `FAILED · retry 2/3`, `RETRY COMPLETE · 3/3` | 한 attempt 동안 목표를 고정하고 실패 지점에 도달하면 560ms warning 뒤 현재 player 위치를 다시 snapshot한다. 후반에는 최대 5회이며 매번 1.12배 빨라진다. 마지막 attempt 뒤에는 판정을 끄고 420ms completion 표시 후 제거한다. |
 | Stage 5 | `REASONING: XHIGH` | `[effort] xhigh · 8/4/2 paths` → `finalizing` → `[answer] final` | 2.1초 동안 후보 방향을 8→4→2→1로 가지치기해 생성 순간 정한 safe sector를 보여준다. 이후 얇은 response annulus가 viewport 바깥에서 center로 수축하며 그 sector만 무해하다. |
 | Stage 6 | `PARALLEL AGENTS` | `[agent 1] working`, `[agent 2] working` | 같은 snapshot을 향해 화면 반대편 agent 두 개가 동시에 교차한다. 후반에는 수평·수직 pair가 최대 3쌍 겹친다. |
 | Stage 7 | `REVIEW / FIX LOOP` | 여러 `[review] Pn finding` → `[fix] ... reviewing again` → `ONE MORE ISSUE` | 네 finding이 한 지점으로 모이고, 수정 완료 순간 8–16개 새 issue가 원형 발산한다. 반복 review마다 새 문제를 찾는 경험을 행동으로 만든다. |
@@ -126,7 +126,7 @@
 | 패턴 | 고유 화면 문법 | 요구하는 회피 행동 | 상태 |
 |---|---|---|---|
 | `TOOL CALL STREAM` | 실제 작업 문구가 임의 edge를 계속 가로지르는 유일한 일반 text 탄막 | 작은 방향 전환으로 흐름 피하기 | 현재 baseline 유지 |
-| `APPROVAL REQUIRED` | screen gate가 `DENY` 쪽 한 틈만 남김 | 도달 가능한 안전 틈을 고르고 일찍 진입 | 적용 완료 |
+| `APPROVAL REQUIRED` | permission wall이 3–4개의 서로 떨어진 approval opening을 남김 | 가까운 opening을 고르고 wall보다 빠르게 위치를 맞춤 | 적용 완료 |
 | `CONTEXT COMPACTION` | 넓은 context frame과 row가 중심으로 수축한 뒤 token 조각이 물풍선처럼 튀고 아래로 쏟아짐 | frame에서 이탈한 뒤 낙하 파편 사이를 다시 회피 | 적용 완료 |
 | `RETRY LOOP` | 한 chain이 매 실패 때 목표를 다시 잡고 더 빨라짐 | attempt warning마다 새 경로를 읽고 시간차 회피 | 적용 완료 |
 | `REASONING: XHIGH` | 후보 sector를 8→4→2→1로 가지치기하고 gap이 있는 inward wave로 전환 | safe sector 각도를 따라 이동 | 적용 완료 |
@@ -159,11 +159,12 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 
 - 모든 조준·영역·수렴 공격은 치명 단계 전에 경로 또는 진행률을 보인다.
 - 기본 `TOOL CALL STREAM`은 player를 조준하지 않고 방향 예고·rail도 표시하지 않는다. 생성 후 telegraph 시간 동안은 판정만 비활성이다.
-- approval·reasoning과 한 retry attempt의 목표는 생성 뒤 추적하지 않는다. retry는 다음 attempt warning이 시작될 때만 새 위치를 snapshot한다.
+- approval의 3–4개 opening, reasoning center·safe sector와 한 retry attempt의 목표는 생성 뒤 추적하지 않는다. retry는 다음 attempt warning이 시작될 때만 새 위치를 snapshot한다.
 - 서로 다른 major pattern onset은 최소 360ms 떨어지고 동시에 active한 major family는 세 개를 넘지 않는다. 기본 tool stream은 이 상한과 무관하다.
+- approval wall은 Stage 10에서도 378 logical px/s 이하로 player의 440 logical px/s보다 느리다. 다른 major가 남아 있으면 생성이 연기되고, wall이 살아 있는 동안 다른 major도 생성하지 않는다.
 - `rm *`은 720ms outline warning 뒤에만 projectile을 가리며 warning 중 player와 projectile은 그대로 보인다. approval·retry·reasoning·area hazard처럼 경로 자체가 위험인 major geometry는 blackout 위에 계속 표시한다. Stage 10에서는 하나의 major family로 계산하면서 최대 4개까지 겹칠 수 있다.
 - blackout을 빠져나온 projectile은 180ms 동안 반투명하게 다시 드러나고 충돌이 유예된다. blackout 안에 남아 있는 player와 projectile 사이 판정은 계속 위험하다.
-- 기준 면적의 55%보다 작은 viewport는 모든 spawn interval을 1.22배 늘리고 projectile 속도는 유지한다.
+- QHD `2560×1440`을 logical reference로 사용한다. FHD는 같은 arena를 `0.75×`로 표시하며 다른 화면비는 logical 높이 1440을 유지한다. 기준 logical 면적의 55%보다 작은 viewport는 모든 spawn interval을 1.22배 늘리고 projectile 속도는 유지한다.
 - 회전한 문구와 collision rectangle은 같은 각도를 사용한다.
 - radial projectile은 폭발 중심에서 56px 떨어져 생성되어 중심에 있던 player를 즉시 판정하지 않는다.
 - projectile은 최대 56개, compaction hazard와 convergence sequence는 각각 최대 4개다.

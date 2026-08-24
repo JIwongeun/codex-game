@@ -46,8 +46,13 @@ function approvalGate(
     id: 250,
     position: { x: state.player.position.x, y: 0 },
     direction: { x: 1, y: 0 },
-    gapCenter: state.player.position.y + 120,
-    gapSize: 90,
+    gaps: [
+      {
+        center: state.player.position.y + 120,
+        size: 90,
+        label: "DENY",
+      },
+    ],
     thickness: GAMEPLAY.approvalGateThickness,
     speed: 0,
     telegraphRemainingMs: FIXED_STEP_MS * 2,
@@ -71,6 +76,7 @@ function retryChain(
     attempt: 1,
     totalAttempts: 3,
     telegraphRemainingMs: 0,
+    completionRemainingMs: 0,
     ...overrides,
   };
 }
@@ -245,7 +251,7 @@ describe("survival simulation", () => {
     },
   );
 
-  it("spawns approval as a sweeping gate with one deny gap", () => {
+  it("spawns approval as a slower sweeping wall with three or four fixed gaps", () => {
     const state = playingState(17, 800, 600);
     state.elapsedMs = GAMEPLAY.approvalFirstSpawnMs;
     state.player.position = { x: 190, y: 430 };
@@ -260,16 +266,19 @@ describe("survival simulation", () => {
     }
 
     expect(Math.abs(spawned.direction.x) + Math.abs(spawned.direction.y)).toBe(1);
-    expect(spawned.gapSize).toBeGreaterThanOrEqual(
-      GAMEPLAY.approvalGateMinGap,
-    );
-    expect(spawned.gapSize).toBeLessThanOrEqual(
-      GAMEPLAY.approvalGateMaxGap,
-    );
-    const initialGap = spawned.gapCenter;
+    expect(spawned.gaps.length).toBeGreaterThanOrEqual(3);
+    expect(spawned.gaps.length).toBeLessThanOrEqual(4);
+    expect(
+      spawned.gaps.every(
+        ({ size }) =>
+          size >= GAMEPLAY.approvalGateMinGap &&
+          size <= GAMEPLAY.approvalGateMaxGap,
+      ),
+    ).toBe(true);
+    const initialGaps = structuredClone(spawned.gaps);
     state.player.position = { x: 760, y: 40 };
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
-    expect(spawned.gapCenter).toBe(initialGap);
+    expect(spawned.gaps).toEqual(initialGaps);
     expect(spawned.telegraphRemainingMs).toBeLessThan(
       GAMEPLAY.approvalGateTelegraphMs,
     );
@@ -523,6 +532,13 @@ describe("survival simulation", () => {
         origins: [{ x: 1_280, y: 700 }],
       }),
     ];
+    state.approvalGates = [
+      approvalGate(state, {
+        position: { x: 960, y: 0 },
+        gaps: [{ center: 360, size: 90, label: "REVIEW" }],
+        telegraphRemainingMs: 0,
+      }),
+    ];
     state.retryChains = [
       retryChain({
         position: { x: 1_200, y: 680 },
@@ -566,6 +582,9 @@ describe("survival simulation", () => {
     );
     expect(state.sequences[0]!.position.x).toBeLessThanOrEqual(375 - 36);
     expect(state.sequences[0]!.origins[0]!.x).toBeLessThanOrEqual(375);
+    expect(state.approvalGates[0]!.position.x).toBeCloseTo(281.25);
+    expect(state.approvalGates[0]!.gaps[0]!.center).toBeCloseTo(320);
+    expect(state.approvalGates[0]!.gaps[0]!.size).toBeCloseTo(80);
     expect(state.retryChains[0]!.velocity).toEqual({ x: 0, y: -1 });
     expect(state.blackouts[0]!.hitbox.width / state.arena.width).toBeCloseTo(
       0.3,
@@ -740,7 +759,13 @@ describe("survival simulation", () => {
     const state = playingState();
     state.approvalGates = [
       approvalGate(state, {
-        gapCenter: state.player.position.y,
+        gaps: [
+          {
+            center: state.player.position.y,
+            size: 90,
+            label: "DENY",
+          },
+        ],
         telegraphRemainingMs: 0,
       }),
     ];
@@ -756,7 +781,7 @@ describe("survival simulation", () => {
       approvalGate(state, {
         position: { x: 640, y: 300 },
         direction: { x: 0, y: 1 },
-        gapCenter: 640,
+        gaps: [{ center: 640, size: 90, label: "DENY" }],
         telegraphRemainingMs: 0,
       }),
     ];
@@ -764,6 +789,22 @@ describe("survival simulation", () => {
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(state.phase).toBe("results");
     expect(state.lastHitSource).toBe("approval");
+  });
+
+  it("keeps a horizontal approval gap safe in screen coordinates", () => {
+    const state = playingState();
+    state.player.position = { x: 640, y: 300 };
+    state.approvalGates = [
+      approvalGate(state, {
+        position: { x: 640, y: 300 },
+        direction: { x: 0, y: 1 },
+        gaps: [{ center: 640, size: 90, label: "ALLOW ONCE" }],
+        telegraphRemainingMs: 0,
+      }),
+    ];
+
+    expect(stepGame(state, EMPTY_INPUT, FIXED_STEP_MS)).toEqual([]);
+    expect(state.phase).toBe("playing");
   });
 
   it("bursts context tokens instead of turning the full frame lethal", () => {
@@ -1050,16 +1091,20 @@ describe("survival simulation", () => {
       const playerAlong = Math.abs(gate.direction.x) > 0
         ? state.player.position.y
         : state.player.position.x;
-      expect(Math.abs(gate.gapCenter - playerAlong)).toBeLessThanOrEqual(
-        reachBudget,
-      );
+      expect(
+        Math.min(
+          ...gate.gaps.map(({ center }) => Math.abs(center - playerAlong)),
+        ),
+      ).toBeLessThanOrEqual(reachBudget);
     }
   });
 
-  it("queues a fourth major family until one of three active families clears", () => {
+  it("keeps approval isolated from every other major family", () => {
     const state = playingState(301, 1_280, 720);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
-    state.approvalGates = [approvalGate(state)];
+    state.approvalGates = [
+      approvalGate(state, { telegraphRemainingMs: 1_000_000 }),
+    ];
     state.reasoningWaves = [reasoningWave(state, { phase: "thinking" })];
     state.blackouts = [
       {
@@ -1079,11 +1124,37 @@ describe("survival simulation", () => {
 
     state.blackouts = [];
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(state.hazards).toEqual([]);
+
+    state.approvalGates = [];
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(state.hazards.some(({ kind }) => kind === "compaction")).toBe(true);
   });
 
+  it("queues approval until an existing major family has cleared", () => {
+    const state = playingState(302, 2_560, 1_440);
+    state.elapsedMs = GAMEPLAY.difficultyRampMs;
+    state.hazards = [
+      hazard(state, {
+        position: { x: 200, y: 200 },
+        remainingMs: 1_000_000,
+      }),
+    ];
+    state.spawn.approvalMs = 0;
+    state.spawn.retryLoopMs = 0;
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(state.approvalGates).toEqual([]);
+    expect(state.retryChains).toEqual([]);
+    expect(state.spawn.approvalMs).toBeLessThanOrEqual(0);
+
+    state.hazards = [];
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+    expect(state.approvalGates).toHaveLength(1);
+  });
+
   it("slows spawn cadence on a small viewport without changing attack speed", () => {
-    const desktop = playingState(401, 1_280, 720);
+    const desktop = playingState(401, 2_560, 1_440);
     const portrait = playingState(401, 375, 640);
     desktop.spawn.toolCallMs = 0;
     portrait.spawn.toolCallMs = 0;
@@ -1138,6 +1209,46 @@ describe("survival simulation", () => {
     expect(reacquired?.speed).toBe(100 * GAMEPLAY.retryChainSpeedGain);
   });
 
+  it("holds a completed retry briefly, makes it harmless, and completes once", () => {
+    const state = playingState(16, 800, 600);
+    state.player.position = { x: 200, y: 100 };
+    state.retryChains = [
+      retryChain({
+        position: { x: 100, y: 100 },
+        target: { x: 200, y: 100 },
+        velocity: { x: 1, y: 0 },
+        speed: 100,
+        attempt: 3,
+        totalAttempts: 3,
+      }),
+    ];
+
+    const completionEvents = stepGame(state, EMPTY_INPUT, 1_000);
+
+    expect(completionEvents).toContainEqual({
+      type: "pattern-complete",
+      kind: "retry-loop",
+      position: { x: 200, y: 100 },
+    });
+    expect(state.retryChains).toHaveLength(1);
+    expect(state.retryChains[0]?.completionRemainingMs).toBe(
+      GAMEPLAY.retryChainCompleteMs,
+    );
+    expect(state.attacksDodged).toBe(1);
+    expect(state.phase).toBe("playing");
+
+    expect(
+      stepGame(state, EMPTY_INPUT, GAMEPLAY.retryChainCompleteMs / 2),
+    ).toEqual([]);
+    expect(state.retryChains).toHaveLength(1);
+    expect(
+      stepGame(state, EMPTY_INPUT, GAMEPLAY.retryChainCompleteMs / 2),
+    ).toEqual([]);
+    expect(state.retryChains).toEqual([]);
+    expect(state.attacksDodged).toBe(1);
+    expect(state.phase).toBe("playing");
+  });
+
   it("stacks seeded rm blackouts from stage nine to four late in stage ten", () => {
     const stageNine = playingState(91, 1_000, 700);
     stageNine.elapsedMs = GAMEPLAY.stageDurationMs * 8;
@@ -1166,7 +1277,7 @@ describe("survival simulation", () => {
       GAMEPLAY.blackoutStageNineDurationMs - 1,
     );
 
-    const late = playingState(92, 1_000, 700);
+    const late = playingState(92, 2_560, 1_440);
     late.elapsedMs = GAMEPLAY.difficultyRampMs + 60_000;
     late.spawn.blackoutMs = 0;
     stepGame(late, EMPTY_INPUT, FIXED_STEP_MS);

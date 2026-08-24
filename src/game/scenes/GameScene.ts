@@ -16,6 +16,7 @@ import { PauseOverlay } from "../presentation/PauseOverlay";
 import { ReadyOverlay } from "../presentation/ReadyOverlay";
 import { FixedStepRunner } from "../runtime/FixedStepRunner";
 import { FocusPauseController } from "../runtime/FocusPauseController";
+import { logicalViewportFor } from "../runtime/logicalViewport";
 import {
   readGuestSessionBest,
   saveGuestSessionBest,
@@ -40,10 +41,14 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.fixedStep.reset();
-    this.state = createGameState(
-      this.createSeed(),
+    const logicalViewport = logicalViewportFor(
       this.scale.width,
       this.scale.height,
+    );
+    this.state = createGameState(
+      this.createSeed(),
+      logicalViewport.width,
+      logicalViewport.height,
     );
     this.gameRenderer = new GameRenderer(this);
     this.hud = new Hud(this);
@@ -63,6 +68,7 @@ export class GameScene extends Phaser.Scene {
     this.game.events.on(Phaser.Core.Events.VISIBLE, this.handleFocus);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown);
+    this.applyViewport(this.scale.width, this.scale.height);
 
     this.renderFrame(0);
   }
@@ -191,9 +197,18 @@ export class GameScene extends Phaser.Scene {
   };
 
   private readonly handleResize = (gameSize: Phaser.Structs.Size): void => {
-    resizeArena(this.state, gameSize.width, gameSize.height);
-    this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
+    this.applyViewport(gameSize.width, gameSize.height);
   };
+
+  private applyViewport(viewportWidth: number, viewportHeight: number): void {
+    const logicalViewport = logicalViewportFor(viewportWidth, viewportHeight);
+    resizeArena(this.state, logicalViewport.width, logicalViewport.height);
+    this.cameras.main
+      .setViewport(0, 0, viewportWidth, viewportHeight)
+      .setZoom(logicalViewport.zoom)
+      .setBounds(0, 0, logicalViewport.width, logicalViewport.height)
+      .centerOn(logicalViewport.width / 2, logicalViewport.height / 2);
+  }
 
   private readonly handleShutdown = (): void => {
     this.game.events.off(Phaser.Core.Events.BLUR, this.handleSuspend);

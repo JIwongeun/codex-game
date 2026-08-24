@@ -11,6 +11,7 @@ import {
 } from "./math";
 import type {
   ApprovalGateState,
+  ApprovalGateGap,
   AreaHazardState,
   AttackPatternKind,
   AttackSurface,
@@ -40,6 +41,12 @@ const USAGE_LIMIT_RESULTS: readonly SequenceResultLabel[] = [
   "5H LIMIT REACHED",
   "WEEKLY LIMIT REACHED",
   "RESETS IN 4 DAYS",
+];
+const APPROVAL_GAP_LABELS: readonly ApprovalGateGap["label"][] = [
+  "ALLOW ONCE",
+  "ALLOW SESSION",
+  "REVIEW",
+  "DENY",
 ];
 const CONTEXT_TOKEN_LABELS = [
   "context",
@@ -205,13 +212,26 @@ export function resizeArena(
   }
 
   for (const gate of state.approvalGates) {
+    if (Math.abs(gate.direction.x) > 0) {
+      gate.position.x *= state.arena.width / previousArena.width;
+    } else {
+      gate.position.y *= state.arena.height / previousArena.height;
+    }
     const perpendicularSize =
       Math.abs(gate.direction.x) > 0 ? state.arena.height : state.arena.width;
-    gate.gapCenter = clampAxis(
-      gate.gapCenter,
-      perpendicularSize,
-      gate.gapSize / 2,
-    );
+    const previousPerpendicularSize =
+      Math.abs(gate.direction.x) > 0
+        ? previousArena.height
+        : previousArena.width;
+    const scale = perpendicularSize / previousPerpendicularSize;
+    gate.gaps = gate.gaps.map((gap) => {
+      const size = Math.min(perpendicularSize, gap.size * scale);
+      return {
+        ...gap,
+        center: clampAxis(gap.center * scale, perpendicularSize, size / 2),
+        size,
+      };
+    });
   }
 
   for (const retry of state.retryChains) {
@@ -326,7 +346,7 @@ export function stepGame(
   updateHazards(state, stepMs, events);
   updateSequences(state, stepMs, events);
   updateApprovalGates(state, stepMs, stepSeconds);
-  updateRetryChains(state, stepMs, stepSeconds);
+  updateRetryChains(state, stepMs, stepSeconds, events);
   updateReasoningWaves(state, stepMs, stepSeconds, events);
   updateBlackouts(state, stepMs);
   refreshActiveBlackoutProjectileGrace(state);
@@ -538,10 +558,22 @@ function updateRetryChains(
   state: GameState,
   stepMs: number,
   stepSeconds: number,
+  events: GameEvent[],
 ): void {
   const survivors: RetryChainState[] = [];
 
   for (const retry of state.retryChains) {
+    if (retry.completionRemainingMs > 0) {
+      retry.completionRemainingMs = Math.max(
+        0,
+        retry.completionRemainingMs - stepMs,
+      );
+      if (retry.completionRemainingMs > 0) {
+        survivors.push(retry);
+      }
+      continue;
+    }
+
     if (retry.telegraphRemainingMs > 0) {
       retry.telegraphRemainingMs = Math.max(
         0,
@@ -566,6 +598,13 @@ function updateRetryChains(
     retry.position = { ...retry.target };
     if (retry.attempt >= retry.totalAttempts) {
       state.attacksDodged += 1;
+      retry.completionRemainingMs = GAMEPLAY.retryChainCompleteMs;
+      events.push({
+        type: "pattern-complete",
+        kind: "retry-loop",
+        position: { ...retry.position },
+      });
+      survivors.push(retry);
       continue;
     }
 
@@ -686,7 +725,13 @@ function spawnScheduledAttacks(
     difficulty.approvalUnlocked &&
     state.spawn.approvalMs <= 0
   ) {
-    if (spawnApprovalGate(state, difficulty.approvalSpeed)) {
+    if (
+      spawnApprovalGate(
+        state,
+        difficulty.approvalSpeed,
+        difficulty.approvalGapCount,
+      )
+    ) {
       events.push({ type: "pattern-warning", kind: "approval-required" });
       reserveMajorPattern("approval-required");
     }
@@ -748,7 +793,7 @@ function spawnScheduledAttacks(
     if (spawnRetryChain(
       state,
       difficulty.retryLoopCount,
-      difficulty.approvalSpeed * 0.94,
+      difficulty.retryLoopSpeed,
     )) {
       events.push({ type: "pattern-warning", kind: "retry-loop" });
       reserveMajorPattern("retry-loop");
@@ -852,6 +897,17 @@ function selectMajorPattern(
   active: ReadonlySet<AttackPatternKind>,
 ): AttackPatternKind | null {
   if (state.spawn.majorPatternCooldownMs > 0) {
+    return null;
+  }
+
+  if (active.has("approval-required")) {
+    return null;
+  }
+
+  if (
+    active.size > 0 &&
+    majorPatternIsDue("approval-required", state, difficulty)
+  ) {
     return null;
   }
 
@@ -996,7 +1052,11 @@ function spawnToolCall(state: GameState, speed: number): void {
   );
 }
 
-function spawnApprovalGate(state: GameState, speed: number): boolean {
+function spawnApprovalGate(
+  state: GameState,
+  speed: number,
+  requestedGapCount: number,
+): boolean {
   if (state.approvalGates.length >= GAMEPLAY.maxApprovalGates) {
     return false;
   }
@@ -1006,31 +1066,14 @@ function spawnApprovalGate(state: GameState, speed: number): boolean {
   const perpendicularSize = horizontal
     ? state.arena.height
     : state.arena.width;
-  const gapSize = Math.min(
-    perpendicularSize,
-    GAMEPLAY.approvalGateMaxGap,
-    Math.max(
-      GAMEPLAY.approvalGateMinGap,
-      perpendicularSize * 0.16,
-    ),
-  );
   const playerAlong = horizontal
     ? state.player.position.y
     : state.player.position.x;
-  const edgeInset = Math.min(
-    20,
-    Math.max(0, (perpendicularSize - gapSize) / 2),
-  );
-  const minimumGapCenter = gapSize / 2 + edgeInset;
-  const maximumGapCenter = perpendicularSize - gapSize / 2 - edgeInset;
-  const reachBudget =
-    GAMEPLAY.playerSpeed *
-    (GAMEPLAY.approvalGateTelegraphMs / 1_000) *
-    GAMEPLAY.approvalGateReachBudgetRatio;
-  const gapCenter = randomBetween(
+  const gaps = createApprovalGaps(
     state,
-    Math.max(minimumGapCenter, playerAlong - reachBudget),
-    Math.min(maximumGapCenter, playerAlong + reachBudget),
+    perpendicularSize,
+    requestedGapCount,
+    playerAlong,
   );
   const margin = GAMEPLAY.approvalGateThickness;
   const position = pointOnEdge(state.arena, edge, 0, margin);
@@ -1047,13 +1090,59 @@ function spawnApprovalGate(state: GameState, speed: number): boolean {
     id: takeEntityId(state),
     position,
     direction,
-    gapCenter,
-    gapSize,
+    gaps,
     thickness: GAMEPLAY.approvalGateThickness,
     speed,
     telegraphRemainingMs: GAMEPLAY.approvalGateTelegraphMs,
   });
   return true;
+}
+
+function createApprovalGaps(
+  state: GameState,
+  perpendicularSize: number,
+  requestedCount: number,
+  playerAlong: number,
+): ApprovalGateGap[] {
+  let count = Math.max(3, Math.min(4, Math.floor(requestedCount)));
+  while (
+    count > 3 &&
+    (perpendicularSize / count) * 0.58 < GAMEPLAY.approvalGateMinGap
+  ) {
+    count -= 1;
+  }
+  const slotSize = perpendicularSize / count;
+  const gapSize = Math.min(
+    GAMEPLAY.approvalGateMaxGap,
+    Math.max(GAMEPLAY.approvalGateMinGap, perpendicularSize * 0.055),
+    slotSize * 0.58,
+  );
+  const playerSlot = Math.max(
+    0,
+    Math.min(count - 1, Math.floor(playerAlong / slotSize)),
+  );
+  const gaps: ApprovalGateGap[] = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const slotStart = index * slotSize;
+    const minimumCenter = slotStart + gapSize / 2;
+    const maximumCenter = slotStart + slotSize - gapSize / 2;
+    const jitter = slotSize * 0.08;
+    const center = index === playerSlot
+      ? clampAxis(playerAlong, perpendicularSize, gapSize / 2)
+      : randomBetween(
+          state,
+          Math.max(minimumCenter, slotStart + slotSize / 2 - jitter),
+          Math.min(maximumCenter, slotStart + slotSize / 2 + jitter),
+        );
+    gaps.push({
+      center: Math.min(maximumCenter, Math.max(minimumCenter, center)),
+      size: gapSize,
+      label: APPROVAL_GAP_LABELS[index] ?? "DENY",
+    });
+  }
+
+  return gaps.sort((left, right) => left.center - right.center);
 }
 
 function spawnRetryChain(
@@ -1087,6 +1176,7 @@ function spawnRetryChain(
     attempt: 1,
     totalAttempts: count,
     telegraphRemainingMs: GAMEPLAY.retryChainTelegraphMs,
+    completionRemainingMs: 0,
   });
   return true;
 }
@@ -1696,6 +1786,7 @@ function findHitSource(state: GameState): HitSource | null {
 
   for (const retry of state.retryChains) {
     if (
+      retry.completionRemainingMs <= 0 &&
       retry.telegraphRemainingMs <= 0 &&
       circleOverlapsOrientedRectangle(
         state.player.position,

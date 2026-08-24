@@ -2,6 +2,22 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-037 — Approval wall은 QHD 기준의 느린 단독 다중-opening 패턴으로 운용한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-034의 approval warning·단일 gap 수치를 대체
+- 배경: 단일 opening wall은 특히 위·아래에서 들어올 때 화면 너비 대비 opening 비율이 작고, Stage 10 wall 속도가 player보다 빨랐다. player snapshot에서 터지는 compaction·usage 계열과 동시에 발생하면 올바른 opening에 도달하는 경로 자체가 막혔다. 물리 FHD와 QHD를 그대로 simulation 좌표로 사용해 같은 공격의 화면 점유율과 이동 체감도 달랐다.
+- 결정: approval warning을 1.4초로 늘리고 한 번에 wall 하나만 생성하되 wall 안에 고정된 opening을 3–4개 만든다. 좁은 수직축에서는 최소 폭을 지키기 위해 3개, QHD·FHD 16:9 logical arena에서는 4개를 사용하며 하나는 생성 순간 player 축 위치에 배치한다. wall은 Stage 2의 약 306 logical px/s에서 Stage 10 최대 378 logical px/s까지만 올라 player의 440 logical px/s보다 항상 느리다. 생성 주기는 wall 횡단 시간보다 길게 두며, approval이 존재하면 다른 major를 시작하지 않고 다른 major가 남아 있을 때 approval도 시작하지 않는다. Canvas는 물리 viewport를 채우되 simulation은 QHD `2560×1440` 높이를 기준으로 정규화하고 FHD는 같은 arena를 zoom 0.75로 표시한다.
+- 결과: 가로·세로 wall 모두 여러 선택지가 있고 player가 warning 뒤에도 wall보다 빠르게 opening에 맞출 수 있다. compaction·usage·reasoning 같은 major와의 강제 양자택일이 사라지며, QHD와 FHD에서 개체 크기·속도·거리의 화면 비율이 같아진다. 다른 화면비는 logical 높이 1440을 유지하고 가로 범위만 조정해 letterbox를 만들지 않는다.
+
+## D-036 — Retry chain은 명시적인 completion으로 종료한다
+
+- 날짜: 2026-08-24
+- 상태: 확정
+- 배경: 마지막 retry attempt가 목표 지점에 도달한 프레임에 state와 label이 즉시 제거되어, 세 번의 연속 공격이 끝났다는 정보 없이 갑자기 사라져 보였다. bare `COMPLETE`는 4분 task-crash 완주와 혼동될 수 있다.
+- 결정: 마지막 attempt 뒤 충돌 판정을 즉시 끄고 `[tool] RETRY COMPLETE · N/N`을 420ms 유지하며 마지막 120ms에 fade한다. completion 전환 event는 warning의 3회 square click과 다른 660→990Hz 상승 2음 cue를 정확히 한 번 재생한다.
+- 결과: retry의 반복 시작·가속·attempt별 재조준 규칙은 바꾸지 않는다. 완료 상태는 공격 회피 수를 한 번만 올리고 major family가 시각적으로 끝날 때까지 유지된 뒤 제거된다.
+
 ## D-035 — 정적 asset도 Worker를 거쳐 release 보안 header를 적용한다
 
 - 날짜: 2026-08-24
@@ -13,7 +29,7 @@
 ## D-034 — 최고 난이도는 유지하되 읽을 수 없는 동시 발동을 제거한다
 
 - 날짜: 2026-08-24
-- 상태: 확정
+- 상태: 일부 대체됨 — D-037이 approval warning·gap·속도·major 격리 규칙을 변경
 - 배경: Stage 10 seed sweep에서 서로 다른 major warning이 같은 tick에 최대 세 종류, 500ms 안에 여섯 종류까지 시작했고 `rm *`은 warning 없이 즉시 탄막을 가렸다. approval gap도 player 위치와 무관해 viewport edge에서는 warning 안에 물리적으로 도달할 수 없는 seed가 있었다. 이는 높은 난이도가 아니라 입력으로 해결할 수 없는 사망이었다.
 - 결정: 기본 tool stream을 제외한 major onset을 최소 360ms 분리하고 active major family를 최대 세 개로 제한한다. due pattern은 round-robin으로 선택해 후반 pattern starvation을 막는다. approval gap은 1.05초 warning 동안 player가 도달 가능한 축 범위 안에서 선택한다. `rm *`은 720ms outline warning 뒤에만 projectile blackout이 되며 같은 family 안에서 Stage 10 최대 4개까지 겹친다. approval·retry·reasoning·area hazard geometry는 blackout 위에 계속 표시한다. 가림막을 빠져나온 projectile은 180ms 동안 반투명 reveal과 충돌 유예를 받는다. 작은 viewport는 속도 대신 spawn interval을 1.22배 늘린다. 공정성 guard로 완주 가능성이 올라가는 만큼 ending은 180초에서 240초로 연장해 Stage 10 최고 압력을 132초 버텨야 도달하도록 한다.
 - 결과: 어려움은 공격 수를 삭제하는 대신 읽고 선택할 수 있는 순서와 세 family 조합에서 나온다. ending은 이론적으로 가능하지만 일반 플레이에서는 거의 도달하기 어렵고, blackout은 warning 이후 선택한 시야 위험으로 남되 보이지 않던 탄의 출구 즉사는 막는다.

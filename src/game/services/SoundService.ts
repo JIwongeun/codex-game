@@ -221,6 +221,22 @@ export class SoundService {
         this.playErrorPopupNotification();
       } else if (event.type === "pattern-warning") {
         this.playPatternWarning(event.kind);
+      } else if (event.type === "pattern-complete") {
+        this.play({
+          frequency: 660,
+          endFrequency: 660,
+          durationSeconds: 0.075,
+          gain: 0.019,
+          wave: "sine",
+        });
+        this.play({
+          frequency: 990,
+          endFrequency: 990,
+          durationSeconds: 0.085,
+          gain: 0.019,
+          wave: "sine",
+          delaySeconds: 0.085,
+        });
       } else if (event.type === "pattern-burst") {
         if (event.kind === "reasoning-xhigh") {
           this.playReasoningAnswer();
