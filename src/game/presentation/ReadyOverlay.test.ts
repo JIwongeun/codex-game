@@ -1,7 +1,23 @@
 import { describe, expect, it } from "vitest";
 
 import { createGameState, startRun } from "../core/simulation";
-import { createAmbientPath, startScreenView } from "./ReadyOverlay";
+import {
+  createAmbientPath,
+  startScreenView,
+  volumeStepDirection,
+} from "./ReadyOverlay";
+
+describe("volumeStepDirection", () => {
+  it("maps arrows and A/D to the focused slider direction", () => {
+    expect(volumeStepDirection("ArrowLeft")).toBe(-1);
+    expect(volumeStepDirection("a")).toBe(-1);
+    expect(volumeStepDirection("A")).toBe(-1);
+    expect(volumeStepDirection("ArrowRight")).toBe(1);
+    expect(volumeStepDirection("d")).toBe(1);
+    expect(volumeStepDirection("D")).toBe(1);
+    expect(volumeStepDirection("w")).toBe(0);
+  });
+});
 
 describe("createAmbientPath", () => {
   it("moves a signal from one viewport edge to the opposite edge", () => {

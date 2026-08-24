@@ -132,7 +132,7 @@
 - [x] 재시작 시 상태 초기화
 - [x] lifecycle 회귀 검증에서 blur·hidden 시 fixed-step·held key reset, focus 후 명시적 action 전까지 pause 유지
 - [ ] 실제 브라우저 background 탭 복귀 시 타이머 정상
-- [x] 이전 50% 출력을 기본 20%에 매핑한 독립 SFX·BGM volume 조절, M 입력과 Web Audio 전체 음소거·active tone 차단
+- [x] 기본 50%의 독립 SFX·BGM volume과 focus 후 `←`·`→`·`A`·`D` 조절, M 입력과 Web Audio 전체 음소거·active tone 차단
 
 ### 랭킹 — 후순위 기능을 구현한 경우에만
 

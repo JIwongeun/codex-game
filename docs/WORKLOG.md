@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — volume 50% default와 focus keyboard 조절
+
+### 구현
+
+- SFX·BGM default를 각각 20%에서 50%로 변경하고 확장된 최대 channel gain 5는 유지
+- 마우스로 focus한 slider에서 `←`·`A`는 5% 감소, `→`·`D`는 5% 증가하도록 동일한 keyboard step 연결
+- Start가 숨겨질 때 두 range input을 blur해 `A`·`D`가 gameplay 이동과 충돌하지 않게 분리
+
+### 검증
+
+- SoundService·ReadyOverlay 관련 2개 test file의 18개 test와 typecheck 통과
+- default 50%·gain 2.5, arrow·대소문자 A/D 방향 mapping 회귀 test 통과
+- 최종 `pnpm check` 통과: typecheck, 전체 16개 test file의 133개 test, production build와 production verifier 완료
+- 실제 browser에서 mouse focus 뒤 key repeat 조절 감각은 사용자 수동 확인 전
+
 ## 2026-08-24 — volume 20% 기준 재매핑과 상단 확장
 
 ### 구현

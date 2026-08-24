@@ -76,17 +76,17 @@ describe("SoundService", () => {
     expect(FakeAudioContext.instances).toHaveLength(0);
   });
 
-  it("maps the previous 50 percent output to separate 20 percent defaults", () => {
+  it("uses separate 50 percent defaults on the expanded gain range", () => {
     const sound = new SoundService();
 
-    expect(sound.sfxVolume).toBe(0.2);
-    expect(sound.musicVolume).toBe(0.2);
+    expect(sound.sfxVolume).toBe(0.5);
+    expect(sound.musicVolume).toBe(0.5);
     sound.unlock();
     const context = FakeAudioContext.instances[0];
     const sfxGain = context?.gains[0];
     const musicGain = context?.gains[1];
-    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 4);
-    expect(musicGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1, 4);
+    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(2.5, 4);
+    expect(musicGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(2.5, 4);
 
     sound.setSfxVolume(0.25);
     sound.setMusicVolume(0.75);

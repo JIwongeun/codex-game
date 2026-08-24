@@ -129,11 +129,22 @@ export function startScreenView(
   };
 }
 
+export function volumeStepDirection(key: string): -1 | 0 | 1 {
+  if (key === "ArrowLeft" || key.toLowerCase() === "a") {
+    return -1;
+  }
+  if (key === "ArrowRight" || key.toLowerCase() === "d") {
+    return 1;
+  }
+  return 0;
+}
+
 export class ReadyOverlay {
   private readonly root: HTMLElement;
   private readonly bestValue: HTMLElement;
   private readonly lastRunValue: HTMLElement;
   private readonly actionSuffix: HTMLElement;
+  private readonly volumeInputs: readonly HTMLInputElement[];
 
   constructor(
     parent: HTMLElement,
@@ -191,6 +202,7 @@ export class ReadyOverlay {
               max="100"
               step="5"
               value="${Math.round(initialSfxVolume * 100)}"
+              aria-keyshortcuts="ArrowLeft ArrowRight A D"
             />
             <output for="await-codex-sfx-volume" data-ready-sfx-volume-output>${Math.round(initialSfxVolume * 100)}%</output>
           </label>
@@ -203,6 +215,7 @@ export class ReadyOverlay {
               max="100"
               step="5"
               value="${Math.round(initialMusicVolume * 100)}"
+              aria-keyshortcuts="ArrowLeft ArrowRight A D"
             />
             <output for="await-codex-music-volume" data-ready-music-volume-output>${Math.round(initialMusicVolume * 100)}%</output>
           </label>
@@ -251,16 +264,29 @@ export class ReadyOverlay {
       input: HTMLInputElement,
       output: HTMLOutputElement,
     ): void => {
-      input.addEventListener("input", () => {
+      const commitVolume = (): void => {
         const volume = Number(input.value) / 100;
         output.textContent = `${input.value}%`;
         onVolumeChange(channel, volume);
-      });
+      };
+
+      input.addEventListener("input", commitVolume);
       input.addEventListener("pointerdown", (event) => {
         event.stopPropagation();
       });
       input.addEventListener("keydown", (event) => {
         event.stopPropagation();
+        const direction = volumeStepDirection(event.key);
+        if (direction === 0) {
+          return;
+        }
+        event.preventDefault();
+        if (direction < 0) {
+          input.stepDown();
+        } else {
+          input.stepUp();
+        }
+        commitVolume();
       });
       input.addEventListener("keyup", (event) => {
         event.stopPropagation();
@@ -269,6 +295,7 @@ export class ReadyOverlay {
 
     bindVolumeControl("sfx", sfxVolumeInput, sfxVolumeOutput);
     bindVolumeControl("music", musicVolumeInput, musicVolumeOutput);
+    this.volumeInputs = [sfxVolumeInput, musicVolumeInput];
 
     this.bestValue = bestValue;
     this.lastRunValue = lastRunValue;
@@ -281,6 +308,9 @@ export class ReadyOverlay {
     const view = startScreenView(state, localBest);
     this.root.hidden = !view.visible;
     if (!view.visible) {
+      for (const input of this.volumeInputs) {
+        input.blur();
+      }
       return;
     }
 
