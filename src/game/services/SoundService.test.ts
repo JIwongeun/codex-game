@@ -76,11 +76,11 @@ describe("SoundService", () => {
     expect(FakeAudioContext.instances).toHaveLength(0);
   });
 
-  it("uses separate 50 percent channels for music and effects", () => {
+  it("maps the previous 50 percent output to separate 20 percent defaults", () => {
     const sound = new SoundService();
 
-    expect(sound.sfxVolume).toBe(0.5);
-    expect(sound.musicVolume).toBe(0.5);
+    expect(sound.sfxVolume).toBe(0.2);
+    expect(sound.musicVolume).toBe(0.2);
     sound.unlock();
     const context = FakeAudioContext.instances[0];
     const sfxGain = context?.gains[0];
@@ -92,8 +92,8 @@ describe("SoundService", () => {
     sound.setMusicVolume(0.75);
     expect(sound.sfxVolume).toBe(0.25);
     expect(sound.musicVolume).toBe(0.75);
-    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(0.5, 4);
-    expect(musicGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1.5, 4);
+    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(1.25, 4);
+    expect(musicGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(3.75, 4);
 
     sound.consume(RUN_STARTED);
     expect(context?.gains[2]?.connect).toHaveBeenCalledWith(sfxGain);
@@ -108,7 +108,7 @@ describe("SoundService", () => {
     sound.setMusicVolume(-1);
     expect(sound.sfxVolume).toBe(1);
     expect(sound.musicVolume).toBe(0);
-    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(2, 4);
+    expect(sfxGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(5, 4);
     expect(musicGain?.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 4);
   });
 

@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-045 — 이전 50% 출력을 새 20% 기준으로 재매핑한다
+
+- 날짜: 2026-08-24
+- 상태: 확정, D-044의 독립 channel과 흑백 slider 디자인은 유지하고 default·gain scale만 대체
+- 배경: 독립 slider의 50%에서도 실제 BGM과 효과음이 작게 느껴졌고, 상단 절반만 남은 control보다 현재 50% 출력을 낮은 기준점으로 옮겨 위쪽 조절 범위를 넓힐 필요가 있었다.
+- 결정: SFX와 BGM의 default를 모두 20%로 바꾸고 channel gain scale을 최대 2에서 최대 5로 변경한다. 새 20%의 실제 gain은 `1`로 이전 50%와 같으며, 새 100%는 gain `5`로 이전 최대보다 2.5배 높은 조절 상한을 제공한다. slider step 5%, 두 channel 독립 조절과 `M` mute 동작은 유지한다.
+- 결과: 새로고침 직후 수치는 20%로 시작하며 기존 default 음량을 잃지 않는다. 사용자는 20–100% 구간에서 이전보다 훨씬 큰 BGM·SFX를 각각 선택할 수 있다.
+
 ## D-044 — SFX와 BGM은 독립된 흑백 slider로 조절한다
 
 - 날짜: 2026-08-24
-- 상태: 확정, D-043의 단일 master volume 결정을 대체
+- 상태: 일부 대체됨 — D-045가 default 50%와 최대 gain 2를 default 20%와 최대 gain 5로 변경. D-043의 단일 master volume 결정은 계속 대체
 - 배경: Start 화면의 녹색 native range와 원형 thumb는 각진 흑백 task surface 및 monospace 정보 문법과 맞지 않았다. BGM과 효과음의 체감 balance도 한 값으로 묶지 않고 사용자가 각각 정할 필요가 있다.
 - 결정: `SFX VOLUME`과 `BGM VOLUME`을 두 줄로 분리하고 각각 별도 Web Audio channel gain에 연결한다. 두 값의 default는 모두 50%다. slider는 검정 1px rail과 검정 18×5px 가로 직사각형 handle을 사용하고 label·수치는 Start의 monospace를 따르며 수치는 검정으로 표시한다. `M`은 두 slider 값을 보존한 채 전체를 즉시 음소거한다.
 - 결과: 녹색 진행 bar처럼 보이던 장식과 원형 control이 사라지고 Start의 직선·흑백 시각 문법 안에서 BGM과 SFX balance를 독립적으로 조절할 수 있다. 값은 현재 page lifetime 동안 유지되며 새로고침하면 각각 50%로 돌아간다.

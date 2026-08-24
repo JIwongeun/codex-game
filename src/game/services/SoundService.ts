@@ -12,9 +12,9 @@ interface Tone {
 
 const MUSIC_BASE_BPM = 132;
 const MUSIC_BPM_PER_STAGE = 4;
-const DEFAULT_SFX_VOLUME = 0.5;
-const DEFAULT_MUSIC_VOLUME = 0.5;
-const CHANNEL_GAIN_AT_MAX_VOLUME = 2;
+const DEFAULT_SFX_VOLUME = 0.2;
+const DEFAULT_MUSIC_VOLUME = 0.2;
+const CHANNEL_GAIN_AT_MAX_VOLUME = 5;
 const MUSIC_GAIN = {
   lead: 0.016,
   bass: 0.013,

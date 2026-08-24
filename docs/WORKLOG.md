@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-24 — volume 20% 기준 재매핑과 상단 확장
+
+### 구현
+
+- SFX·BGM default를 각각 50%에서 20%로 변경
+- channel gain scale을 최대 2에서 최대 5로 바꿔 새 20%가 이전 50%의 실제 unity output을 그대로 사용하도록 재매핑
+- 새 100%는 이전 최대보다 2.5배 높은 gain 상한을 사용하며 독립 slider·5% step·흑백 디자인과 `M` mute 동작은 유지
+
+### 검증
+
+- SoundService 단독 14개 test와 typecheck 통과
+- SFX·BGM default 20%, 20% gain 1, 100% gain 5와 0–100% clamp 회귀 test 통과
+- 최종 `pnpm check` 통과: typecheck, 전체 16개 test file의 132개 test, production build와 production verifier 완료
+- 실제 speaker·headphone에서의 20–100% 체감 증가폭은 사용자 수동 확인 전
+
 ## 2026-08-24 — SFX·BGM 독립 50% control과 흑백 slider
 
 ### 구현
