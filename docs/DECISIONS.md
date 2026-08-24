@@ -2,6 +2,22 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-053 — 공유 preview image URL은 asset 변경 때 versioning한다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-038의 current mark 통일 결정을 운영 측면에서 보강
+- 배경: source와 production의 `og.png`는 최신 mark로 일치하지만 일부 링크 preview provider가 기존 absolute image URL의 과거 응답을 장기간 캐시해 이전 썸네일을 계속 표시했다.
+- 결정: physical `public/og.png`와 제출용 파일명은 유지하되 `og:image`·`twitter:image` URL에는 asset revision query를 붙인다. preview image가 바뀔 때 revision도 갱신하고 production verifier가 exact versioned URL을 검사한다.
+- 결과: 새 crawler request는 기존 cached image key와 다른 URL로 최신 preview를 수집한다. 이미 전송된 메시지의 immutable preview는 변경 대상이 아니다.
+
+## D-052 — Stage 10 반전은 1.2초 동안 세 번 pulse한다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-049의 180ms 단발 transition을 대체
+- 배경: 180ms 단발 difference 반전은 후반 탄막을 읽는 중 쉽게 지나쳐 Stage 10 진입 연출을 인지하기 어려웠다.
+- 결정: Stage 10 진입 transition을 총 1.2초로 늘리고 400ms 간격의 smooth difference pulse 세 번으로 구성한다. 각 pulse는 black inversion까지 천천히 올라간 뒤 완전히 원래 화면으로 돌아오고 다음 pulse를 시작한다. transition은 Stage 10 진입 때 한 번만 실행하며 persistent danger surface와 simulation은 그대로 유지한다.
+- 결과: 빠른 strobe 없이 세 번의 명확한 흑백 전환으로 최종 Stage 진입을 놓치기 어렵다.
+
 ## D-051 — Stage context load는 숫자만 남긴다
 
 - 날짜: 2026-08-25
@@ -21,7 +37,7 @@
 ## D-049 — Stage 10은 `CONTEXT // OVERFLOW` 비상 surface로 전환한다
 
 - 날짜: 2026-08-25
-- 상태: 확정
+- 상태: 일부 대체됨 — D-052가 180ms 단발 transition을 1.2초 3회 pulse로 변경. persistent danger surface와 low alarm 결정은 유효
 - 배경: Stage 10은 모든 패턴과 최대 난이도가 열리지만 화면의 전역 상태는 이전 Stage와 같아 최종 구간에 도달했다는 감각이 약했다. 배경 전체를 진한 red로 바꾸거나 지속적으로 색을 반전하면 terminal·browser·Codex 공격의 의미색과 흰 task surface 가독성을 훼손한다.
 - 결정: Stage 10 진입 때만 180ms 흑백 difference transition을 한 번 재생한다. 이후 배경은 near-white red wash를 사용하고 화면 가장자리의 2px danger frame, corner bracket과 diagnostic tick만 red로 맥박치게 한다. 공격과 player의 기존 색·판정은 유지한다. Stage 표시는 좌측 status row에서 분리해 모든 Stage에서 상단 정중앙에 두고, Stage 10에는 danger red와 `OVERFLOW` 상태를 표시한다. procedural BGM에는 Stage 10에서만 낮은 alarm pulse를 추가한다.
 - 결과: 중앙 탄막 판독 영역을 비우면서도 최종 구간이 Codex task surface 전체의 임계 상태로 읽힌다. 반전은 반복하지 않으며 pause·game over에서는 비상 surface와 transition을 표시하지 않는다.

@@ -85,7 +85,7 @@ for (const requiredNotice of [
   }
 }
 const publicOgUrl =
-  "https://await-codex-context-overflow.jygjyg99.chatgpt.site/og.png";
+  "https://await-codex-context-overflow.jygjyg99.chatgpt.site/og.png?v=20260825-1";
 for (const requiredMetadata of [
   "await CODEX: CONTEXT//OVERFLOW",
   'http-equiv="Content-Security-Policy"',

@@ -1,6 +1,7 @@
 import { GAMEPLAY } from "../constants";
 
-export const OVERFLOW_TRANSITION_MS = 180;
+export const OVERFLOW_TRANSITION_MS = 1_200;
+export const OVERFLOW_FLASH_COUNT = 3;
 
 export interface OverflowPresentation {
   active: boolean;
@@ -27,8 +28,8 @@ export function overflowPresentationAt(
 
   const transitionProgress = Math.min(1, ageMs / OVERFLOW_TRANSITION_MS);
   const inversionAlpha =
-    Math.sin(transitionProgress * Math.PI) *
-    (transitionProgress < 1 ? 0.92 : 0);
+    Math.sin(transitionProgress * Math.PI * OVERFLOW_FLASH_COUNT) ** 2 *
+    (transitionProgress < 1 ? 0.96 : 0);
   const frameAlpha =
     0.24 + (Math.sin((ageMs / 1_200) * Math.PI * 2) + 1) * 0.08;
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { GAMEPLAY } from "../constants";
 import {
+  OVERFLOW_FLASH_COUNT,
   OVERFLOW_TRANSITION_MS,
   overflowPresentationAt,
 } from "./overflowPresentation";
@@ -19,17 +20,29 @@ describe("overflowPresentationAt", () => {
     });
   });
 
-  it("plays one short inversion only when stage ten begins", () => {
-    const midpoint = overflowPresentationAt(
-      STAGE_TEN_START_MS + OVERFLOW_TRANSITION_MS / 2,
+  it("plays three slow inversion pulses only when stage ten begins", () => {
+    const peakOffsets = [1 / 6, 1 / 2, 5 / 6].map(
+      (ratio) => OVERFLOW_TRANSITION_MS * ratio,
+    );
+    const restOffsets = [0, 1 / 3, 2 / 3, 1].map(
+      (ratio) => OVERFLOW_TRANSITION_MS * ratio,
     );
     const finished = overflowPresentationAt(
       STAGE_TEN_START_MS + OVERFLOW_TRANSITION_MS,
     );
     const late = overflowPresentationAt(STAGE_TEN_START_MS + 90_000);
 
-    expect(midpoint.active).toBe(true);
-    expect(midpoint.inversionAlpha).toBeCloseTo(0.92);
+    expect(OVERFLOW_FLASH_COUNT).toBe(3);
+    for (const offset of peakOffsets) {
+      expect(
+        overflowPresentationAt(STAGE_TEN_START_MS + offset).inversionAlpha,
+      ).toBeCloseTo(0.96);
+    }
+    for (const offset of restOffsets) {
+      expect(
+        overflowPresentationAt(STAGE_TEN_START_MS + offset).inversionAlpha,
+      ).toBeCloseTo(0);
+    }
     expect(finished.inversionAlpha).toBe(0);
     expect(late.inversionAlpha).toBe(0);
   });

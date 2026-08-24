@@ -2,6 +2,43 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — 링크 preview image cache revision
+
+### 구현
+
+- source `public/og.png`와 production `/og.png`의 SHA-256이 일치해 배포 drift가 아니라 외부 preview cache임을 확인
+- `og:image`와 `twitter:image` absolute URL에 `v=20260825-1` revision query 추가
+- production verifier가 versioned preview URL을 exact match로 검사하도록 갱신
+
+### 검증
+
+- 변경 전 source·live OG SHA-256 `0F1CEDDB...3ED3AD` 일치 확인
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 144개 test, production build와 versioned preview metadata verifier 완료
+
+### 남은 확인
+
+- production 배포 뒤 live metadata·versioned image HTTP 200 확인 필요
+- 이미 전송된 메시지의 과거 preview는 외부 서비스 정책상 유지될 수 있음
+
+## 2026-08-25 — Stage 10 반전을 1.2초 3회 pulse로 강화
+
+### 구현
+
+- 인지하기 어려운 180ms 단발 difference transition을 제거
+- Stage 10 진입 시 1.2초 동안 400ms 간격으로 peak 96%의 smooth 흑백 반전을 세 번 재생
+- 각 pulse 사이에는 inversion alpha가 완전히 0으로 돌아오며 Stage 10 진입 뒤 반복되지 않음
+
+### 검증
+
+- 세 peak·네 rest 지점, transition 종료와 장시간 뒤 비반복 회귀 test 통과
+- 관련 test file 3개 test와 typecheck 통과
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 144개 test, production build와 verifier 완료
+
+### 남은 확인
+
+- production commit·배포 필요
+- 실제 플레이에서 1.2초 pulse 체감은 사용자 수동 확인 필요
+
 ## 2026-08-25 — Stage label의 `SIM CTX` prefix 제거
 
 ### 구현
