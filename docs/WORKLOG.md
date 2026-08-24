@@ -2,6 +2,24 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — 두 배로 증가하는 Stage `SIM CTX` 표기
+
+### 구현
+
+- 실제 12초 Stage 경계와 공격 해금·난이도 수치는 유지
+- Stage 1–10 상단 중앙 label을 fictional `SIM CTX 1K → 2K → 4K → 8K → 16K → 32K → 64K → 128K → 256K → 512K`로 대응
+- Stage 10은 `STAGE 10 · SIM CTX 512K // OVERFLOW`로 표시하고 기존 danger red surface 유지
+
+### 검증
+
+- 10개 Stage의 context load doubling, 일반 Stage label, Stage 10 overflow와 범위 clamp 회귀 test 추가
+- 관련 2개 test file의 6개 test와 typecheck 통과
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 144개 test, production build와 verifier 완료
+
+### 남은 확인
+
+- production commit·배포 필요
+
 ## 2026-08-25 — Stage 10 `CONTEXT // OVERFLOW` 비상 surface
 
 ### 구현

@@ -2,12 +2,20 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-050 — Stage progression은 두 배로 증가하는 fictional `SIM CTX`로 표시한다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-049의 Stage 10 label을 보강
+- 배경: 12초마다 증가하는 숫자 Stage만으로는 개발·Codex 문맥이 드러나지 않는다. 반면 실제 Stage 경계 시간을 2의 거듭제곱 간격으로 바꾸면 이미 맞춘 공격 해금과 난이도 곡선이 달라진다.
+- 결정: simulation의 12초 Stage 경계와 공격 balance는 유지한다. 상단 중앙 표시는 Stage 1–10을 fictional context load `1K → 2K → 4K → 8K → 16K → 32K → 64K → 128K → 256K → 512K`에 대응시킨다. 실제 Codex context 상태나 한도로 오인되지 않도록 `SIM CTX`를 붙이고 Stage 10은 `SIM CTX 512K // OVERFLOW`로 표시한다.
+- 결과: 플레이 난이도는 그대로 유지하면서 매 Stage가 context가 bit-shift처럼 두 배로 팽창하는 과정으로 읽힌다.
+
 ## D-049 — Stage 10은 `CONTEXT // OVERFLOW` 비상 surface로 전환한다
 
 - 날짜: 2026-08-25
 - 상태: 확정
 - 배경: Stage 10은 모든 패턴과 최대 난이도가 열리지만 화면의 전역 상태는 이전 Stage와 같아 최종 구간에 도달했다는 감각이 약했다. 배경 전체를 진한 red로 바꾸거나 지속적으로 색을 반전하면 terminal·browser·Codex 공격의 의미색과 흰 task surface 가독성을 훼손한다.
-- 결정: Stage 10 진입 때만 180ms 흑백 difference transition을 한 번 재생한다. 이후 배경은 near-white red wash를 사용하고 화면 가장자리의 2px danger frame, corner bracket과 diagnostic tick만 red로 맥박치게 한다. 공격과 player의 기존 색·판정은 유지한다. Stage 표시는 좌측 status row에서 분리해 모든 Stage에서 상단 정중앙에 두고, Stage 10에는 `STAGE 10 · CONTEXT // OVERFLOW`를 danger red로 표시한다. procedural BGM에는 Stage 10에서만 낮은 alarm pulse를 추가한다.
+- 결정: Stage 10 진입 때만 180ms 흑백 difference transition을 한 번 재생한다. 이후 배경은 near-white red wash를 사용하고 화면 가장자리의 2px danger frame, corner bracket과 diagnostic tick만 red로 맥박치게 한다. 공격과 player의 기존 색·판정은 유지한다. Stage 표시는 좌측 status row에서 분리해 모든 Stage에서 상단 정중앙에 두고, Stage 10에는 danger red와 `OVERFLOW` 상태를 표시한다. procedural BGM에는 Stage 10에서만 낮은 alarm pulse를 추가한다.
 - 결과: 중앙 탄막 판독 영역을 비우면서도 최종 구간이 Codex task surface 전체의 임계 상태로 읽힌다. 반전은 반복하지 않으며 pause·game over에서는 비상 surface와 transition을 표시하지 않는다.
 
 ## D-048 — `rm *`은 공격을 삭제하지 않는 다중 정사각형 시야 blackout이다

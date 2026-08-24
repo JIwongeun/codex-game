@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import type { GameState } from "../core/model";
 import { difficultyAt, formatSurvivalTime } from "../core/rules";
 import { overflowPresentationAt } from "./overflowPresentation";
+import { stageDisplayLabel } from "./stagePresentation";
 import { FONTS, TEXT_COLORS } from "./theme";
 
 export class Hud {
@@ -127,11 +128,7 @@ export class Hud {
             .padStart(3, "0")} CLEARED`,
     );
     this.stageText
-      .setText(
-        overflow.active
-          ? "STAGE 10  ·  CONTEXT // OVERFLOW"
-          : `STAGE ${difficulty.stage.toString().padStart(2, "0")}`,
-      )
+      .setText(stageDisplayLabel(difficulty.stage))
       .setColor(overflow.active ? TEXT_COLORS.danger : TEXT_COLORS.muted);
     this.hintText.setText(
       `WASD / ARROWS  MOVE   ·   ESC  EXIT   ·   M  ${muted ? "SOUND ON" : "MUTE"}`,
