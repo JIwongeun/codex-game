@@ -17,7 +17,9 @@
 - 공개 Sites v39와 HEAD `50c061c`의 source·asset 일치, sessionStorage 사용, QA query·source map·명백한 secret·browser console warning/error 없음 확인
 - 정상 200 static asset에는 Worker 보안 header가 적용되지 않는 Sites routing 제한을 재현했고 HTML meta CSP·referrer·robots와 무입력·무backend 구조를 근거로 accepted risk로 문서화
 - license·robots 추가 뒤 최종 `pnpm check` 재통과: typecheck, 전체 16개 test file의 131개 test, 100개 client file production build·verifier 완료
-- commit·push·production 배포와 live license·robots smoke test 필요
+- commit `4844782`를 GitHub와 Sites source에 push하고 production v40 배포 완료
+- live root·license·robots·OG가 모두 200, license link·전문과 robots 전체 차단, sessionStorage·QA query 제거, 1280×720 CSS/1920×1080 backing, Ready→Playing→Esc 복귀와 browser warning/error 0건 확인
+- 정상 200 asset의 Worker response header 미적용은 그대로이며 문서화한 accepted risk 외 남은 production drift 없음
 
 ## 2026-08-24 — FHD/QHD 고해상도 Canvas profile
 
