@@ -2,6 +2,14 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-054 — Stage 10 transition은 적색 비상등과 3회 siren이다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-052의 흑백 difference 표현을 대체
+- 배경: 세 번의 흑백 반전은 이전보다 잘 보이지만 Stage 10의 red danger surface와 의미가 직접 연결되지 않아 어떤 상태 변화인지 모호했다.
+- 결정: 1.2초·400ms 간격·3회 pulse timing은 유지한다. difference blend를 제거하고 danger red overlay가 alpha 0→0.82→0으로 세 번 밝아지는 비상등으로 교체한다. 각 visual peak에는 330→720Hz triangle siren 세 개를 같은 400ms 간격으로 재생한다. transition 종료 뒤에는 기존 near-white danger surface, red edge frame과 low alarm BGM을 유지한다.
+- 결과: Stage 10 진입이 흑백 효과가 아니라 task surface 전체의 적색 비상 경보로 즉시 이해된다.
+
 ## D-053 — 공유 preview image URL은 asset 변경 때 versioning한다
 
 - 날짜: 2026-08-25
@@ -13,7 +21,7 @@
 ## D-052 — Stage 10 반전은 1.2초 동안 세 번 pulse한다
 
 - 날짜: 2026-08-25
-- 상태: 확정, D-049의 180ms 단발 transition을 대체
+- 상태: 일부 대체됨 — D-054가 difference blend를 red emergency overlay와 siren으로 변경. 1.2초·3회 timing은 유효
 - 배경: 180ms 단발 difference 반전은 후반 탄막을 읽는 중 쉽게 지나쳐 Stage 10 진입 연출을 인지하기 어려웠다.
 - 결정: Stage 10 진입 transition을 총 1.2초로 늘리고 400ms 간격의 smooth difference pulse 세 번으로 구성한다. 각 pulse는 black inversion까지 천천히 올라간 뒤 완전히 원래 화면으로 돌아오고 다음 pulse를 시작한다. transition은 Stage 10 진입 때 한 번만 실행하며 persistent danger surface와 simulation은 그대로 유지한다.
 - 결과: 빠른 strobe 없이 세 번의 명확한 흑백 전환으로 최종 Stage 진입을 놓치기 어렵다.

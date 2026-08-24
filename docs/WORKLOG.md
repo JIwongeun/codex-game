@@ -2,6 +2,26 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Stage 10 적색 비상등과 3회 siren
+
+### 구현
+
+- 의미가 모호한 difference blend 흑백 반전을 제거
+- 기존 1.2초·400ms 간격·3회 곡선에 peak alpha 0.82 danger red overlay 적용
+- 각 visual pulse와 같은 400ms 간격으로 330→720Hz triangle siren 세 번 재생
+- transition 뒤 near-white danger surface, red edge frame과 Stage 10 low alarm BGM 유지
+
+### 검증
+
+- red emergency alpha의 세 peak·rest·비반복 test와 Stage 10 진입 siren 3개 주파수 sweep test 통과
+- 관련 2개 test file의 19개 test와 typecheck 통과
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 145개 test, production build와 verifier 완료
+
+### 남은 확인
+
+- production commit·배포 필요
+- 실제 화면과 speaker에서 red alpha·siren gain 체감은 사용자 수동 확인 필요
+
 ## 2026-08-25 — 링크 preview image cache revision
 
 ### 구현

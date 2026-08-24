@@ -112,7 +112,7 @@ Guest session 최고 기록 = 현재 browser page session에서 가장 긴 생�
 - 한 번 피격 시 종료와 생존 시간 기록
 - 실제 Codex 사용자 경험에서 가져온 공격 패턴 8종과 수렴·분할 sequence
 - 12초 단위 Stage 1–10 난이도 상승과 공격 상한
-- Stage마다 `1K`에서 `512K`까지 두 배로 증가하는 context load 표기와 Stage 10 3회 반전, near-white danger surface·low alarm pulse
+- Stage마다 `1K`에서 `512K`까지 두 배로 증가하는 context load 표기와 Stage 10 3회 적색 비상등·siren, near-white danger surface·low alarm pulse
 - 4분 생존 task-crash ending
 - browser session 한정 Guest 최고 생존 기록 하나
 - 음소거 가능한 procedural BGM과 공격·stage notification 효과음

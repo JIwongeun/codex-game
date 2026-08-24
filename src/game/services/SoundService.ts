@@ -535,7 +535,7 @@ export class SoundService {
 
   private playStageNotification(stage: number): void {
     if (stage === GAMEPLAY.maxStage) {
-      this.playTaskCompleteNotification(0.22, true, true);
+      this.playOverflowWarning();
       return;
     }
 
@@ -543,6 +543,22 @@ export class SoundService {
       this.playDeliveryNotification(0.22, true);
     } else {
       this.playTaskCompleteNotification(0.22, true);
+    }
+  }
+
+  private playOverflowWarning(): void {
+    for (let index = 0; index < 3; index += 1) {
+      this.play(
+        {
+          frequency: 330,
+          endFrequency: 720,
+          durationSeconds: 0.28,
+          gain: 0.02,
+          wave: "triangle",
+          delaySeconds: 0.04 + index * 0.4,
+        },
+        true,
+      );
     }
   }
 

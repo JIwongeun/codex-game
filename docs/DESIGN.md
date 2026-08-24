@@ -35,7 +35,7 @@
 
 - 바탕과 HUD는 white, black, gray를 유지한다. 공격은 하나의 terminal skin으로 통일하지 않고 `terminal`, `browser`, `codex` 작업 surface별 시각 문법을 사용한다.
 - HUD와 overlay는 self-hosted `Pretendard Variable`을 사용한다. Terminal 공격은 Codex terminal과 가까운 `Cascadia Mono`·`Consolas` system stack을, Browser는 system UI sans를, Codex는 Pretendard를 10–11px로 사용한다.
-- Stage 표시는 좌측 task status와 분리해 Game 화면 상단 정중앙에 둔다. fictional context load는 `1K`에서 `512K`까지 두 배로 증가하되 visible prefix 없이 `STAGE 01 · 1K`처럼 간결하게 표시한다. Stage 10 진입 시 1.2초 동안 400ms 간격의 smooth 흑백 반전을 세 번 재생한 뒤 near-white red wash와 가장자리 danger frame·corner bracket·diagnostic tick을 유지하고 중앙 공격 영역에는 장식을 추가하지 않는다. Stage 10 label은 `STAGE 10 · 512K // OVERFLOW`를 표시하며 low alarm pulse를 BGM에 더한다.
+- Stage 표시는 좌측 task status와 분리해 Game 화면 상단 정중앙에 둔다. fictional context load는 `1K`에서 `512K`까지 두 배로 증가하되 visible prefix 없이 `STAGE 01 · 1K`처럼 간결하게 표시한다. Stage 10 진입 시 1.2초 동안 400ms 간격으로 danger red overlay와 rising siren을 세 번 pulse한 뒤 near-white red wash와 가장자리 danger frame·corner bracket·diagnostic tick을 유지하고 중앙 공격 영역에는 장식을 추가하지 않는다. Stage 10 label은 `STAGE 10 · 512K // OVERFLOW`를 표시하며 low alarm pulse를 BGM에 더한다.
 - FHD와 QHD는 같은 QHD logical arena를 공유하되 각각 2×와 1.5× 고해상도 Canvas backing으로 렌더링한다. 표시 크기와 hitbox 비율은 유지하고 글자·1px line·회전 glyph의 source pixel만 늘린다.
 - 투사체는 큰 사각 UI block이 아니라 실제 command, browser error, tool-state처럼 작고 보통 굵기인 한 줄 문구다.
 - 투사체 전체에 한 색을 주지 않는다. 같은 한 줄 안에서도 executable, parameter, quoted string, error code, path, tool token과 본문을 각 surface의 실제 syntax 역할에 따라 나눈다.
@@ -188,7 +188,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 - `presentation/GameRenderer.ts`: token별 회전 텍스트, 경로, context progress, convergence와 particle 표현
 - `presentation/ReadyOverlay.ts`: 최초 진입과 game over가 공유하는 Start DOM layout, original game mark, last run·session best와 ambient attack feed
 - `presentation/Hud.ts`: Game 화면 상단 중앙 stage와 시간·best를 표시. 공격명 announcement와 별도 Results UI는 금지
-- `presentation/overflowPresentation.ts`: Stage 10 3회 inversion transition과 지속 danger frame pulse를 elapsed time에서 계산
+- `presentation/overflowPresentation.ts`: Stage 10 3회 red emergency transition과 지속 danger frame pulse를 elapsed time에서 계산
 - `presentation/stagePresentation.ts`: Stage 1–10을 두 배로 증가하는 compact context load label로 변환
 - `presentation/PauseOverlay.ts`: focus pause 표현
 - `runtime/FocusPauseController.ts`: blur·hidden에서 fixed-step backlog와 held input을 비우고 명시적 action 전까지 pause 유지

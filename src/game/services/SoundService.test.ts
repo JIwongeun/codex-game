@@ -184,6 +184,30 @@ describe("SoundService", () => {
     expect(context?.oscillators).toHaveLength(afterStageChange);
   });
 
+  it("plays three rising siren tones when stage ten begins", () => {
+    const sound = new SoundService();
+
+    sound.unlock();
+    sound.syncMusic(true, 96_000);
+    const context = FakeAudioContext.instances[0];
+    const beforeOverflow = context?.oscillators.length ?? 0;
+
+    sound.syncMusic(true, 108_000);
+    const sirens = context?.oscillators.slice(beforeOverflow) ?? [];
+
+    expect(sirens).toHaveLength(3);
+    for (const siren of sirens) {
+      expect(siren.type).toBe("triangle");
+      expect(siren.frequency.setValueAtTime).toHaveBeenCalledWith(
+        330,
+        expect.any(Number),
+      );
+      expect(
+        siren.frequency.exponentialRampToValueAtTime,
+      ).toHaveBeenCalledWith(720, expect.any(Number));
+    }
+  });
+
   it("disconnects music on pause and restarts the step after resume", () => {
     const sound = new SoundService();
 

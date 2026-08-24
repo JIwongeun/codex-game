@@ -15,12 +15,12 @@ describe("overflowPresentationAt", () => {
     expect(overflowPresentationAt(STAGE_TEN_START_MS - 1)).toEqual({
       active: false,
       ageMs: 0,
-      inversionAlpha: 0,
+      emergencyAlpha: 0,
       frameAlpha: 0,
     });
   });
 
-  it("plays three slow inversion pulses only when stage ten begins", () => {
+  it("plays three slow emergency-light pulses only when stage ten begins", () => {
     const peakOffsets = [1 / 6, 1 / 2, 5 / 6].map(
       (ratio) => OVERFLOW_TRANSITION_MS * ratio,
     );
@@ -35,16 +35,16 @@ describe("overflowPresentationAt", () => {
     expect(OVERFLOW_FLASH_COUNT).toBe(3);
     for (const offset of peakOffsets) {
       expect(
-        overflowPresentationAt(STAGE_TEN_START_MS + offset).inversionAlpha,
-      ).toBeCloseTo(0.96);
+        overflowPresentationAt(STAGE_TEN_START_MS + offset).emergencyAlpha,
+      ).toBeCloseTo(0.82);
     }
     for (const offset of restOffsets) {
       expect(
-        overflowPresentationAt(STAGE_TEN_START_MS + offset).inversionAlpha,
+        overflowPresentationAt(STAGE_TEN_START_MS + offset).emergencyAlpha,
       ).toBeCloseTo(0);
     }
-    expect(finished.inversionAlpha).toBe(0);
-    expect(late.inversionAlpha).toBe(0);
+    expect(finished.emergencyAlpha).toBe(0);
+    expect(late.emergencyAlpha).toBe(0);
   });
 
   it("keeps the persistent border pulse subtle", () => {

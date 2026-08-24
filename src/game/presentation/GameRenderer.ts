@@ -138,8 +138,7 @@ export class GameRenderer {
     this.playerLayer = scene.add.graphics().setDepth(RENDER_DEPTHS.player);
     this.overflowTransitionLayer = scene.add
       .graphics()
-      .setDepth(RENDER_DEPTHS.overflowTransition)
-      .setBlendMode(Phaser.BlendModes.DIFFERENCE);
+      .setDepth(RENDER_DEPTHS.overflowTransition);
     const parent = scene.game.canvas.parentElement ?? document.body;
     this.endingOverlay = new BlueScreenOverlay(parent);
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -281,13 +280,13 @@ export class GameRenderer {
     }
 
     const overflow = overflowPresentationAt(state.elapsedMs);
-    if (overflow.inversionAlpha <= 0) {
+    if (overflow.emergencyAlpha <= 0) {
       return;
     }
 
     this.overflowTransitionLayer.fillStyle(
-      COLORS.background,
-      overflow.inversionAlpha,
+      COLORS.overflowDanger,
+      overflow.emergencyAlpha,
     );
     this.overflowTransitionLayer.fillRect(
       0,
