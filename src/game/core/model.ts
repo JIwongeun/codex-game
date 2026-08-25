@@ -32,12 +32,6 @@ export type AttackPatternKind =
   | "usage-limit"
   | "wildcard-blackout";
 export type HitSource = ProjectileKind | "reasoning" | "access";
-export type HitEntityRef =
-  | { kind: "projectile"; id: number }
-  | { kind: "reasoning-wave"; id: number }
-  | { kind: "download-access"; id: number }
-  | { kind: "approval-gate"; id: number }
-  | { kind: "retry-chain"; id: number };
 export type AttackSurface = "terminal" | "browser" | "codex";
 
 export type ToolCallLabel = string;
@@ -197,7 +191,6 @@ export interface GameState {
   attacksDodged: number;
   hazardsSurvived: number;
   lastHitSource: HitSource | null;
-  lastHitEntity: HitEntityRef | null;
   player: PlayerState;
   projectiles: ProjectileState[];
   hazards: AreaHazardState[];

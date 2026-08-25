@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — 첫 Game Over 배경 복원과 현재 중앙 copy 유지
+
+### 구현
+
+- `c71b0c8`의 game-over 배경 구조를 복원해 results Canvas의 68% white wash·black player node·hit-source focus와 DOM의 76% 순백·4px blur·grayscale·저대비 처리를 다시 사용
+- 최근 추가했던 collision aperture, exact hit entity 추적과 별도 foreground Canvas를 제거해 frozen 공격 전체가 흰 화면 아래에서 고르게 연해지도록 정리
+- 현재 중앙 copy의 danger red `GAME OVER`, glyph 좌우 여백과 최종 `clip-path: none`은 유지해 마지막 `R` 잘림을 방지
+- run time·hit source·new-best badge, 클릭·Space Retry, `Esc` Start와 completion chime은 변경하지 않음
+
+### 검증
+
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 152개 test, production build와 verifier 완료
+- local 1280×720 Stage 8 QA run에서 실제 game over 확인: overlay background `rgba(255, 255, 255, 0.76)`, `blur(4px) grayscale(1) contrast(0.82)`, foreground Canvas 0개
+- 중앙 title `rgb(184, 61, 69)`, 최종 `clip-path: none`과 흰 화면 아래에 고르게 낮아진 frozen Game을 screenshot으로 확인
+
 ## 2026-08-25 — Colorless Game Over blur와 exact hit foreground
 
 ### 구현

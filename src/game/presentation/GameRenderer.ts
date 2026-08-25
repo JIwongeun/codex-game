@@ -12,6 +12,7 @@ import type {
   AreaHazardState,
   GameEvent,
   GameState,
+  HitSource,
   ProjectileState,
   ReasoningWaveState,
   Vec2,
@@ -195,6 +196,7 @@ export class GameRenderer {
     this.drawPlayer(state);
     this.drawEffects();
     this.drawOverflowTransition(state);
+    this.drawHitFocus(state);
     this.endingOverlay.render(state.ending);
 
     if (this.hitFlashMs > 0) {
@@ -294,6 +296,43 @@ export class GameRenderer {
       state.arena.width,
       state.arena.height,
     );
+  }
+
+  private drawHitFocus(state: GameState): void {
+    if (state.phase !== "results" || !state.lastHitSource) {
+      return;
+    }
+
+    const x = Math.round(state.player.position.x);
+    const y = Math.round(state.player.position.y);
+    const tone = this.hitSourceTone(state.lastHitSource);
+
+    this.overflowTransitionLayer.fillStyle(COLORS.background, 0.68);
+    this.overflowTransitionLayer.fillRect(
+      0,
+      0,
+      state.arena.width,
+      state.arena.height,
+    );
+    this.overflowTransitionLayer.fillStyle(COLORS.black, 1);
+    this.overflowTransitionLayer.fillRect(x - 6, y - 6, 12, 12);
+    this.overflowTransitionLayer.lineStyle(2, tone, 1);
+    this.overflowTransitionLayer.strokeRect(x - 15, y - 15, 30, 30);
+    this.overflowTransitionLayer.lineStyle(1, tone, 0.8);
+    this.overflowTransitionLayer.lineBetween(x - 25, y, x - 17, y);
+    this.overflowTransitionLayer.lineBetween(x + 17, y, x + 25, y);
+    this.overflowTransitionLayer.lineBetween(x, y - 25, x, y - 17);
+    this.overflowTransitionLayer.lineBetween(x, y + 17, x, y + 25);
+  }
+
+  private hitSourceTone(source: HitSource): number {
+    if (source === "tool-call") {
+      return ATTACK_TONES.terminalCommand.value;
+    }
+    if (source === "access") {
+      return ATTACK_TONES.downloadAccess.value;
+    }
+    return ATTACK_TONES.codex.value;
   }
 
   private drawHazards(state: GameState): void {

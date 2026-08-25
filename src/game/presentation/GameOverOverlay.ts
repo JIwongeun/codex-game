@@ -1,6 +1,5 @@
 import type { GameState } from "../core/model";
 import { formatSurvivalTime } from "../core/rules";
-import { GameOverHitLayer } from "./GameOverHitLayer";
 import { hitSourceLabel } from "./hitSourceLabel";
 
 export interface GameOverView {
@@ -25,16 +24,14 @@ export class GameOverOverlay {
   private readonly time: HTMLElement;
   private readonly source: HTMLElement;
   private readonly best: HTMLElement;
-  private readonly hitLayer: GameOverHitLayer;
 
-  constructor(parent: HTMLElement, gameCanvas: HTMLCanvasElement) {
+  constructor(parent: HTMLElement) {
     this.root = document.createElement("section");
     this.root.className = "game-over-overlay";
     this.root.hidden = true;
     this.root.setAttribute("aria-live", "assertive");
     this.root.setAttribute("aria-label", "Game over");
     this.root.innerHTML = `
-      <canvas class="game-over-overlay__hit-layer" data-game-over-hit-layer aria-hidden="true"></canvas>
       <div class="game-over-overlay__copy">
         <h2>GAME OVER</h2>
         <p class="game-over-overlay__fault">
@@ -58,23 +55,18 @@ export class GameOverOverlay {
       "[data-game-over-source]",
     );
     const best = this.root.querySelector<HTMLElement>("[data-game-over-best]");
-    const hitCanvas = this.root.querySelector<HTMLCanvasElement>(
-      "[data-game-over-hit-layer]",
-    );
-    if (!time || !source || !best || !hitCanvas) {
+    if (!time || !source || !best) {
       throw new Error("Game over overlay targets were not found.");
     }
 
     this.time = time;
     this.source = source;
     this.best = best;
-    this.hitLayer = new GameOverHitLayer(hitCanvas, gameCanvas);
     parent.append(this.root);
   }
 
   render(visible: boolean, state: GameState, newBest: boolean): void {
     this.root.hidden = !visible;
-    this.hitLayer.render(visible, state);
     if (!visible) {
       return;
     }
