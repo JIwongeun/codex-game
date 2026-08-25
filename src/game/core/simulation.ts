@@ -974,10 +974,13 @@ function randomizedMajorPatternInterval(
   state: GameState,
   intervalMs: number,
 ): number {
-  return intervalMs + randomTimingBetween(
-    state,
-    -GAMEPLAY.majorPatternTimingJitterMs,
-    GAMEPLAY.majorPatternTimingJitterMs,
+  return Math.max(
+    GAMEPLAY.majorPatternMinimumIntervalMs,
+    intervalMs + randomTimingBetween(
+      state,
+      -GAMEPLAY.majorPatternTimingJitterMs,
+      GAMEPLAY.majorPatternTimingJitterMs,
+    ),
   );
 }
 

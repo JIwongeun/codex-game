@@ -204,7 +204,7 @@ describe("survival simulation", () => {
     expect(first).toEqual(second);
   });
 
-  it("randomizes each major pattern's first appearance within half a second", () => {
+  it("randomizes each major pattern's first appearance within one second", () => {
     const approvalTimers = new Set<number>();
     const initialTimers = [
       ["approvalMs", GAMEPLAY.approvalFirstSpawnMs],
@@ -233,7 +233,7 @@ describe("survival simulation", () => {
     expect(approvalTimers.size).toBeGreaterThan(1);
   });
 
-  it("resamples the half-second jitter after every major pattern onset", () => {
+  it("resamples the one-second jitter after every major pattern onset", () => {
     const state = playingState(808, 2_560, 1_440);
     state.elapsedMs = GAMEPLAY.difficultyRampMs;
     const difficulty = difficultyAt(state.elapsedMs);
@@ -259,6 +259,28 @@ describe("survival simulation", () => {
     }
 
     expect(new Set(scheduledIntervals).size).toBeGreaterThan(1);
+  });
+
+  it("keeps late major intervals above the fairness floor", () => {
+    const scheduledIntervals: number[] = [];
+
+    for (let seed = 1; seed <= 128; seed += 1) {
+      const state = playingState(seed, 2_560, 1_440);
+      state.elapsedMs =
+        GAMEPLAY.difficultyRampMs + GAMEPLAY.blackoutPostStageRampMs;
+      state.spawn.blackoutMs = 0;
+
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+      scheduledIntervals.push(state.spawn.blackoutMs + FIXED_STEP_MS);
+    }
+
+    expect(Math.min(...scheduledIntervals)).toBe(
+      GAMEPLAY.majorPatternMinimumIntervalMs,
+    );
+    expect(Math.max(...scheduledIntervals)).toBeLessThanOrEqual(
+      GAMEPLAY.blackoutMinimumIntervalMs +
+        GAMEPLAY.majorPatternTimingJitterMs,
+    );
   });
 
   it("spawns tool-call paths independently from the player position", () => {

@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-057 — Major timing jitter를 1초로 넓히고 반복 하한을 둔다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-056의 jitter 폭을 대체
+- 배경: 500ms jitter는 여러 반복을 거치면 조합이 달라지지만 초반에는 같은 시각에 같은 패턴이 나오는 인상이 충분히 깨지지 않았다. 단순히 폭만 1초로 늘리면 Stage 10의 `rm *` 기준 interval 1.3초가 최저 0.3초까지 내려가 기존 공정성 범위를 벗어난다.
+- 결정: 기본 `TOOL CALL STREAM` cadence는 유지한다. 나머지 major는 Stage 해금 뒤 0–1,000ms 안에서 첫 등장하고, 이후 반복마다 현재 difficulty의 기준 interval에 -1,000–+1,000ms seeded jitter를 다시 적용한다. 실제 반복 interval은 800ms보다 짧아지지 않게 clamp한다. timing RNG 분리, 360ms major onset 간격, active family 세 개 상한과 Stage별 기준 주기·속도는 유지한다.
+- 결과: 평균 주기와 후반 진화는 그대로지만 첫 등장 순서와 이후 조합 시점의 run별 차이가 더 빨리 드러난다. 가장 짧은 `rm *` 반복은 기존 ±500ms 설정의 최저값 800ms보다 빨라지지 않는다.
+
 ## D-056 — Major 등장 시간은 기준 주기 주변에서 매번 다시 흔든다
 
 - 날짜: 2026-08-25
-- 상태: 확정
+- 상태: 일부 대체됨 — D-057이 jitter 폭과 반복 interval 하한을 변경. timing RNG 분리와 기존 cadence·상한 유지 결정은 유효
 - 배경: 각 pattern의 최초 spawn과 반복 interval이 정확한 timer로 고정되어 같은 Stage 시각에 같은 pattern 조합이 반복되어 보였다. 기존 공격 자체의 난이도·속도·동시 family 상한은 플레이상 문제가 없으므로 전체 확률 director로 교체할 이유는 없다.
 - 결정: 기본 `TOOL CALL STREAM` cadence는 유지한다. 나머지 major는 Stage 해금 뒤 0–500ms 안에서 첫 등장하고, 이후 반복마다 현재 difficulty의 기준 interval에 -500–+500ms seeded jitter를 독립적으로 다시 적용한다. timing RNG는 공격 문구·방향 RNG와 분리해 등장 시간 외 결과를 바꾸지 않는다. 360ms major onset 간격, active family 세 개 상한, Stage별 속도·기준 주기 곡선과 entity cap은 그대로 유지한다.
 - 결과: 모든 해금 pattern은 기존처럼 계속 반복되지만 매 판의 최초 순서와 이후 겹침 시점이 조금씩 누적해서 달라진다. 평균 주기와 후반 난이도 상승은 유지되며 같은 seed·입력은 여전히 재현 가능하다.

@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Major pattern timing jitter 1초 확장
+
+### 구현
+
+- 특수 major 첫 등장 범위를 Stage 해금 뒤 0–500ms에서 0–1,000ms로 확장
+- 반복마다 다시 뽑는 timing jitter를 기준 interval ±500ms에서 ±1,000ms로 확장
+- 후반 `rm *`의 기준 1.3초가 지나치게 짧아지지 않도록 모든 major 반복 interval에 800ms 하한 적용
+- 기본 `TOOL CALL STREAM`, timing 전용 RNG, 평균 기준 주기, 360ms onset 간격과 active family 세 개 상한은 유지
+
+### 검증
+
+- 32개 seed에서 9개 major 첫 timer가 각 해금 시각부터 1,000ms 범위 안에서 서로 다른 값으로 선택됨을 확인
+- 같은 run의 approval 반복 interval이 매번 기준값 ±1,000ms 안에서 다시 달라지는 회귀 test 유지
+- 128개 seed의 최고 난이도 `rm *` 반복 interval이 800–2,300ms 범위를 벗어나지 않는 하한 회귀 test 추가
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 149개 test, production build와 verifier 완료
+
 ## 2026-08-25 — Major pattern timing jitter
 
 ### 구현
