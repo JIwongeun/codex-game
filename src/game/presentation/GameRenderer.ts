@@ -198,7 +198,7 @@ export class GameRenderer {
     this.drawGameOverWash(state);
     this.endingOverlay.render(state.ending);
 
-    if (this.hitFlashMs > 0) {
+    if (state.phase === "playing" && this.hitFlashMs > 0) {
       const strength = this.hitFlashMs / 180;
       this.effectsLayer.fillStyle(COLORS.black, 0.14 * strength);
       this.effectsLayer.fillRect(0, 0, state.arena.width, state.arena.height);

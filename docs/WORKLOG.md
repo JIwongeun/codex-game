@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Results에 멈춰 있던 hit flash 회색 제거
+
+### 진단
+
+- 사용자 첨부 화면과 최신 production을 측정한 결과 Game Over의 공격 없는 영역은 `#F7F7F7`, 같은 run의 Playing 영역은 `#FFFFFF`였다.
+- `player-hit`에서 시작한 180ms global black hit flash가 Results의 zero-delta render에서 줄어들지 않아 68% white wash 아래에 계속 남아 있었다.
+
+### 구현
+
+- global black hit flash를 `playing` phase에서만 그리도록 제한해 Results의 빈 영역이 실제 순백을 유지하게 했다.
+- 기존 68% Canvas pure-white wash, 25% DOM pure-white wash·1px blur·grayscale, foreground player node·hit focus와 중앙 결과 copy는 유지했다.
+
+### 검증
+
+- `pnpm check` 통과: typecheck, 21개 test file의 153개 test, production build와 verifier 완료.
+
 ## 2026-08-25 — Game Over 순백 배경과 24% 무채색 흔적
 
 ### 구현

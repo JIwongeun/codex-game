@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-068 — Results에서 정지한 black hit flash를 제거한다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-067의 pure-white·grayscale 구조를 유지하고 실제 gray tint 원인을 제거
+- 배경: 첨부 screenshot과 최신 production을 직접 측정한 결과 Game Over 빈 영역은 `#F7F7F7`, 같은 run의 Playing 빈 영역은 `#FFFFFF`였다. `player-hit`에서 180ms로 시작한 global black hit flash가 Results 분기의 zero-delta render에서 줄어들지 않은 채 68% white wash 아래에 잔류해 약 3% gray tint를 만들었다.
+- 결정: global black hit flash는 `state.phase === "playing"`일 때만 그린다. Results의 68% Canvas pure-white wash, 25% DOM pure-white wash·1px blur·grayscale, foreground player·hit focus와 중앙 copy는 유지한다.
+- 결과: Game Over에서 공격이 없는 빈 영역은 실제 `#FFFFFF`이 되고, frozen 공격의 무채색 흔적과 collision focus는 그대로 남는다.
+
 ## D-067 — Game Over 빈 배경을 순백으로 고정하고 무채색 흔적만 높인다
 
 - 날짜: 2026-08-25
-- 상태: 확정, D-066의 white-wash 구조와 foreground layering은 유지하고 색·가시성 처리를 보강
+- 상태: 일부 대체됨 — D-068이 실제 gray tint 원인인 Results black hit flash를 제거. contrast 제거와 24% 무채색 흔적은 유효
 - 배경: Canvas background와 wash는 `#ffffff`였지만 DOM의 `contrast(0.82)`가 white backdrop 자체를 gray로 낮췄다. DOM wash를 50%로 낮춘 뒤에는 이 gray와 아래 공격의 잔여 색이 더 드러나 사용자가 요구한 순백 surface와 달라졌다.
 - 결정: Game Over backdrop에서 contrast 필터를 완전히 제거하고 `grayscale(1)`로 아래 공격의 색만 제거한다. 68% Canvas pure-white wash는 유지하고 DOM pure-white wash를 50%에서 25%로 낮춰 frozen Game 가시성을 약 24%로 높인다.
 - 결과: 공격이 없는 배경 면은 순백을 유지하고 frozen 공격은 hue 없는 gray 흔적으로 더 잘 보인다. blur 위 black player node와 semantic hit focus, 중앙 결과 copy의 색은 foreground 의미색으로 유지한다.
