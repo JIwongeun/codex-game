@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-066 — Game Over 배경 가시성을 Start ambient와 맞춘다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-065의 1px blur와 foreground layering은 유지하고 DOM wash 농도만 보강
+- 배경: Start 화면 전체에는 blur가 없고 ambient command가 opacity `0.16`으로 표시된다. Game Over는 blur를 1px까지 낮춰도 68% Canvas white wash와 76% DOM 순백 wash가 겹쳐 frozen Game의 유효 가시성이 약 7.7%에 그쳤기 때문에 체감상 여전히 지나치게 흐렸다.
+- 결정: 1px blur·grayscale·contrast와 68% Canvas wash는 유지하고 DOM 순백 wash를 76%에서 50%로 낮춘다. 두 wash 뒤의 배경 가시성은 `(1 - 0.68) × (1 - 0.50) = 0.16`으로 Start ambient command의 opacity와 맞춘다.
+- 결과: Game Over의 frozen 공격이 Start 배경 문구와 비슷한 농도로 읽히면서도 흰 surface, 중앙 결과 copy와 blur 위 player·hit focus 위계는 유지된다.
+
 ## D-065 — Game Over 배경 blur를 1px로 더 낮춘다
 
 - 날짜: 2026-08-25
-- 상태: 확정, D-064의 foreground layering은 유지하고 blur 강도만 보강
+- 상태: 일부 대체됨 — D-066이 DOM wash를 50%로 낮춤. 1px blur와 foreground layering은 유효
 - 배경: 4px에서 2px로 낮춘 뒤에도 68% Canvas white wash와 76% DOM 순백 wash·grayscale·저대비가 함께 합성되어 frozen Game의 배경 blur가 체감상 여전히 강했다.
 - 결정: 순백 wash·grayscale·contrast와 player·hit-focus foreground 구조는 유지하고 Game Over DOM의 backdrop blur만 2px에서 1px로 낮춘다.
 - 결과: 배경 공격의 frozen 형태는 조금 더 읽히고 중앙 결과 copy, black player node와 semantic hit focus의 선명도와 위계는 유지된다.

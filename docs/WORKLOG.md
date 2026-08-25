@@ -2,6 +2,19 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Game Over 배경 가시성을 Start ambient와 일치
+
+### 구현
+
+- Game Over DOM 순백 wash를 76%에서 50%로 낮추고 68% Canvas wash·1px blur·grayscale·contrast는 유지
+- 두 white wash 뒤 frozen Game의 유효 가시성을 약 7.7%에서 16%로 올려 Start ambient command의 opacity `0.16`과 수치상 일치
+- black player node와 semantic hit focus foreground, danger red 중앙 copy와 결과 입력은 변경하지 않음
+- 제품·디자인·기술 문서와 D-066 결정에 50% DOM wash와 16% 가시성 기준을 동기화
+
+### 검증
+
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 153개 test, production build와 verifier 완료
+
 ## 2026-08-25 — Game Over 배경 blur 1px 조정
 
 ### 구현
