@@ -70,6 +70,7 @@ export const GAMEPLAY = {
   blackoutStageTenStartIntervalMs: 3_000,
   blackoutMinimumIntervalMs: 1_300,
   blackoutPostStageRampMs: 60_000,
+  majorPatternTimingJitterMs: 500,
   majorPatternSeparationMs: 360,
   maxConcurrentMajorPatterns: 3,
   smallViewportAreaThresholdRatio: 0.55,

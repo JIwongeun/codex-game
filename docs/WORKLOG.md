@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Major pattern timing jitter
+
+### 구현
+
+- 기본 `TOOL CALL STREAM` cadence와 기존 Stage별 속도·기준 주기·동시 family 상한은 유지
+- 각 major 첫 등장을 Stage 해금 뒤 0–500ms 안에서 seed별로 정하고, 이후 반복마다 기준 interval에 -500–+500ms jitter를 다시 적용
+- timing 전용 RNG state를 공격 문구·방향 RNG와 분리해 등장 시간 외 seeded 결과가 바뀌지 않도록 구성
+- Stage가 오를수록 기존 difficulty 곡선대로 기준 interval이 짧아지고 속도가 빨라지는 후반 진화는 그대로 유지
+
+### 검증
+
+- 32개 seed에서 9개 major 첫 timer가 각 해금 시각부터 500ms 범위 안에 있고 실제로 서로 다른 값이 선택됨을 확인
+- 같은 run에서 approval 반복 interval이 매 onset마다 기준값 ±500ms 안에서 다시 달라지는 회귀 test 추가
+- 기존 tool-call phrase bank coverage, blackout 최대 4개 stack, 같은 seed·입력 결정성과 timing RNG finite soak 회귀 통과
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 148개 test, production build와 verifier 완료
+
 ## 2026-08-25 — Tab pause toggle과 gameplay focus 복원
 
 ### 구현

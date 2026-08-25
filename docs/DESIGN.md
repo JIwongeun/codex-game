@@ -160,14 +160,14 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 | 9 | 96–107.99초 | `rm *` blackout 해금, retry 5회, review 12방향, usage 6개·16방향 |
 | 10 | 108초 이후 | download access 최저 간격, agent 3 pair, review 16방향, usage 8개·20방향, blackout 최대 4개와 최대 속도·최저 간격 |
 
-단계 사이에서 속도와 생성 간격은 연속 보간한다. 해금·동시 수·분할 수는 표의 stage 경계에서만 바뀐다.
+단계 사이에서 속도와 기준 생성 간격은 연속 보간한다. 해금·동시 수·분할 수는 표의 stage 경계에서만 바뀌며, 첫 실제 major onset은 해금 뒤 0–500ms 안에서 정한다. 이후 반복 onset은 매 기준 간격마다 ±500ms를 다시 뽑아 판마다 조합 시점이 누적해서 달라진다.
 
 ## 공정성과 가독성 불변식
 
 - 모든 조준·영역·수렴 공격은 치명 단계 전에 경로 또는 진행률을 보인다.
 - 기본 `TOOL CALL STREAM`은 player를 조준하지 않고 방향 예고·rail도 표시하지 않는다. 생성 후 telegraph 시간 동안은 판정만 비활성이다.
 - approval의 네 opening, reasoning center·120° safe sector와 한 retry attempt의 목표는 생성 뒤 추적하지 않는다. reasoning center가 arena의 바깥 20% band에 있으면 safe sector는 arena center를 향하고 중앙 60% 안에서만 random 방향을 사용한다. retry는 다음 attempt warning이 시작될 때만 새 위치를 snapshot한다.
-- 서로 다른 major pattern onset은 최소 360ms 떨어지고 동시에 active한 major family는 세 개를 넘지 않는다. 기본 tool stream은 이 상한과 무관하다.
+- 서로 다른 major pattern onset은 최소 360ms 떨어지고 동시에 active한 major family는 세 개를 넘지 않는다. major timing은 공격 문구·방향과 분리된 seeded RNG를 사용하며 기본 tool stream은 jitter와 이 상한 모두에서 제외한다.
 - approval wall은 Stage 10에서도 378 logical px/s 이하로 player의 440 logical px/s보다 느리다. wall은 한 번에 하나만 유지하지만 다른 major와 독립적으로 실행되며 공통 360ms onset·세 family 상한을 따른다.
 - download access는 정확히 logical arena의 절반만 차지하고 3.3초 loading 중에는 무해하다. QHD 좌·우 반 화면의 최장 이탈 시간보다 250ms 이상 긴 warning을 유지한다.
 - `rm *`은 화면 중앙 24% band를 피한 무작위 위치에 정사각형으로 생성되고 720ms outline warning 뒤에만 시야를 가린다. 활성 square는 모든 projectile·approval·retry·reasoning·area hazard·attack effect보다 위, player·HUD·각 square의 status보다 아래에 놓인다. 가려진 공격은 삭제되거나 멈추지 않고 simulation과 collision을 계속하며 square가 걷히면 진행된 위치에서 다시 보인다. 각 square 중앙의 `BACKING UP... n%`와 progress rail은 독립적으로 차고, 100%에서 `BACKUP COMPLETE`로 전환된 뒤 320ms 동안 중앙으로 접혀 사라진다. Stage 9에서는 한 개, Stage 10에서는 2→3→최대 4개까지 겹친다.

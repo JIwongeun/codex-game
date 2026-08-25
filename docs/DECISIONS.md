@@ -2,6 +2,14 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-056 — Major 등장 시간은 기준 주기 주변에서 매번 다시 흔든다
+
+- 날짜: 2026-08-25
+- 상태: 확정
+- 배경: 각 pattern의 최초 spawn과 반복 interval이 정확한 timer로 고정되어 같은 Stage 시각에 같은 pattern 조합이 반복되어 보였다. 기존 공격 자체의 난이도·속도·동시 family 상한은 플레이상 문제가 없으므로 전체 확률 director로 교체할 이유는 없다.
+- 결정: 기본 `TOOL CALL STREAM` cadence는 유지한다. 나머지 major는 Stage 해금 뒤 0–500ms 안에서 첫 등장하고, 이후 반복마다 현재 difficulty의 기준 interval에 -500–+500ms seeded jitter를 독립적으로 다시 적용한다. timing RNG는 공격 문구·방향 RNG와 분리해 등장 시간 외 결과를 바꾸지 않는다. 360ms major onset 간격, active family 세 개 상한, Stage별 속도·기준 주기 곡선과 entity cap은 그대로 유지한다.
+- 결과: 모든 해금 pattern은 기존처럼 계속 반복되지만 매 판의 최초 순서와 이후 겹침 시점이 조금씩 누적해서 달라진다. 평균 주기와 후반 난이도 상승은 유지되며 같은 seed·입력은 여전히 재현 가능하다.
+
 ## D-055 — Game 중 Tab을 pause toggle로 소유하고 복귀 focus를 Canvas로 되돌린다
 
 - 날짜: 2026-08-25

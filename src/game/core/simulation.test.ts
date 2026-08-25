@@ -19,6 +19,7 @@ import {
   stepGame,
 } from "./simulation";
 import { approvalGateGapSize } from "./approvalGate";
+import { difficultyAt } from "./rules";
 
 function playingState(seed = 1, width = 1280, height = 720): GameState {
   const state = createGameState(seed, width, height);
@@ -201,6 +202,63 @@ describe("survival simulation", () => {
     }
 
     expect(first).toEqual(second);
+  });
+
+  it("randomizes each major pattern's first appearance within half a second", () => {
+    const approvalTimers = new Set<number>();
+    const initialTimers = [
+      ["approvalMs", GAMEPLAY.approvalFirstSpawnMs],
+      ["compactionMs", GAMEPLAY.compactionFirstSpawnMs],
+      ["downloadAccessMs", GAMEPLAY.downloadAccessFirstSpawnMs],
+      ["retryLoopMs", GAMEPLAY.retryLoopFirstSpawnMs],
+      ["reasoningMs", GAMEPLAY.reasoningFirstSpawnMs],
+      ["parallelAgentsMs", GAMEPLAY.parallelAgentsFirstSpawnMs],
+      ["reviewLoopMs", GAMEPLAY.reviewLoopFirstSpawnMs],
+      ["usageLimitMs", GAMEPLAY.usageLimitFirstSpawnMs],
+      ["blackoutMs", GAMEPLAY.blackoutFirstSpawnMs],
+    ] as const;
+
+    for (let seed = 1; seed <= 32; seed += 1) {
+      const state = createGameState(seed, 800, 600);
+      expect(state.spawn.toolCallMs).toBe(GAMEPLAY.toolCallFirstSpawnMs);
+      for (const [timer, firstSpawnMs] of initialTimers) {
+        expect(state.spawn[timer]).toBeGreaterThanOrEqual(firstSpawnMs);
+        expect(state.spawn[timer]).toBeLessThanOrEqual(
+          firstSpawnMs + GAMEPLAY.majorPatternTimingJitterMs,
+        );
+      }
+      approvalTimers.add(Math.round(state.spawn.approvalMs));
+    }
+
+    expect(approvalTimers.size).toBeGreaterThan(1);
+  });
+
+  it("resamples the half-second jitter after every major pattern onset", () => {
+    const state = playingState(808, 2_560, 1_440);
+    state.elapsedMs = GAMEPLAY.difficultyRampMs;
+    const difficulty = difficultyAt(state.elapsedMs);
+    const scheduledIntervals: number[] = [];
+
+    for (let onset = 0; onset < 3; onset += 1) {
+      state.spawn.approvalMs = 0;
+      state.spawn.majorPatternCooldownMs = 0;
+      state.approvalGates = [];
+
+      stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+      const scheduledInterval = state.spawn.approvalMs + FIXED_STEP_MS;
+      expect(scheduledInterval).toBeGreaterThanOrEqual(
+        difficulty.approvalIntervalMs -
+          GAMEPLAY.majorPatternTimingJitterMs,
+      );
+      expect(scheduledInterval).toBeLessThanOrEqual(
+        difficulty.approvalIntervalMs +
+          GAMEPLAY.majorPatternTimingJitterMs,
+      );
+      scheduledIntervals.push(Math.round(scheduledInterval));
+    }
+
+    expect(new Set(scheduledIntervals).size).toBeGreaterThan(1);
   });
 
   it("spawns tool-call paths independently from the player position", () => {
@@ -1365,7 +1423,12 @@ describe("survival simulation", () => {
     late.spawn.blackoutMs = 0;
     stepGame(late, EMPTY_INPUT, FIXED_STEP_MS);
     for (let index = 0; index < 3; index += 1) {
-      stepGame(late, EMPTY_INPUT, GAMEPLAY.blackoutMinimumIntervalMs);
+      stepGame(
+        late,
+        EMPTY_INPUT,
+        GAMEPLAY.blackoutMinimumIntervalMs +
+          GAMEPLAY.majorPatternTimingJitterMs,
+      );
     }
 
     expect(late.blackouts).toHaveLength(4);
@@ -1677,6 +1740,7 @@ describe("survival simulation", () => {
         GAMEPLAY.difficultyRampMs + 59_000,
       );
       expect(Number.isFinite(state.rngState)).toBe(true);
+      expect(Number.isFinite(state.timingRngState)).toBe(true);
       expect(Number.isFinite(state.nextEntityId)).toBe(true);
       expect(Object.values(state.spawn).every(Number.isFinite)).toBe(true);
     }

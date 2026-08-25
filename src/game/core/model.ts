@@ -184,6 +184,7 @@ export interface GameState {
   arena: ArenaBounds;
   seed: number;
   rngState: number;
+  timingRngState: number;
   nextEntityId: number;
   elapsedMs: number;
   score: number;

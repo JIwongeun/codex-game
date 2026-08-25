@@ -76,7 +76,7 @@
 
 각 용어는 label뿐 아니라 이동과 결과로 의미를 전달한다. 고정 phrase bank에는 실제 작업에서 반복되는 terminal·browser 오류와 `rereading same file`, `waiting for output`, `still waiting`, `approve again` 같은 Codex·vibe coding 패러디를 함께 둔다. 실제 Codex session이나 workspace 상태는 읽지 않는다.
 
-예고 단계는 항상 무해하고, 활성화 단계만 피격 또는 시야 차단을 발생시킨다. 특수 패턴은 각자 timer를 유지하되 onset을 최소 360ms 떨어뜨리고 서로 다른 active major family는 최대 세 개로 제한한다. 작은 logical viewport에서는 공격 속도를 낮추지 않고 생성 간격만 1.22배 늘린다. 공격 개체와 범위 수에는 별도 상한을 둔다.
+예고 단계는 항상 무해하고, 활성화 단계만 피격 또는 시야 차단을 발생시킨다. 특수 패턴은 각자 timer를 유지하되 첫 등장은 해금 뒤 0–500ms, 이후 반복은 매 기준 주기 ±500ms의 seeded timing jitter를 적용한다. 기본 tool stream의 cadence는 유지하고, major onset은 최소 360ms 떨어뜨리며 서로 다른 active major family는 최대 세 개로 제한한다. 작은 logical viewport에서는 공격 속도를 낮추지 않고 생성 간격만 1.22배 늘린다. 공격 개체와 범위 수에는 별도 상한을 둔다.
 
 ## 5. 점수 원칙
 

@@ -124,11 +124,12 @@ export function createGameState(
   const normalizedSeed = normalizeSeed(seed);
   const arena = createArena(width, height);
 
-  return {
+  const state: GameState = {
     phase: "ready",
     arena,
     seed: normalizedSeed,
     rngState: normalizedSeed,
+    timingRngState: normalizeSeed(normalizedSeed ^ 0xa5a5_a5a5),
     nextEntityId: 1,
     elapsedMs: 0,
     score: 0,
@@ -162,6 +163,45 @@ export function createGameState(
       majorPatternCursor: 0,
     },
   };
+
+  state.spawn.approvalMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.approvalFirstSpawnMs,
+  );
+  state.spawn.compactionMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.compactionFirstSpawnMs,
+  );
+  state.spawn.downloadAccessMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.downloadAccessFirstSpawnMs,
+  );
+  state.spawn.retryLoopMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.retryLoopFirstSpawnMs,
+  );
+  state.spawn.reasoningMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.reasoningFirstSpawnMs,
+  );
+  state.spawn.parallelAgentsMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.parallelAgentsFirstSpawnMs,
+  );
+  state.spawn.reviewLoopMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.reviewLoopFirstSpawnMs,
+  );
+  state.spawn.usageLimitMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.usageLimitFirstSpawnMs,
+  );
+  state.spawn.blackoutMs = initialMajorPatternDelay(
+    state,
+    GAMEPLAY.blackoutFirstSpawnMs,
+  );
+
+  return state;
 }
 
 export function startRun(state: GameState): GameEvent[] {
@@ -757,7 +797,10 @@ function spawnScheduledAttacks(
       events.push({ type: "pattern-warning", kind: "approval-required" });
       reserveMajorPattern("approval-required");
     }
-    state.spawn.approvalMs += difficulty.approvalIntervalMs * intervalScale;
+    state.spawn.approvalMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.approvalIntervalMs * intervalScale,
+    );
   }
 
   if (
@@ -775,7 +818,10 @@ function spawnScheduledAttacks(
       events.push({ type: "hazard-warning", kind: "compaction" });
       reserveMajorPattern("context-compaction");
     }
-    state.spawn.compactionMs += difficulty.compactionIntervalMs * intervalScale;
+    state.spawn.compactionMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.compactionIntervalMs * intervalScale,
+    );
   }
 
   if (
@@ -787,8 +833,10 @@ function spawnScheduledAttacks(
       events.push({ type: "hazard-warning", kind: "download-access" });
       reserveMajorPattern("download-access");
     }
-    state.spawn.downloadAccessMs +=
-      difficulty.downloadAccessIntervalMs * intervalScale;
+    state.spawn.downloadAccessMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.downloadAccessIntervalMs * intervalScale,
+    );
   }
 
   if (
@@ -804,7 +852,10 @@ function spawnScheduledAttacks(
       events.push({ type: "pattern-warning", kind: "retry-loop" });
       reserveMajorPattern("retry-loop");
     }
-    state.spawn.retryLoopMs += difficulty.retryLoopIntervalMs * intervalScale;
+    state.spawn.retryLoopMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.retryLoopIntervalMs * intervalScale,
+    );
   }
 
   if (
@@ -822,7 +873,10 @@ function spawnScheduledAttacks(
       events.push({ type: "pattern-warning", kind: "ultra-code" });
       reserveMajorPattern("ultra-code");
     }
-    state.spawn.reasoningMs += difficulty.reasoningIntervalMs * intervalScale;
+    state.spawn.reasoningMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.reasoningIntervalMs * intervalScale,
+    );
   }
 
   if (
@@ -838,8 +892,10 @@ function spawnScheduledAttacks(
       events.push({ type: "pattern-warning", kind: "parallel-agents" });
       reserveMajorPattern("parallel-agents");
     }
-    state.spawn.parallelAgentsMs +=
-      difficulty.parallelAgentsIntervalMs * intervalScale;
+    state.spawn.parallelAgentsMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.parallelAgentsIntervalMs * intervalScale,
+    );
   }
 
   if (
@@ -858,7 +914,10 @@ function spawnScheduledAttacks(
       events.push({ type: "pattern-warning", kind: "review-loop" });
       reserveMajorPattern("review-fix-loop");
     }
-    state.spawn.reviewLoopMs += difficulty.reviewLoopIntervalMs * intervalScale;
+    state.spawn.reviewLoopMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.reviewLoopIntervalMs * intervalScale,
+    );
   }
 
   if (
@@ -878,7 +937,10 @@ function spawnScheduledAttacks(
       events.push({ type: "pattern-warning", kind: "usage-limit" });
       reserveMajorPattern("usage-limit");
     }
-    state.spawn.usageLimitMs += difficulty.usageLimitIntervalMs * intervalScale;
+    state.spawn.usageLimitMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.usageLimitIntervalMs * intervalScale,
+    );
   }
 
   if (
@@ -893,8 +955,30 @@ function spawnScheduledAttacks(
       });
       reserveMajorPattern("wildcard-blackout");
     }
-    state.spawn.blackoutMs += difficulty.blackoutIntervalMs * intervalScale;
+    state.spawn.blackoutMs += randomizedMajorPatternInterval(
+      state,
+      difficulty.blackoutIntervalMs * intervalScale,
+    );
   }
+}
+
+function initialMajorPatternDelay(state: GameState, firstSpawnMs: number): number {
+  return firstSpawnMs + randomTimingBetween(
+    state,
+    0,
+    GAMEPLAY.majorPatternTimingJitterMs,
+  );
+}
+
+function randomizedMajorPatternInterval(
+  state: GameState,
+  intervalMs: number,
+): number {
+  return intervalMs + randomTimingBetween(
+    state,
+    -GAMEPLAY.majorPatternTimingJitterMs,
+    GAMEPLAY.majorPatternTimingJitterMs,
+  );
 }
 
 function selectMajorPattern(
@@ -1929,6 +2013,16 @@ function isInsideProjectileBounds(state: GameState, position: Vec2): boolean {
 function randomBetween(state: GameState, minimum: number, maximum: number): number {
   const random = nextRandom(state.rngState);
   state.rngState = random.state;
+  return minimum + random.value * (maximum - minimum);
+}
+
+function randomTimingBetween(
+  state: GameState,
+  minimum: number,
+  maximum: number,
+): number {
+  const random = nextRandom(state.timingRngState);
+  state.timingRngState = random.state;
   return minimum + random.value * (maximum - minimum);
 }
 
