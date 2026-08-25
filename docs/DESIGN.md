@@ -96,7 +96,7 @@
 
 - Start: 최초 진입과 game over에서 `Esc`로 복귀할 때 사용하는 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon과 Open Graph·Twitter 공유 카드에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·session best와 하나의 실행 CTA로 구성한다. game over 뒤 복귀하면 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 viewport 바깥에서 생성되어 반대 edge 바깥까지, 플레이보다 느린 34–56초 속도로 흐른다. 최초 진입에서도 animation 중간 지점부터 갑자기 나타나지 않는다.
 - Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 session best, 하단 이동·`Esc` 복귀·음소거 조작과 fictional feed 고지만 유지한다.
-- Game over: 피격 뒤 simulation과 모든 presentation motion을 100ms 멈추고 다른 공격을 저대비로 낮춘 채 충돌 지점·피격 계열의 의미색만 표시한다. 이어 같은 Game 장면 중앙에 `PROCESS EXITED · CODE 1`, `CONTEXT OVERFLOW`, run time, hit source와 `CLICK / SPACE RETRY`, `ESC START SCREEN`을 표시한다. 새 session best이면 green terminal success badge를 추가한다.
+- Game over: 피격 뒤 simulation과 모든 presentation motion을 100ms 멈추고 마지막 Game을 순백 blur·grayscale 계층 아래에 남긴다. 중앙의 큰 `GAME OVER`는 한 번만 수평 조각으로 끊겨 나타난 뒤 즉시 안정되며, 그 아래 작은 monospace `[context] overflow // exit code 1`, run time, hit source와 `CLICK / SPACE RETRY`, `ESC START SCREEN`을 표시한다. 반복 glitch·CRT noise·지속 scanline은 사용하지 않는다. 새 session best이면 green terminal success badge를 추가한다.
 - Pause는 별도 화면이 아니라 마지막 Game 장면 위의 일시적인 blur 계층이다.
 - Game 중 `Tab`은 browser chrome으로 focus를 넘기지 않고 pause·재개를 toggle한다. browser blur/hidden 뒤 페이지로 돌아오면 Canvas focus를 복원하고 `Tab`·Space·click 중 하나로 명시적으로 재개한다. Start의 volume control에서는 기본 Tab 이동을 유지한다.
 

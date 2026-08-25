@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-060 — Game over의 상태와 원인을 두 단계로 분리한다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-059의 game-over copy hierarchy와 배경 표현만 대체
+- 배경: frozen Game 위의 큰 `CONTEXT OVERFLOW`는 콘셉트는 강하지만 일반 공격명이나 특수 Stage처럼 보여 즉시 게임 종료 상태로 읽히지 않았다. 기존 white wash에 남은 공격 의미색은 배경을 애매한 ivory tone처럼 보이게 했다.
+- 결정: 100ms hit-stop, frozen Game, run time·hit source·new-best와 Retry·Start 입력은 유지한다. 배경은 순백 반투명 계층의 blur·grayscale로 낮추고 중앙의 가장 큰 문구를 `GAME OVER`로 바꾼다. 그 아래 작은 monospace `[context] overflow // exit code 1`을 종료 원인으로 표시한다. `GAME OVER`는 첫 260ms에만 수평 digital slice로 나타난 뒤 정지하며 반복 glitch·CRT noise는 사용하지 않는다.
+- 결과: 사용자는 종료 상태를 먼저 이해하고 그 원인을 Codex 세계관의 context failure로 읽는다. game over는 여전히 별도 Scene이 아닌 frozen Game 위의 일시 overlay다.
+
 ## D-059 — 피격은 frozen Game 위의 `CONTEXT OVERFLOW`로 남긴다
 
 - 날짜: 2026-08-25
-- 상태: 확정, D-025의 game over 즉시 Start 복귀만 대체
+- 상태: 일부 대체됨 — D-060이 copy hierarchy와 배경 표현을 변경. frozen Game, 100ms hit-stop, 결과 정보와 입력 흐름은 유효
 - 배경: 피격 즉시 Start로 전환하면 어떤 공격에 어떻게 맞았는지 확인할 시간이 없고, 한 번 피격 생존 게임의 실패 손맛과 즉시 재도전 동기가 약했다. 반면 별도 Scene과 정보가 많은 Results 화면은 Start·Game 두 화면 원칙을 다시 깨뜨린다.
 - 결정: core의 `results` phase와 one-hit 판정은 유지한다. 피격 직후 Game simulation·presentation을 100ms 멈추고 다른 공격을 낮춘 뒤 collision point와 hit source 의미색을 강조한다. 같은 Game 위에 `PROCESS EXITED · CODE 1`, `CONTEXT OVERFLOW`, run time, hit source, 클릭·Space Retry와 `Esc` Start 안내를 표시한다. `Esc`로 돌아간 Start는 기존 `LAST RUN`을 유지한다. 피격음은 low impact와 digital crack으로 합성하고, 이전 session best를 실제로 넘긴 run만 320ms 뒤 original 상승 2음 chime과 green badge를 추가한다.
 - 결과: 별도 Results Scene 없이 실패 원인·기록·다음 입력을 한 시선에서 읽고 즉시 재도전할 수 있다. 완전한 화면은 여전히 Start와 Game 두 개이며 game over는 frozen Game의 일시 overlay다.

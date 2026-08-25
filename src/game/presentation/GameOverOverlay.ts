@@ -30,11 +30,16 @@ export class GameOverOverlay {
     this.root.className = "game-over-overlay";
     this.root.hidden = true;
     this.root.setAttribute("aria-live", "assertive");
-    this.root.setAttribute("aria-label", "Run terminated");
+    this.root.setAttribute("aria-label", "Game over");
     this.root.innerHTML = `
       <div class="game-over-overlay__copy">
-        <p class="game-over-overlay__eyebrow">PROCESS EXITED · CODE 1</p>
-        <h2>CONTEXT<br />OVERFLOW</h2>
+        <h2>GAME OVER</h2>
+        <p class="game-over-overlay__fault">
+          <span class="game-over-overlay__fault-marker" aria-hidden="true"></span>
+          <strong>[context]</strong>
+          <span>overflow</span>
+          <span class="game-over-overlay__code">// exit code 1</span>
+        </p>
         <p class="game-over-overlay__time" data-game-over-time></p>
         <p class="game-over-overlay__source">HIT BY&nbsp;&nbsp;<strong data-game-over-source></strong></p>
         <p class="game-over-overlay__best" data-game-over-best>NEW SESSION BEST</p>

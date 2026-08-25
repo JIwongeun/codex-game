@@ -642,6 +642,9 @@ body {
   display: grid;
   place-items: center;
   pointer-events: none;
+  background: rgb(255 255 255 / 76%);
+  backdrop-filter: blur(4px) grayscale(1) contrast(0.82);
+  -webkit-backdrop-filter: blur(4px) grayscale(1) contrast(0.82);
 }
 
 .game-over-overlay[hidden] {
@@ -650,13 +653,14 @@ body {
 
 .game-over-overlay__copy {
   display: grid;
-  min-width: min(410px, calc(100vw - 40px));
+  min-width: min(440px, calc(100vw - 40px));
   justify-items: center;
   color: #171717;
   text-align: center;
+  animation: game-over-copy-reveal 180ms steps(2, end) both;
 }
 
-.game-over-overlay__eyebrow,
+.game-over-overlay__fault,
 .game-over-overlay__time,
 .game-over-overlay__source,
 .game-over-overlay__best,
@@ -665,24 +669,44 @@ body {
   margin: 0;
 }
 
-.game-over-overlay__eyebrow {
-  color: #686868;
-  font-family: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+.game-over-overlay h2 {
+  font-size: clamp(3.4rem, 6.6vw, 5.8rem);
+  font-weight: 820;
+  letter-spacing: -0.065em;
+  line-height: 0.88;
+  animation: game-over-title-reveal 260ms linear both;
 }
 
-.game-over-overlay h2 {
-  margin-top: 16px;
-  font-size: clamp(3rem, 6vw, 5.4rem);
-  font-weight: 820;
-  letter-spacing: -0.055em;
-  line-height: 0.82;
+.game-over-overlay__fault {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  color: #535350;
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 0.62rem;
+  font-weight: 560;
+  letter-spacing: 0.055em;
+  text-transform: lowercase;
+}
+
+.game-over-overlay__fault-marker {
+  width: 5px;
+  height: 5px;
+  background: #6754a3;
+}
+
+.game-over-overlay__fault strong {
+  color: #6754a3;
+  font-weight: 700;
+}
+
+.game-over-overlay__code {
+  color: #8a8a86;
 }
 
 .game-over-overlay__time {
-  margin-top: 23px;
+  margin-top: 25px;
   color: #686868;
   font-size: 0.72rem;
   font-weight: 620;
@@ -749,12 +773,65 @@ body {
   font-weight: 580;
 }
 
+@keyframes game-over-copy-reveal {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes game-over-title-reveal {
+  0% {
+    clip-path: inset(46% 0 46% 0);
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+
+  24% {
+    clip-path: inset(0 0 61% 0);
+    opacity: 1;
+    transform: translateX(9px);
+  }
+
+  43% {
+    clip-path: inset(43% 0 25% 0);
+    transform: translateX(-6px);
+  }
+
+  62% {
+    clip-path: inset(66% 0 0 0);
+    transform: translateX(3px);
+  }
+
+  78%,
+  100% {
+    clip-path: inset(0);
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 640px) {
   .game-over-overlay h2 {
-    font-size: clamp(2.9rem, 15vw, 4.4rem);
+    font-size: clamp(2.65rem, 13.5vw, 4.2rem);
   }
 
   .game-over-overlay__copy {
     min-width: calc(100vw - 48px);
+  }
+
+  .game-over-overlay__fault {
+    gap: 5px;
+    font-size: 0.56rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-over-overlay__copy,
+  .game-over-overlay h2 {
+    animation: none;
   }
 }

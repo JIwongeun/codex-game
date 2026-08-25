@@ -2,6 +2,25 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — 순백 digital `GAME OVER` 결과 화면
+
+### 구현
+
+- 피격 뒤 중앙의 가장 큰 문구를 `CONTEXT OVERFLOW`에서 즉시 읽히는 `GAME OVER`로 변경
+- 마지막 Game은 순백 76% 계층의 4px blur·grayscale·저대비 처리 아래에 유지하고 ivory로 보이던 공격 의미색을 제거
+- 종료 원인을 작은 monospace `[context] overflow // exit code 1` 진단 행과 violet state square로 분리
+- `GAME OVER`는 첫 260ms에만 세 번의 수평 digital slice로 나타난 뒤 정지하며 reduced-motion에서는 animation을 제거
+- 기존 100ms hit-stop, run time·hit source·new-best, 클릭·Space Retry와 `Esc` Start 흐름은 변경하지 않음
+
+### 검증
+
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 152개 test, production build와 verifier 완료
+- production asset에 새 `GAME OVER`, `exit code 1`, one-shot reveal CSS가 포함되고 이전 `PROCESS EXITED · CODE 1` headline이 남지 않음을 확인
+
+### 남은 확인
+
+- production 배포 뒤 실제 화면에서 blur 강도와 260ms slice 체감 확인 필요
+
 ## 2026-08-25 — Frozen Game Over와 session 신기록 chime
 
 ### 구현
