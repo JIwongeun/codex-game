@@ -63,7 +63,7 @@ export class GameScene extends Phaser.Scene {
     this.gameRenderer = new GameRenderer(this, textResolution);
     this.hud = new Hud(this, textResolution);
     const gameParent = this.game.canvas.parentElement ?? document.body;
-    this.gameOverOverlay = new GameOverOverlay(gameParent);
+    this.gameOverOverlay = new GameOverOverlay(gameParent, this.game.canvas);
     this.pauseOverlay = new PauseOverlay(gameParent);
     this.readyOverlay = new ReadyOverlay(
       gameParent,

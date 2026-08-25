@@ -20,6 +20,7 @@ import type {
   DownloadAccessSector,
   GameEvent,
   GameState,
+  HitEntityRef,
   HitSource,
   InputIntent,
   ProjectileLabel,
@@ -136,6 +137,7 @@ export function createGameState(
     attacksDodged: 0,
     hazardsSurvived: 0,
     lastHitSource: null,
+    lastHitEntity: null,
     player: {
       position: { x: arena.width / 2, y: arena.height / 2 },
       direction: { ...PLAYER_START_DIRECTION },
@@ -413,9 +415,9 @@ export function stepGame(
   refreshActiveBlackoutProjectileGrace(state);
   spawnScheduledAttacks(state, stepMs, events);
 
-  const hitSource = findHitSource(state);
-  if (hitSource) {
-    finishRun(state, hitSource, events);
+  const hit = findHit(state);
+  if (hit) {
+    finishRun(state, hit.source, hit.entity, events);
   }
 
   return events;
@@ -1834,7 +1836,12 @@ function randomBlackoutCenter(
   return position;
 }
 
-function findHitSource(state: GameState): HitSource | null {
+interface HitResult {
+  source: HitSource;
+  entity: HitEntityRef;
+}
+
+function findHit(state: GameState): HitResult | null {
   for (const projectile of state.projectiles) {
     const sharesBlackoutWithPlayer = pointsShareActiveBlackout(
       state,
@@ -1855,13 +1862,19 @@ function findHitSource(state: GameState): HitSource | null {
         projectile.velocity,
       )
     ) {
-      return projectile.kind;
+      return {
+        source: projectile.kind,
+        entity: { kind: "projectile", id: projectile.id },
+      };
     }
   }
 
   for (const wave of state.reasoningWaves) {
     if (reasoningWaveHitsPlayer(wave, state.player.position)) {
-      return "reasoning";
+      return {
+        source: "reasoning",
+        entity: { kind: "reasoning-wave", id: wave.id },
+      };
     }
   }
 
@@ -1877,7 +1890,10 @@ function findHitSource(state: GameState): HitSource | null {
         { x: 1, y: 0 },
       )
     ) {
-      return "access";
+      return {
+        source: "access",
+        entity: { kind: "download-access", id: hazard.id },
+      };
     }
   }
 
@@ -1897,7 +1913,10 @@ function findHitSource(state: GameState): HitSource | null {
           { x: 1, y: 0 },
         )
       ) {
-        return "approval";
+        return {
+          source: "approval",
+          entity: { kind: "approval-gate", id: gate.id },
+        };
       }
     }
   }
@@ -1914,7 +1933,10 @@ function findHitSource(state: GameState): HitSource | null {
         retry.velocity,
       )
     ) {
-      return "retry";
+      return {
+        source: "retry",
+        entity: { kind: "retry-chain", id: retry.id },
+      };
     }
   }
 
@@ -2032,6 +2054,7 @@ function takeEntityId(state: GameState): number {
 function finishRun(
   state: GameState,
   source: HitSource,
+  entity: HitEntityRef,
   events: GameEvent[],
 ): void {
   if (state.phase !== "playing") {
@@ -2040,6 +2063,7 @@ function finishRun(
 
   state.phase = "results";
   state.lastHitSource = source;
+  state.lastHitEntity = entity;
   events.push({ type: "player-hit", source });
   events.push({ type: "run-ended", finalScore: state.score, source });
 }

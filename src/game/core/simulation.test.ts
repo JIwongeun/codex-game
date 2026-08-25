@@ -574,6 +574,10 @@ describe("survival simulation", () => {
     stepGame(dangerState, EMPTY_INPUT, 20);
     expect(dangerState.phase).toBe("results");
     expect(dangerState.lastHitSource).toBe("reasoning");
+    expect(dangerState.lastHitEntity).toEqual({
+      kind: "reasoning-wave",
+      id: 290,
+    });
   });
 
   it("cannot tunnel through ultra-code or survive its final collapse at center", () => {
@@ -786,6 +790,7 @@ describe("survival simulation", () => {
 
     expect(state.phase).toBe("results");
     expect(state.lastHitSource).toBe("tool-call");
+    expect(state.lastHitEntity).toEqual({ kind: "projectile", id: 100 });
     expect(events).toContainEqual({ type: "player-hit", source: "tool-call" });
     expect(events.at(-1)).toEqual({
       type: "run-ended",
@@ -915,6 +920,7 @@ describe("survival simulation", () => {
     stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
     expect(state.phase).toBe("results");
     expect(state.lastHitSource).toBe("approval");
+    expect(state.lastHitEntity).toEqual({ kind: "approval-gate", id: 250 });
   });
 
   it("keeps the deny gap in an active approval gate safe", () => {
@@ -1018,6 +1024,26 @@ describe("survival simulation", () => {
     expect(events).toContainEqual({ type: "player-hit", source: "access" });
     expect(state.phase).toBe("results");
     expect(state.lastHitSource).toBe("access");
+    expect(state.lastHitEntity).toEqual({
+      kind: "download-access",
+      id: 200,
+    });
+  });
+
+  it("records the exact retry chain that hits the player", () => {
+    const state = playingState();
+    state.retryChains = [
+      retryChain({
+        position: { ...state.player.position },
+        speed: 0,
+      }),
+    ];
+
+    stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    expect(state.phase).toBe("results");
+    expect(state.lastHitSource).toBe("retry");
+    expect(state.lastHitEntity).toEqual({ kind: "retry-chain", id: 275 });
   });
 
   it("spawns download access independently from compaction in late stages", () => {

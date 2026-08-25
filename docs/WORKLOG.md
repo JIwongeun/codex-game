@@ -2,6 +2,24 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Colorless Game Over blur와 exact hit foreground
+
+### 구현
+
+- 이전 56% white wash·부분 grayscale·focus aperture를 제거하고 frozen Game 전체에는 background color 없는 2px backdrop blur만 적용
+- core collision 결과에 마지막 projectile·download access·approval gate·retry chain·reasoning wave의 entity kind와 id를 `lastHitEntity`로 보존
+- 결과 overlay의 별도 transparent Canvas에 `lastHitEntity` 하나를 기존 terminal·browser·Codex token 색과 geometry로 다시 그리고 12×12 black player node를 마지막에 합성
+- 기존 hit-source crosshair와 주변 원색 구멍을 제거해 blur 위의 선명한 game object를 player와 실제 피격 attack으로 제한
+- `GAME OVER`를 danger red `#b83d45`로 변경하고 title 좌우 여백과 animation 최종 `clip-path: none`으로 마지막 `R` glyph clipping 수정
+- new-best badge와 game-over 시점 completion chime은 변경하지 않음
+
+### 검증
+
+- projectile·reasoning wave·approval gate·download access·retry chain collision이 정확한 entity kind·id를 보존하는 회귀 검증 추가
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 153개 test, production build와 verifier 완료
+- local 1920×1080 Stage 8 QA run의 game over를 실제 브라우저에서 확인: overlay background `rgba(0, 0, 0, 0)`, `blur(2px)`, foreground Canvas 1920×1080, title `rgb(184, 61, 69)`, 최종 `clip-path: none`
+- 마지막 `R` glyph 오른쪽 여백 6.75px와 browser warning/error 0건 확인
+
 ## 2026-08-25 — Game over collision focus와 연한 blur
 
 ### 구현
