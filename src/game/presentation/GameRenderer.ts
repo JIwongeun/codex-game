@@ -307,13 +307,6 @@ export class GameRenderer {
     const y = Math.round(state.player.position.y);
     const tone = this.hitSourceTone(state.lastHitSource);
 
-    this.overflowTransitionLayer.fillStyle(COLORS.background, 0.68);
-    this.overflowTransitionLayer.fillRect(
-      0,
-      0,
-      state.arena.width,
-      state.arena.height,
-    );
     this.overflowTransitionLayer.fillStyle(COLORS.black, 1);
     this.overflowTransitionLayer.fillRect(x - 6, y - 6, 12, 12);
     this.overflowTransitionLayer.lineStyle(2, tone, 1);

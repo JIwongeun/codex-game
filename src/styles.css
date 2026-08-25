@@ -636,15 +636,37 @@ body {
 }
 
 .game-over-overlay {
+  --game-over-focus-x: 50%;
+  --game-over-focus-y: 50%;
+
   position: absolute;
   z-index: 110;
   inset: 0;
   display: grid;
   place-items: center;
   pointer-events: none;
-  background: rgb(255 255 255 / 76%);
-  backdrop-filter: blur(4px) grayscale(1) contrast(0.82);
-  -webkit-backdrop-filter: blur(4px) grayscale(1) contrast(0.82);
+}
+
+.game-over-overlay::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: rgb(255 255 255 / 56%);
+  backdrop-filter: blur(2px) grayscale(0.72) contrast(0.9);
+  content: "";
+  -webkit-backdrop-filter: blur(2px) grayscale(0.72) contrast(0.9);
+  -webkit-mask-image: radial-gradient(
+    circle 60px at var(--game-over-focus-x) var(--game-over-focus-y),
+    transparent 0 40px,
+    rgb(0 0 0 / 45%) 50px,
+    #000 60px
+  );
+  mask-image: radial-gradient(
+    circle 60px at var(--game-over-focus-x) var(--game-over-focus-y),
+    transparent 0 40px,
+    rgb(0 0 0 / 45%) 50px,
+    #000 60px
+  );
 }
 
 .game-over-overlay[hidden] {
@@ -652,6 +674,8 @@ body {
 }
 
 .game-over-overlay__copy {
+  position: relative;
+  z-index: 1;
   display: grid;
   min-width: min(440px, calc(100vw - 40px));
   justify-items: center;

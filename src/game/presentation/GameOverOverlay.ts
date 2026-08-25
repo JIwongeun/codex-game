@@ -6,16 +6,20 @@ export interface GameOverView {
   time: string;
   source: string;
   newBest: boolean;
+  focusXPercent: number;
+  focusYPercent: number;
 }
 
 export function gameOverView(
-  state: Pick<GameState, "elapsedMs" | "lastHitSource">,
+  state: Pick<GameState, "arena" | "elapsedMs" | "lastHitSource" | "player">,
   newBest: boolean,
 ): GameOverView {
   return {
     time: formatSurvivalTime(state.elapsedMs),
     source: hitSourceLabel(state.lastHitSource),
     newBest,
+    focusXPercent: (state.player.position.x / state.arena.width) * 100,
+    focusYPercent: (state.player.position.y / state.arena.height) * 100,
   };
 }
 
@@ -72,6 +76,14 @@ export class GameOverOverlay {
     }
 
     const view = gameOverView(state, newBest);
+    this.root.style.setProperty(
+      "--game-over-focus-x",
+      `${view.focusXPercent}%`,
+    );
+    this.root.style.setProperty(
+      "--game-over-focus-y",
+      `${view.focusYPercent}%`,
+    );
     this.time.textContent = `RUN TERMINATED  ·  ${view.time}`;
     this.source.textContent = view.source;
     this.best.hidden = !view.newBest;

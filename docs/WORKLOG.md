@@ -2,6 +2,25 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Game over collision focus와 연한 blur
+
+### 구현
+
+- 전체 Canvas를 68% white로 덮던 결과 wash를 제거하고 frozen Game 원본을 유지
+- 결과 DOM 계층은 76% 순백·4px 완전 grayscale에서 56% 순백·2px blur·부분 grayscale로 낮춤
+- player collision point에 40px 원색 core와 20px feather focus aperture를 두어 black player node, hit marker와 실제로 겹친 공격의 surface 원색을 보존
+- collision position을 logical arena 비율로 DOM CSS 변수에 전달해 viewport 크기와 화면비가 달라도 focus 중심이 player 위치를 따르도록 연결
+- `GAME OVER` copy, run time·hit source·new-best badge, 클릭·Space Retry·`Esc` Start와 game-over 시점 completion chime은 변경하지 않음
+
+### 검증
+
+- game-over view test에 960×640 arena의 `(240, 480)` collision point가 `(25%, 75%)` focus 좌표로 변환되는 회귀 검증 추가
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 152개 test, production build와 verifier 완료
+
+### 남은 확인
+
+- production 배포 뒤 실제 피격 위치별 focus aperture 크기와 feather 체감 확인 필요
+
 ## 2026-08-25 — 순백 digital `GAME OVER` 결과 화면
 
 ### 구현

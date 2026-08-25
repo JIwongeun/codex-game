@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-061 — Game over의 충돌 지점만 원색으로 보존한다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-060의 배경 강도와 collision focus 표현만 대체
+- 배경: 76% 순백 wash와 4px 완전 grayscale blur는 종료 copy를 또렷하게 만들었지만, 기존 collision marker와 black player node까지 흐려 실제로 어떤 공격에 맞았는지 확인하기 어려웠다. frozen Game 전체의 공격 의미색을 살리면 다시 ivory tone이 생기므로 충돌 위치와 배경의 위계를 분리할 필요가 있다.
+- 결정: 전체 Canvas를 별도로 하얗게 덮지 않는다. DOM 결과 계층은 56% 순백, 2px blur와 부분 grayscale로 낮추고, frozen player 위치를 중심으로 40px core와 20px feather의 원형 focus aperture를 뚫는다. 이 aperture 안에서는 12×12 black player node, hit-source marker와 player에 실제로 겹친 공격의 기존 surface 색을 그대로 보존한다. `GAME OVER` copy, 입력, new-best badge와 game-over 시점 completion chime은 유지한다.
+- 결과: 실패 순간의 player와 피격 공격은 원색의 작은 증거 영역으로 읽히고, 나머지 장면은 더 가벼운 흰 blur 아래에서 중앙 결과 정보의 배경으로 남는다. 별도 공격 복제 renderer나 core collision model 변경 없이 frozen collision point를 직접 강조한다.
+
 ## D-060 — Game over의 상태와 원인을 두 단계로 분리한다
 
 - 날짜: 2026-08-25
-- 상태: 확정, D-059의 game-over copy hierarchy와 배경 표현만 대체
+- 상태: 일부 대체됨 — D-061이 배경 강도와 collision focus 표현을 변경. game-over copy hierarchy와 one-shot digital slice는 유효
 - 배경: frozen Game 위의 큰 `CONTEXT OVERFLOW`는 콘셉트는 강하지만 일반 공격명이나 특수 Stage처럼 보여 즉시 게임 종료 상태로 읽히지 않았다. 기존 white wash에 남은 공격 의미색은 배경을 애매한 ivory tone처럼 보이게 했다.
 - 결정: 100ms hit-stop, frozen Game, run time·hit source·new-best와 Retry·Start 입력은 유지한다. 배경은 순백 반투명 계층의 blur·grayscale로 낮추고 중앙의 가장 큰 문구를 `GAME OVER`로 바꾼다. 그 아래 작은 monospace `[context] overflow // exit code 1`을 종료 원인으로 표시한다. `GAME OVER`는 첫 260ms에만 수평 digital slice로 나타난 뒤 정지하며 반복 glitch·CRT noise는 사용하지 않는다.
 - 결과: 사용자는 종료 상태를 먼저 이해하고 그 원인을 Codex 세계관의 context failure로 읽는다. game over는 여전히 별도 Scene이 아닌 frozen Game 위의 일시 overlay다.
