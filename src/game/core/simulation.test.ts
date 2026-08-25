@@ -261,7 +261,7 @@ describe("survival simulation", () => {
     expect(new Set(scheduledIntervals).size).toBeGreaterThan(1);
   });
 
-  it("keeps late major intervals above the fairness floor", () => {
+  it("keeps late rm intervals above the stack separation", () => {
     const scheduledIntervals: number[] = [];
 
     for (let seed = 1; seed <= 128; seed += 1) {
@@ -275,12 +275,40 @@ describe("survival simulation", () => {
     }
 
     expect(Math.min(...scheduledIntervals)).toBe(
-      GAMEPLAY.majorPatternMinimumIntervalMs,
+      GAMEPLAY.blackoutMinimumSpawnIntervalMs,
     );
     expect(Math.max(...scheduledIntervals)).toBeLessThanOrEqual(
       GAMEPLAY.blackoutMinimumIntervalMs +
         GAMEPLAY.majorPatternTimingJitterMs,
     );
+  });
+
+  it("does not prioritize rm stacking over the next due major", () => {
+    const state = playingState(503, 2_560, 1_440);
+    state.elapsedMs =
+      GAMEPLAY.difficultyRampMs + GAMEPLAY.blackoutPostStageRampMs;
+    state.blackouts = [
+      {
+        id: 999,
+        position: { x: 320, y: 320 },
+        hitbox: { width: 240, height: 240 },
+        telegraphRemainingMs: 0,
+        remainingMs: 3_000,
+        durationMs: GAMEPLAY.blackoutStageTenDurationMs,
+      },
+    ];
+    state.spawn.approvalMs = 0;
+    state.spawn.blackoutMs = 0;
+    state.spawn.majorPatternCursor = 0;
+
+    const events = stepGame(state, EMPTY_INPUT, FIXED_STEP_MS);
+
+    expect(events).toContainEqual({
+      type: "pattern-warning",
+      kind: "approval-required",
+    });
+    expect(events.some(({ type }) => type === "blackout-started")).toBe(false);
+    expect(state.blackouts).toHaveLength(1);
   });
 
   it("spawns tool-call paths independently from the player position", () => {

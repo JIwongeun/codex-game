@@ -207,7 +207,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - Phaser `RESIZE` Canvas는 browser viewport 전체를 채우고 `logicalViewportFor`가 QHD 높이 1440을 기준으로 logical arena와 camera zoom을 계산한다. QHD는 zoom 1, FHD는 동일한 `2560×1440` arena에 zoom 0.75를 사용한다. 다른 화면비는 letterbox 없이 logical 가로만 조정한다. `renderQualityFor`는 `screen × devicePixelRatio`의 물리 해상도로 FHD/QHD profile을 고르고 FHD 2×, QHD 1.5× backing buffer를 만든다. backing은 `4096×2304`로 cap하고 camera viewport와 zoom에도 같은 render scale을 적용해 simulation 좌표와 보이는 범위를 보존한다. WebGL linear antialiasing과 작은 Phaser Text 최소 2× internal resolution을 함께 사용하며 pixel-art CSS scaling은 금지한다. resize 시 player와 범위 공격을 새 logical 경계 안으로 clamp하고 retry velocity를 새 target으로 재계산하며 blackout의 viewport 면적 비율을 보존한다.
 - update에서 반복 생성되는 객체를 피한다.
 - 회전 text projectile은 최대 56개, context hazard와 convergence sequence는 각각 최대 4개로 명시적 상한을 둔다.
-- 특수 pattern은 각자 timer를 유지하되 첫 spawn은 해금 뒤 0–1,000ms, 반복 spawn은 기준 interval ±1,000ms로 timing 전용 seeded RNG에서 다시 뽑고 실제 interval은 최소 800ms를 보장한다. 공격 문구·방향 RNG와 기본 tool stream cadence는 바꾸지 않는다. onset은 최소 360ms 떨어뜨리고 서로 다른 active major family는 최대 세 개로 제한한다. approval도 같은 상한 안에서 다른 major와 겹칠 수 있다. 기준 logical arena 면적의 55%보다 작은 viewport는 spawn interval만 1.22배 늘린다.
+- 특수 pattern은 각자 timer를 유지하되 첫 spawn은 해금 뒤 0–1,000ms, 반복 spawn은 기준 interval ±1,000ms로 timing 전용 seeded RNG에서 다시 뽑고 실제 interval은 최소 800ms를 보장한다. `rm *`은 최소 1,600ms로 별도 clamp하며 활성 중 추가 spawn도 일반 round-robin 선택을 따른다. 공격 문구·방향 RNG와 기본 tool stream cadence는 바꾸지 않는다. onset은 최소 360ms 떨어뜨리고 서로 다른 active major family는 최대 세 개로 제한한다. approval도 같은 상한 안에서 다른 major와 겹칠 수 있다. 기준 logical arena 면적의 55%보다 작은 viewport는 spawn interval만 1.22배 늘린다.
 - player 원과 회전 projectile rectangle의 교차로 보이는 token·문구와 판정을 맞춘다. compaction frame은 예고·실패 연출만 담당하고 실제 판정은 실패 순간 생성되는 `context-token` projectile이 담당한다. `download-access`는 별도 timer와 hazard family로 상·하·좌·우 반 화면 geometry를 사용한다.
 - 에셋은 브라우저 캐시가 가능한 정적 파일로 제공한다.
 - 개발자 도구를 열지 않아도 오류 상태를 알 수 있게 한다.
@@ -222,7 +222,7 @@ core loop, 공개 배포, 브라우저 QA, 제출 필수 자료가 모두 준비
 - 생존 시간 formatting과 난이도 단계 순수 함수 테스트
 - 완전 랜덤 `tool-call`, 문장별 폭의 네 opening·가로/세로 안전 통과·player보다 느린 속도를 갖는 `approval`, 1.5배 frame의 `compaction`과 12–20개 `context-token` ballistic burst·중력 낙하, 반 화면 `download-access`, attempt 단위 snapshot과 비치명 completion을 갖는 `retry`, 첫 frame 120° circle warning과 edge inward safe sector 뒤 agent 응답 수렴 annulus를 만드는 `ultra-code`, 교차 `agent`, `review-loop`·`usage-limit` 수렴과 radial 분할 테스트
 - 회전한 text hitbox 충돌, 12초 단위 Stage 1–10 경계와 Stage 10 상한 테스트
-- `tool-call` 경로 독립성, major 첫 spawn 0–1,000ms·반복 interval ±1,000ms·최소 800ms timing guard와 별도 RNG 결정성, approval opening과 label 중심·문장별 폭·도달 예산, QHD/FHD logical viewport 동등성, FHD 2×·QHD 1.5× backing과 최대 크기 cap, download-access 네 sector·반 화면·warning 판정, reasoning 120° safe sector 고정과 edge·corner inward orientation, round-robin 360ms onset·active family 3개 cap, blackout warning·stack·180ms reveal grace와 responsive interval 회귀 테스트
+- `tool-call` 경로 독립성, major 첫 spawn 0–1,000ms·반복 interval ±1,000ms·최소 800ms timing guard와 별도 RNG 결정성, `rm *` 1,600ms 하한·일반 round-robin 선택, approval opening과 label 중심·문장별 폭·도달 예산, QHD/FHD logical viewport 동등성, FHD 2×·QHD 1.5× backing과 최대 크기 cap, download-access 네 sector·반 화면·warning 판정, reasoning 120° safe sector 고정과 edge·corner inward orientation, round-robin 360ms onset·active family 3개 cap, blackout warning·stack·180ms reveal grace와 responsive interval 회귀 테스트
 - resize 뒤 retry/blackout 상태, 4분 ending 초기화와 ending 뒤 오디오 재시작 회귀 테스트
 - 동일 seed와 입력 stream의 결정성, 개체 상한, 수치 유효성 soak 테스트
 - production build

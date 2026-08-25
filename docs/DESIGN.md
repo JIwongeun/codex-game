@@ -160,7 +160,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 | 9 | 96–107.99초 | `rm *` blackout 해금, retry 5회, review 12방향, usage 6개·16방향 |
 | 10 | 108초 이후 | download access 최저 간격, agent 3 pair, review 16방향, usage 8개·20방향, blackout 최대 4개와 최대 속도·최저 간격 |
 
-단계 사이에서 속도와 기준 생성 간격은 연속 보간한다. 해금·동시 수·분할 수는 표의 stage 경계에서만 바뀌며, 첫 실제 major onset은 해금 뒤 0–1,000ms 안에서 정한다. 이후 반복 onset은 매 기준 간격마다 ±1,000ms를 다시 뽑되 실제 interval은 최소 800ms를 보장해 판마다 조합 시점이 누적해서 달라진다.
+단계 사이에서 속도와 기준 생성 간격은 연속 보간한다. 해금·동시 수·분할 수는 표의 stage 경계에서만 바뀌며, 첫 실제 major onset은 해금 뒤 0–1,000ms 안에서 정한다. 이후 반복 onset은 매 기준 간격마다 ±1,000ms를 다시 뽑되 실제 interval은 최소 800ms를 보장해 판마다 조합 시점이 누적해서 달라진다. `rm *`은 연속 square의 최소 간격을 1,600ms로 두고 일반 major round-robin 순서에서 한 장씩 추가한다.
 
 ## 공정성과 가독성 불변식
 
@@ -170,7 +170,7 @@ Stage는 12초 단위다. Stage 10은 108초부터이며 모든 수치가 최고
 - 서로 다른 major pattern onset은 최소 360ms 떨어지고 동시에 active한 major family는 세 개를 넘지 않는다. major timing은 공격 문구·방향과 분리된 seeded RNG를 사용하며 기본 tool stream은 jitter와 이 상한 모두에서 제외한다.
 - approval wall은 Stage 10에서도 378 logical px/s 이하로 player의 440 logical px/s보다 느리다. wall은 한 번에 하나만 유지하지만 다른 major와 독립적으로 실행되며 공통 360ms onset·세 family 상한을 따른다.
 - download access는 정확히 logical arena의 절반만 차지하고 3.3초 loading 중에는 무해하다. QHD 좌·우 반 화면의 최장 이탈 시간보다 250ms 이상 긴 warning을 유지한다.
-- `rm *`은 화면 중앙 24% band를 피한 무작위 위치에 정사각형으로 생성되고 720ms outline warning 뒤에만 시야를 가린다. 활성 square는 모든 projectile·approval·retry·reasoning·area hazard·attack effect보다 위, player·HUD·각 square의 status보다 아래에 놓인다. 가려진 공격은 삭제되거나 멈추지 않고 simulation과 collision을 계속하며 square가 걷히면 진행된 위치에서 다시 보인다. 각 square 중앙의 `BACKING UP... n%`와 progress rail은 독립적으로 차고, 100%에서 `BACKUP COMPLETE`로 전환된 뒤 320ms 동안 중앙으로 접혀 사라진다. Stage 9에서는 한 개, Stage 10에서는 2→3→최대 4개까지 겹친다.
+- `rm *`은 화면 중앙 24% band를 피한 무작위 위치에 정사각형으로 생성되고 720ms outline warning 뒤에만 시야를 가린다. 활성 square는 모든 projectile·approval·retry·reasoning·area hazard·attack effect보다 위, player·HUD·각 square의 status보다 아래에 놓인다. 가려진 공격은 삭제되거나 멈추지 않고 simulation과 collision을 계속하며 square가 걷히면 진행된 위치에서 다시 보인다. 각 square 중앙의 `BACKING UP... n%`와 progress rail은 독립적으로 차고, 100%에서 `BACKUP COMPLETE`로 전환된 뒤 320ms 동안 중앙으로 접혀 사라진다. 발동 한 번에 한 장만 추가하고 일반 major round-robin을 따르며, Stage 9에서는 한 개, Stage 10에서는 2→3→최대 4개까지 겹친다.
 - blackout을 빠져나온 projectile은 180ms 동안 반투명하게 다시 드러나고 충돌이 유예된다. blackout 안에 남아 있는 player와 projectile 사이 판정은 계속 위험하다.
 - QHD `2560×1440`을 logical reference로 사용한다. FHD는 같은 arena를 `0.75×`로 표시하며 다른 화면비는 logical 높이 1440을 유지한다. 기준 logical 면적의 55%보다 작은 viewport는 모든 spawn interval을 1.22배 늘리고 projectile 속도는 유지한다.
 - 회전한 문구와 collision rectangle은 같은 각도를 사용한다.

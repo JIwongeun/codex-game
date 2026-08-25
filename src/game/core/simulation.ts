@@ -958,6 +958,7 @@ function spawnScheduledAttacks(
     state.spawn.blackoutMs += randomizedMajorPatternInterval(
       state,
       difficulty.blackoutIntervalMs * intervalScale,
+      GAMEPLAY.blackoutMinimumSpawnIntervalMs,
     );
   }
 }
@@ -973,9 +974,10 @@ function initialMajorPatternDelay(state: GameState, firstSpawnMs: number): numbe
 function randomizedMajorPatternInterval(
   state: GameState,
   intervalMs: number,
+  minimumIntervalMs: number = GAMEPLAY.majorPatternMinimumIntervalMs,
 ): number {
   return Math.max(
-    GAMEPLAY.majorPatternMinimumIntervalMs,
+    minimumIntervalMs,
     intervalMs + randomTimingBetween(
       state,
       -GAMEPLAY.majorPatternTimingJitterMs,
@@ -991,14 +993,6 @@ function selectMajorPattern(
 ): AttackPatternKind | null {
   if (state.spawn.majorPatternCooldownMs > 0) {
     return null;
-  }
-
-  if (
-    active.has("wildcard-blackout") &&
-    state.blackouts.length < difficulty.blackoutMaxActive &&
-    majorPatternIsDue("wildcard-blackout", state, difficulty)
-  ) {
-    return "wildcard-blackout";
   }
 
   if (active.size >= GAMEPLAY.maxConcurrentMajorPatterns) {

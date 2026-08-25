@@ -2,6 +2,20 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — `rm *` 연속 누적 완화
+
+### 구현
+
+- 활성 `rm *`이 다른 due major보다 먼저 선택되던 scheduler 우선권을 제거하고 일반 major round-robin에 통합
+- 전체 major의 ±1,000ms timing jitter는 유지하면서 `rm *` 반복 interval만 최소 1,600ms로 제한
+- 발동 한 번당 square 한 장과 Stage 9 최대 1개, Stage 10 2→3→4개 상한은 유지
+
+### 검증
+
+- 활성 blackout과 approval이 동시에 due일 때 approval이 round-robin 순서대로 먼저 선택되고 blackout이 연속 추가되지 않는 회귀 test 추가
+- 128개 seed의 최고 난이도 `rm *` 반복 interval이 1,600–2,300ms 범위를 벗어나지 않는 하한 회귀 test 통과
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 150개 test, production build와 verifier 완료
+
 ## 2026-08-25 — Gameplay Canvas focus 테두리 제거와 `rm *` 누적 규칙 재확인
 
 ### 구현

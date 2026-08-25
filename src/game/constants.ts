@@ -69,6 +69,7 @@ export const GAMEPLAY = {
   blackoutStageNineIntervalMs: 10_500,
   blackoutStageTenStartIntervalMs: 3_000,
   blackoutMinimumIntervalMs: 1_300,
+  blackoutMinimumSpawnIntervalMs: 1_600,
   blackoutPostStageRampMs: 60_000,
   majorPatternTimingJitterMs: 1_000,
   majorPatternMinimumIntervalMs: 800,
