@@ -2,6 +2,21 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Game Over player focus foreground와 2px blur
+
+### 구현
+
+- 76% 순백 wash와 grayscale·contrast 처리는 유지하면서 backdrop blur를 4px에서 2px로 낮춤
+- results 상태의 `GameRenderer`는 68% white wash만 담당하고, `GameOverOverlay`가 frozen player의 logical 좌표와 viewport 배율을 DOM foreground 좌표·크기로 변환하도록 분리
+- 12×12 black player node와 기존 hit-source focus만 blur 위에 선명하게 표시하고, 공격과 나머지 frozen Game 요소는 모두 blur 아래에 유지
+- `tool-call` hit focus는 terminal gold `#d18d00`, `access`와 나머지 Codex 공격은 기존 surface semantic tone을 유지
+- danger red `GAME OVER`, 마지막 `R` 여백, 결과 정보와 Retry·Start 동작은 변경하지 않음
+
+### 검증
+
+- `gameOverFocusView`가 960×640 arena의 (240, 480)을 (25%, 75%)와 terminal gold로 변환하는 회귀 테스트 추가
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 153개 test, production build와 verifier 완료
+
 ## 2026-08-25 — 첫 Game Over 배경 복원과 현재 중앙 copy 유지
 
 ### 구현

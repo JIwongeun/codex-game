@@ -643,15 +643,84 @@ body {
   place-items: center;
   pointer-events: none;
   background: rgb(255 255 255 / 76%);
-  backdrop-filter: blur(4px) grayscale(1) contrast(0.82);
-  -webkit-backdrop-filter: blur(4px) grayscale(1) contrast(0.82);
+  backdrop-filter: blur(2px) grayscale(1) contrast(0.82);
+  -webkit-backdrop-filter: blur(2px) grayscale(1) contrast(0.82);
 }
 
 .game-over-overlay[hidden] {
   display: none;
 }
 
+.game-over-overlay__hit-focus {
+  position: absolute;
+  z-index: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.game-over-overlay__hit-focus-marker {
+  position: absolute;
+  top: -15px;
+  left: -15px;
+  display: block;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--game-over-hit-tone, #d18d00);
+  box-sizing: border-box;
+  transform: scale(var(--game-over-focus-scale, 1));
+  transform-origin: center;
+}
+
+.game-over-overlay__hit-focus-marker::before,
+.game-over-overlay__hit-focus-marker::after {
+  position: absolute;
+  content: "";
+}
+
+.game-over-overlay__hit-focus-marker::before {
+  top: 50%;
+  right: -12px;
+  left: -12px;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    var(--game-over-hit-tone, #d18d00) 0 8px,
+    transparent 8px calc(100% - 8px),
+    var(--game-over-hit-tone, #d18d00) calc(100% - 8px) 100%
+  );
+  transform: translateY(-50%);
+}
+
+.game-over-overlay__hit-focus-marker::after {
+  top: -12px;
+  bottom: -12px;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    var(--game-over-hit-tone, #d18d00) 0 8px,
+    transparent 8px calc(100% - 8px),
+    var(--game-over-hit-tone, #d18d00) calc(100% - 8px) 100%
+  );
+  transform: translateX(-50%);
+}
+
+.game-over-overlay__hit-focus-node {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: #111;
+  transform: translate(-50%, -50%);
+}
+
 .game-over-overlay__copy {
+  position: relative;
+  z-index: 1;
   display: grid;
   min-width: min(440px, calc(100vw - 40px));
   justify-items: center;

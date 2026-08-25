@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-064 — Player와 hit focus만 가벼운 blur 위에 보존한다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-063의 blur 강도와 player/focus layering만 보강
+- 배경: 첫 버전의 순백 wash는 의도한 흰 결과 surface를 복원했지만 4px backdrop blur가 black player node와 노란 terminal hit-focus까지 함께 흐려 충돌 위치의 핵심 증거가 약했다. 공격 entity 전체를 foreground에 복제하면 다시 결과 copy와 경쟁한다.
+- 결정: 76% 순백 wash·grayscale·저대비는 유지하고 backdrop blur만 4px에서 2px로 낮춘다. frozen player 좌표와 viewport/logical-arena scale을 사용해 12×12 black node와 기존 hit-source focus만 DOM foreground에서 다시 표시한다. tool-call focus는 terminal gold `#d18d00`, access와 Codex 계열은 기존 의미색을 유지한다. 공격 문구·hazard·wave는 모두 blur 아래에 둔다.
+- 결과: 흰 배경과 연한 frozen Game은 유지되면서 피격 위치의 node와 marker만 hard-edge로 읽힌다. 별도 공격 renderer나 exact hit entity 추적은 다시 도입하지 않는다.
+
 ## D-063 — 첫 Game Over 배경으로 복원하고 현재 중앙 copy만 유지한다
 
 - 날짜: 2026-08-25
-- 상태: 확정, D-061·D-062의 collision foreground 실험을 대체하고 D-060의 배경 구조를 복원
+- 상태: 일부 대체됨 — D-064가 blur를 2px로 낮추고 player와 hit focus만 DOM foreground에 보존. 순백 wash와 중앙 copy 구조는 유효
 - 배경: 순백 wash를 없앤 colorless blur는 흰 게임 surface 전체를 회색 면처럼 보이게 했고, exact hit foreground Canvas는 배경 공격 일부를 다시 또렷하게 만들어 종료 copy와 경쟁했다. 사용자가 원하는 것은 별도 회색 overlay가 아니라 흰 화면 아래에서 frozen 공격 전체가 고르게 흐리고 연하게 남는 첫 버전의 인상이었다.
 - 결정: `c71b0c8`의 game-over 배경 구조를 복원한다. results phase Canvas는 68% white wash 뒤 black player node와 hit-source focus를 표시하고, DOM overlay는 76% 순백 wash와 4px blur·grayscale·저대비를 적용한다. collision aperture, exact hit entity 추적과 별도 foreground Canvas는 제거한다. 중앙 copy는 현재의 danger red `GAME OVER`, glyph 여백, 최종 `clip-path: none`, `[context] overflow // exit code 1`, run 정보와 action을 유지한다.
 - 결과: 바탕은 첫 버전처럼 순백에 가깝고 frozen 공격은 전체가 고르게 연해진다. 최근 변경 중에서는 중앙의 붉은 종료 copy와 마지막 `R` 잘림 수정만 유지한다.
