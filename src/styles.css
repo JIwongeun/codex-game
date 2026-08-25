@@ -643,8 +643,8 @@ body {
   place-items: center;
   pointer-events: none;
   background: rgb(255 255 255 / 76%);
-  backdrop-filter: blur(2px) grayscale(1) contrast(0.82);
-  -webkit-backdrop-filter: blur(2px) grayscale(1) contrast(0.82);
+  backdrop-filter: blur(1px) grayscale(1) contrast(0.82);
+  -webkit-backdrop-filter: blur(1px) grayscale(1) contrast(0.82);
 }
 
 .game-over-overlay[hidden] {

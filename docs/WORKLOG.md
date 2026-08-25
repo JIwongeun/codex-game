@@ -2,6 +2,18 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Game Over 배경 blur 1px 조정
+
+### 구현
+
+- 68% Canvas white wash와 76% DOM 순백 wash·grayscale·contrast는 유지하고 Game Over backdrop blur만 2px에서 1px로 낮춤
+- black player node와 semantic hit focus foreground, danger red 중앙 copy와 결과 입력은 변경하지 않음
+- 현재 제품·디자인·기술 문서와 D-065 결정에 1px blur 기준을 동기화
+
+### 검증
+
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 153개 test, production build와 verifier 완료
+
 ## 2026-08-25 — Game Over player focus foreground와 2px blur
 
 ### 구현

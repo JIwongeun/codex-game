@@ -2,10 +2,18 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-065 — Game Over 배경 blur를 1px로 더 낮춘다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-064의 foreground layering은 유지하고 blur 강도만 보강
+- 배경: 4px에서 2px로 낮춘 뒤에도 68% Canvas white wash와 76% DOM 순백 wash·grayscale·저대비가 함께 합성되어 frozen Game의 배경 blur가 체감상 여전히 강했다.
+- 결정: 순백 wash·grayscale·contrast와 player·hit-focus foreground 구조는 유지하고 Game Over DOM의 backdrop blur만 2px에서 1px로 낮춘다.
+- 결과: 배경 공격의 frozen 형태는 조금 더 읽히고 중앙 결과 copy, black player node와 semantic hit focus의 선명도와 위계는 유지된다.
+
 ## D-064 — Player와 hit focus만 가벼운 blur 위에 보존한다
 
 - 날짜: 2026-08-25
-- 상태: 확정, D-063의 blur 강도와 player/focus layering만 보강
+- 상태: 일부 대체됨 — D-065가 blur를 1px로 낮춤. player/focus foreground layering은 유효
 - 배경: 첫 버전의 순백 wash는 의도한 흰 결과 surface를 복원했지만 4px backdrop blur가 black player node와 노란 terminal hit-focus까지 함께 흐려 충돌 위치의 핵심 증거가 약했다. 공격 entity 전체를 foreground에 복제하면 다시 결과 copy와 경쟁한다.
 - 결정: 76% 순백 wash·grayscale·저대비는 유지하고 backdrop blur만 4px에서 2px로 낮춘다. frozen player 좌표와 viewport/logical-arena scale을 사용해 12×12 black node와 기존 hit-source focus만 DOM foreground에서 다시 표시한다. tool-call focus는 terminal gold `#d18d00`, access와 Codex 계열은 기존 의미색을 유지한다. 공격 문구·hazard·wave는 모두 blur 아래에 둔다.
 - 결과: 흰 배경과 연한 frozen Game은 유지되면서 피격 위치의 node와 marker만 hard-edge로 읽힌다. 별도 공격 renderer나 exact hit entity 추적은 다시 도입하지 않는다.
