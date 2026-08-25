@@ -2,6 +2,19 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Gameplay Canvas focus 테두리 제거와 `rm *` 누적 규칙 재확인
+
+### 구현
+
+- Game 진입·pause 복귀 뒤 Canvas가 focus될 때 Chromium 기본 `1px auto outline`이 viewport 외곽에 검은 테두리처럼 나타나는 원인을 확인하고 gameplay Canvas의 outline을 제거
+- keyboard focus 복원, `Tab` pause toggle, WASD·방향키 입력과 simulation은 변경하지 않음
+- `rm *`은 발동마다 square 한 개만 생성하고 Stage 9 최대 1개, Stage 10 진입 뒤 생존 시간에 따라 최대 2→3→4개로 제한하는 기존 구조임을 재확인
+
+### 검증
+
+- source CSS와 production build에서 gameplay Canvas outline 제거 확인
+- 최종 `pnpm check` 통과: typecheck, 20개 test file의 149개 test, production build와 verifier 완료
+
 ## 2026-08-25 — Major pattern timing jitter 1초 확장
 
 ### 구현
