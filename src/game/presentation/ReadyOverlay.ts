@@ -1,6 +1,7 @@
-import type { AttackSurface, GameState, HitSource } from "../core/model";
+import type { AttackSurface, GameState } from "../core/model";
 import { formatSurvivalTime } from "../core/rules";
 import { attackTextColor, attackTextTokens } from "./attackText";
+import { hitSourceLabel } from "./hitSourceLabel";
 
 interface AmbientSignal {
   label: string;
@@ -91,18 +92,6 @@ function pointOutsideViewport(
   return { x: viewportWidth * inset, y: viewportHeight + outside };
 }
 
-const HIT_SOURCE_LABEL: Record<HitSource, string> = {
-  "tool-call": "TOOL CALL",
-  approval: "APPROVAL REQUIRED",
-  "context-token": "LOST CONTEXT TOKEN",
-  retry: "RETRY LOOP",
-  reasoning: "ULTRA CODE RESPONSE",
-  agent: "PARALLEL AGENT",
-  finding: "ONE MORE ISSUE",
-  limit: "USAGE LIMIT",
-  access: "ACCESS GRANTED",
-};
-
 export interface StartScreenView {
   visible: boolean;
   best: string;
@@ -115,9 +104,7 @@ export function startScreenView(
   localBest: number,
 ): StartScreenView {
   const completedRun = state.phase === "results";
-  const hitSource = state.lastHitSource
-    ? HIT_SOURCE_LABEL[state.lastHitSource]
-    : "UNKNOWN INTERRUPTION";
+  const hitSource = hitSourceLabel(state.lastHitSource);
 
   return {
     visible: state.phase !== "playing",
@@ -324,10 +311,14 @@ export class ReadyOverlay {
     this.createAmbientSignals();
   }
 
-  render(state: GameState, localBest: number): void {
+  render(
+    state: GameState,
+    localBest: number,
+    visible = state.phase !== "playing",
+  ): void {
     const view = startScreenView(state, localBest);
-    this.root.hidden = !view.visible;
-    if (!view.visible) {
+    this.root.hidden = !visible;
+    if (!visible) {
       for (const input of this.volumeInputs) {
         input.blur();
       }

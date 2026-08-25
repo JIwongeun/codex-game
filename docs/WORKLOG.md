@@ -2,6 +2,22 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Frozen Game Over와 session 신기록 chime
+
+### 구현
+
+- 피격 즉시 Start로 전환하던 흐름을 Game simulation·presentation 100ms hit-stop 뒤 같은 장면에 `CONTEXT OVERFLOW` overlay를 표시하는 흐름으로 변경
+- 정지 화면의 다른 공격을 낮추고 충돌 위치를 hit source의 terminal·Codex·access 의미색으로 표시하며 run time과 정확한 피격 원인을 중앙에 노출
+- game over에서 클릭·Space는 즉시 Retry, `Esc`는 마지막 run을 보존한 Start로 이동하고, game over 중 `Tab`은 browser chrome으로 focus가 빠지지 않도록 유지
+- 기존 low hit tone에 짧은 digital crack을 추가하고, 이전 session best를 실제로 넘긴 run에만 320ms 뒤 original 상승 2음 chime과 green `NEW SESSION BEST` badge 표시
+- `ReadyOverlay`, `GameOverOverlay`, `PauseOverlay`를 각각 Start·game over·pause 책임으로 분리하고 공통 hit source label을 공유
+
+### 검증
+
+- frozen run time·context-token hit label·new-best 상태의 game-over view 회귀 test 추가
+- hit impact 두 음과 지연된 new-best chime 두 음의 분리 timing 회귀 test 추가
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 152개 test, production build와 verifier 완료
+
 ## 2026-08-25 — `rm *` 연속 누적 완화
 
 ### 구현

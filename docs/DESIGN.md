@@ -94,15 +94,16 @@
 
 ### 화면 상태
 
-- Start: 최초 진입과 game over 뒤에 모두 사용하는 하나의 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon과 Open Graph·Twitter 공유 카드에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·session best와 하나의 실행 CTA로 구성한다. game over 뒤에는 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 viewport 바깥에서 생성되어 반대 edge 바깥까지, 플레이보다 느린 34–56초 속도로 흐른다. 최초 진입에서도 animation 중간 지점부터 갑자기 나타나지 않는다.
+- Start: 최초 진입과 game over에서 `Esc`로 복귀할 때 사용하는 화면이다. 상단에는 original context-loop mark와 `await CODEX`, background task 상태를 표시하고 같은 mark를 browser tab icon과 Open Graph·Twitter 공유 카드에도 사용한다. 본문은 `Codex is working.`, objective·control·fail state·last run·session best와 하나의 실행 CTA로 구성한다. game over 뒤 복귀하면 `LAST RUN` 값에 생존 시간과 정확한 피격 계열을 갱신한다. 뒤에는 실제 attack renderer와 같은 surface별 token 문법의 문구가 opacity `0.16`의 낮은 대비로 무작위 viewport 바깥에서 생성되어 반대 edge 바깥까지, 플레이보다 느린 34–56초 속도로 흐른다. 최초 진입에서도 animation 중간 지점부터 갑자기 나타나지 않는다.
 - Game: 왼쪽 위 stage와 cleared, 오른쪽 위 현재 시간과 session best, 하단 이동·`Esc` 복귀·음소거 조작과 fictional feed 고지만 유지한다.
+- Game over: 피격 뒤 simulation과 모든 presentation motion을 100ms 멈추고 다른 공격을 저대비로 낮춘 채 충돌 지점·피격 계열의 의미색만 표시한다. 이어 같은 Game 장면 중앙에 `PROCESS EXITED · CODE 1`, `CONTEXT OVERFLOW`, run time, hit source와 `CLICK / SPACE RETRY`, `ESC START SCREEN`을 표시한다. 새 session best이면 green terminal success badge를 추가한다.
 - Pause는 별도 화면이 아니라 마지막 Game 장면 위의 일시적인 blur 계층이다.
 - Game 중 `Tab`은 browser chrome으로 focus를 넘기지 않고 pause·재개를 toggle한다. browser blur/hidden 뒤 페이지로 돌아오면 Canvas focus를 복원하고 `Tab`·Space·click 중 하나로 명시적으로 재개한다. Start의 volume control에서는 기본 Tab 이동을 유지한다.
 
 ### Sound
 
 - 첫 시작 click 또는 Space로 AudioContext를 연 뒤 original 32-step E minor arpeggio·bass·pulse loop를 재생한다. 최초 저음량안보다 약 6dB 높여 gameplay 중 분명히 들리게 하되 warning·hit peak보다 낮게 유지한다. Stage 1의 132 BPM에서 stage마다 4 BPM씩 올라 Stage 10의 168 BPM에 고정된다.
-- BGM은 `playing`에서만 진행하고 game over·blur·hidden pause에서 즉시 멈춘다. 재시작과 명시적 pause 해제 뒤에는 첫 step부터 다시 시작한다.
+- BGM은 `playing`에서만 진행하고 game over·blur·hidden pause에서 즉시 멈춘다. 재시작과 명시적 pause 해제 뒤에는 첫 step부터 다시 시작한다. 피격은 low impact와 짧은 digital crack을 함께 재생하고, session best를 실제로 넘긴 run만 320ms 뒤 독립적인 상승 2음 completion chime을 한 번 재생한다.
 - Start에는 `SFX VOLUME`과 `BGM VOLUME` slider를 각각 한 줄로 둔다. 둘 다 기본 50%이며 확장된 최대 channel gain 5를 유지한다. 검정 1px rail과 검정색의 굵은 가로 직사각형 handle, Start의 monospace label과 검정 수치만 사용한다. hover 중인 row의 rail에는 24% black 사각 outline, click·keyboard focus된 rail에는 100% black 사각 outline을 표시한다. focus 상태에서 `↑`는 SFX, `↓`는 BGM으로 이동하고 `←`·`→` 또는 `A`·`D`로 5%씩 조절하며 Game 진입 시 focus를 해제해 이동 입력과 충돌하지 않는다. 각 slider는 해당 음원군만 조절하고 `M`은 두 값을 보존한 채 전체를 즉시 음소거한다.
 - 기본 `TOOL CALL STREAM`은 별도 SFX 없이 흘러가고, `APPROVAL`, `COMPACTION`, `RETRY`, `ULTRA CODE`, `PARALLEL AGENTS`, `REVIEW`, `USAGE LIMIT`은 각각 prompt beep·impact·반복 click·agent collection charge·final response snap·dual tone·review pair·low alarm으로 구분한다. Retry 마지막에는 warning click과 구분되는 상승 2음 completion cue를 한 번 재생한다.
 - Stage가 바뀔 때는 push/webhook delivery를 연상시키는 2음과 agent task completion을 연상시키는 상승 3음을 번갈아 한 번만 재생하고 Stage 10은 4음으로 마감한다. compaction activation과 review 재발산에는 error popup형 하강음을, parallel agents에는 delivery cue를 겹친다.

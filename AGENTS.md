@@ -41,7 +41,7 @@
 - 조작은 `WASD`와 방향키다. 실제 OS cursor는 게임 판정에 사용하지 않는다.
 - 클릭 또는 Space는 시작·재시작·pause 해제에 사용한다. Game 중 `Tab`은 browser focus 이동을 막고 pause·재개를 toggle하며 Start에서는 volume control 접근을 위해 기본 Tab 이동을 유지한다.
 - `Esc`는 현재 run을 기록하지 않고 즉시 시작 대기 화면으로 돌아간다.
-- 사용자에게 보이는 완전한 화면은 시작 화면과 게임 화면 두 개뿐이다. 내부 `results` phase는 마지막 run 정보를 보존하는 논리 상태이며 별도 결과 화면을 만들지 않고 시작 화면에 `LAST RUN`과 피격 원인만 갱신한다.
+- 사용자에게 보이는 완전한 화면은 시작 화면과 게임 화면 두 개뿐이다. 피격 뒤 내부 `results` phase는 Game을 100ms 멈추고 충돌 원인을 강조한 `CONTEXT OVERFLOW` overlay를 같은 게임 화면 위에 표시한다. 클릭·Space는 즉시 재시작하고 `Esc`는 마지막 run 정보를 보존한 Start로 돌아간다.
 - blur/hidden pause에서는 simulation과 타이머를 멈추고 held movement key를 비운다.
 - 게임 Canvas는 전체 browser viewport를 Phaser `RESIZE`로 사용하되 simulation은 QHD `2560×1440` 높이를 기준으로 정규화한 logical arena를 사용한다. FHD `1920×1080`은 같은 logical arena를 `0.75×`로 표시하며 다른 화면비는 세로 1440을 유지한 채 가로만 확장·축소한다.
 - 백엔드 없이도 게임이 끝까지 플레이되어야 한다.

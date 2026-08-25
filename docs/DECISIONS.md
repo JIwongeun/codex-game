@@ -2,6 +2,14 @@
 
 이 문서는 제품이나 기술 방향이 바뀌어도 이전 판단의 이유를 잃지 않기 위한 기록이다. 새 결정은 기존 항목을 지우지 않고 상태를 `대체됨`으로 표시한 뒤 새 항목을 추가한다.
 
+## D-059 — 피격은 frozen Game 위의 `CONTEXT OVERFLOW`로 남긴다
+
+- 날짜: 2026-08-25
+- 상태: 확정, D-025의 game over 즉시 Start 복귀만 대체
+- 배경: 피격 즉시 Start로 전환하면 어떤 공격에 어떻게 맞았는지 확인할 시간이 없고, 한 번 피격 생존 게임의 실패 손맛과 즉시 재도전 동기가 약했다. 반면 별도 Scene과 정보가 많은 Results 화면은 Start·Game 두 화면 원칙을 다시 깨뜨린다.
+- 결정: core의 `results` phase와 one-hit 판정은 유지한다. 피격 직후 Game simulation·presentation을 100ms 멈추고 다른 공격을 낮춘 뒤 collision point와 hit source 의미색을 강조한다. 같은 Game 위에 `PROCESS EXITED · CODE 1`, `CONTEXT OVERFLOW`, run time, hit source, 클릭·Space Retry와 `Esc` Start 안내를 표시한다. `Esc`로 돌아간 Start는 기존 `LAST RUN`을 유지한다. 피격음은 low impact와 digital crack으로 합성하고, 이전 session best를 실제로 넘긴 run만 320ms 뒤 original 상승 2음 chime과 green badge를 추가한다.
+- 결과: 별도 Results Scene 없이 실패 원인·기록·다음 입력을 한 시선에서 읽고 즉시 재도전할 수 있다. 완전한 화면은 여전히 Start와 Game 두 개이며 game over는 frozen Game의 일시 overlay다.
+
 ## D-058 — `rm *` 누적은 일반 major 순환과 1.6초 하한을 따른다
 
 - 날짜: 2026-08-25
@@ -438,7 +446,7 @@
 ## D-025 — 사용자 화면을 Start와 Game 두 개로 제한한다
 
 - 날짜: 2026-08-23
-- 상태: 확정
+- 상태: 일부 대체됨 — D-059가 game over 즉시 Start 복귀를 frozen Game overlay로 변경. Start·Game 두 화면과 last run 보존 원칙은 유효
 - 배경: 기존에는 피격 뒤 `Task interrupted.` 전용 Results overlay가 나타나 Start와 다른 정보 구조를 만들었다. 사용자는 시작에 필요한 정보와 결과를 하나의 기본 UI에서 확인하고, 실제 플레이 중에는 게임만 보이기를 요청했다.
 - 결정: 최초 `ready`와 game over 뒤 `results` phase는 모두 같은 `ReadyOverlay`를 표시한다. Start에는 objective, control, fail state, local best를 항상 두고 `results`일 때만 `LAST RUN`에 생존 시간과 피격 계열을 갱신한다. `Hud`는 `playing`에서만 표시하며 Results용 Graphics와 Text object는 제거한다. 내부 phase와 deterministic simulation은 변경하지 않는다.
 - 결과: 사용자가 보는 완전한 화면은 Start와 Game 두 개뿐이다. game over 즉시 Start가 돌아오고 클릭 또는 Space는 기존 `restartRun` 경로로 새 Game을 시작한다. Pause는 Game을 대체하지 않는 일시적인 blur 계층으로 남는다.

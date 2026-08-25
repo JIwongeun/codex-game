@@ -66,7 +66,7 @@ describe("createAmbientPath", () => {
 });
 
 describe("startScreenView", () => {
-  it("uses the same start surface before the first run and after game over", () => {
+  it("preserves result details for the start screen after game-over exit", () => {
     const state = createGameState(17, 960, 640);
 
     expect(startScreenView(state, 0)).toEqual({

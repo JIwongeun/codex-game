@@ -8,6 +8,7 @@ export const MAX_STEPS_PER_FRAME = 6;
 export const GAMEPLAY = {
   playerRadius: 5,
   playerSpeed: 440,
+  hitStopMs: 100,
   projectileMargin: 150,
   toolCallHitboxHeight: 15,
   toolCallHitboxMinWidth: 54,

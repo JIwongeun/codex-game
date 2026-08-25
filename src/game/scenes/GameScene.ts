@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import { FIXED_STEP_MS } from "../constants";
+import { FIXED_STEP_MS, GAMEPLAY } from "../constants";
 import type { GameEvent, GameState } from "../core/model";
 import {
   createGameState,
@@ -10,6 +10,7 @@ import {
   stepGame,
 } from "../core/simulation";
 import { InputController } from "../input/InputController";
+import { GameOverOverlay } from "../presentation/GameOverOverlay";
 import { GameRenderer } from "../presentation/GameRenderer";
 import { Hud } from "../presentation/Hud";
 import { PauseOverlay } from "../presentation/PauseOverlay";
@@ -32,12 +33,16 @@ export class GameScene extends Phaser.Scene {
   private inputController!: InputController;
   private gameRenderer!: GameRenderer;
   private hud!: Hud;
+  private gameOverOverlay!: GameOverOverlay;
   private pauseOverlay!: PauseOverlay;
   private readyOverlay!: ReadyOverlay;
   private readonly fixedStep = new FixedStepRunner();
   private readonly soundService = new SoundService();
   private focusPause!: FocusPauseController;
   private localBest = 0;
+  private resultsRevealRemainingMs = 0;
+  private resultsDismissedToReady = false;
+  private resultsIsNewBest = false;
 
   constructor() {
     super("game");
@@ -58,6 +63,7 @@ export class GameScene extends Phaser.Scene {
     this.gameRenderer = new GameRenderer(this, textResolution);
     this.hud = new Hud(this, textResolution);
     const gameParent = this.game.canvas.parentElement ?? document.body;
+    this.gameOverOverlay = new GameOverOverlay(gameParent);
     this.pauseOverlay = new PauseOverlay(gameParent);
     this.readyOverlay = new ReadyOverlay(
       gameParent,
@@ -78,7 +84,9 @@ export class GameScene extends Phaser.Scene {
     this.game.canvas.tabIndex = -1;
     this.inputController = new InputController(
       this,
-      () => this.state.phase === "playing",
+      () =>
+        this.state.phase === "playing" ||
+        (this.state.phase === "results" && !this.resultsDismissedToReady),
     );
     this.focusPause = new FocusPauseController(
       this.fixedStep,
@@ -151,6 +159,23 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.state.phase === "results") {
+      if (this.resultsRevealRemainingMs > 0) {
+        this.resultsRevealRemainingMs = Math.max(
+          0,
+          this.resultsRevealRemainingMs - delta,
+        );
+        this.inputController.consumeAction();
+        this.inputController.consumeExit();
+        this.renderFrame(0);
+        return;
+      }
+
+      if (this.inputController.consumeExit()) {
+        this.resultsDismissedToReady = true;
+        this.renderFrame(0);
+        return;
+      }
+
       if (this.inputController.consumeAction()) {
         this.soundService.unlock();
         this.state = restartRun(
@@ -163,9 +188,12 @@ export class GameScene extends Phaser.Scene {
         this.inputController.clearTransient();
         this.gameRenderer.resetEffects();
         this.cameras.main.resetFX();
+        this.resultsRevealRemainingMs = 0;
+        this.resultsDismissedToReady = false;
+        this.resultsIsNewBest = false;
         this.handleEvents([{ type: "run-started" }]);
       }
-      this.renderFrame(delta);
+      this.renderFrame(0);
       return;
     }
 
@@ -190,13 +218,29 @@ export class GameScene extends Phaser.Scene {
       this.state.phase === "playing" && !this.focusPause.isPaused,
       this.state.elapsedMs,
     );
-    this.gameRenderer.render(this.state, this.focusPause.isPaused ? 0 : delta);
+    this.gameRenderer.render(
+      this.state,
+      this.state.phase === "playing" && !this.focusPause.isPaused ? delta : 0,
+    );
     this.hud.render(
       this.state,
       this.localBest,
       this.soundService.isMuted,
     );
-    this.readyOverlay.render(this.state, this.localBest);
+    const showReady =
+      this.state.phase === "ready" ||
+      (this.state.phase === "results" && this.resultsDismissedToReady);
+    const showGameOver =
+      this.state.phase === "results" &&
+      this.state.lastHitSource !== null &&
+      !this.resultsDismissedToReady &&
+      this.resultsRevealRemainingMs <= 0;
+    this.readyOverlay.render(this.state, this.localBest, showReady);
+    this.gameOverOverlay.render(
+      showGameOver,
+      this.state,
+      this.resultsIsNewBest,
+    );
     this.pauseOverlay.render(this.focusPause.isPaused, this.state.elapsedMs);
   }
 
@@ -218,9 +262,22 @@ export class GameScene extends Phaser.Scene {
           true,
         );
       } else if (event.type === "player-hit") {
-        this.cameras.main.shake(180, 0.008, true);
+        this.resultsRevealRemainingMs = GAMEPLAY.hitStopMs;
+        this.resultsDismissedToReady = false;
+        this.resultsIsNewBest = false;
+        this.inputController.clearTransient();
+        this.cameras.main.shake(100, 0.009, true);
       } else if (event.type === "run-ended") {
+        const newBest = event.finalScore > this.localBest;
         this.localBest = saveGuestSessionBest(event.finalScore, this.localBest);
+        this.resultsIsNewBest = newBest;
+        if (newBest) {
+          this.soundService.playNewBest(event.source ? 0.32 : 0);
+        }
+        if (event.source === null) {
+          this.resultsRevealRemainingMs = 0;
+          this.resultsDismissedToReady = true;
+        }
         this.fixedStep.reset();
       }
     }
@@ -285,6 +342,7 @@ export class GameScene extends Phaser.Scene {
     this.game.events.off(Phaser.Core.Events.VISIBLE, this.handleFocus);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize);
     this.inputController.destroy();
+    this.gameOverOverlay.destroy();
     this.pauseOverlay.destroy();
     this.readyOverlay.destroy();
     this.soundService.destroy();
@@ -310,6 +368,9 @@ export class GameScene extends Phaser.Scene {
     this.inputController.clearTransient();
     this.gameRenderer.resetEffects();
     this.cameras.main.resetFX();
+    this.resultsRevealRemainingMs = 0;
+    this.resultsDismissedToReady = false;
+    this.resultsIsNewBest = false;
   }
 
   private applyDevelopmentElapsedTime(): void {

@@ -634,3 +634,127 @@ body {
   font-weight: 700;
   letter-spacing: 0.065em;
 }
+
+.game-over-overlay {
+  position: absolute;
+  z-index: 110;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.game-over-overlay[hidden] {
+  display: none;
+}
+
+.game-over-overlay__copy {
+  display: grid;
+  min-width: min(410px, calc(100vw - 40px));
+  justify-items: center;
+  color: #171717;
+  text-align: center;
+}
+
+.game-over-overlay__eyebrow,
+.game-over-overlay__time,
+.game-over-overlay__source,
+.game-over-overlay__best,
+.game-over-overlay__actions p,
+.game-over-overlay h2 {
+  margin: 0;
+}
+
+.game-over-overlay__eyebrow {
+  color: #686868;
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.game-over-overlay h2 {
+  margin-top: 16px;
+  font-size: clamp(3rem, 6vw, 5.4rem);
+  font-weight: 820;
+  letter-spacing: -0.055em;
+  line-height: 0.82;
+}
+
+.game-over-overlay__time {
+  margin-top: 23px;
+  color: #686868;
+  font-size: 0.72rem;
+  font-weight: 620;
+  letter-spacing: 0.085em;
+}
+
+.game-over-overlay__source {
+  margin-top: 9px;
+  color: #686868;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.075em;
+}
+
+.game-over-overlay__source strong {
+  color: #171717;
+  font-weight: 760;
+}
+
+.game-over-overlay__best {
+  margin-top: 18px;
+  padding: 6px 9px 5px;
+  color: #fff;
+  background: #287a50;
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.game-over-overlay__best[hidden] {
+  display: none;
+}
+
+.game-over-overlay__actions {
+  display: grid;
+  width: 100%;
+  margin-top: 30px;
+  border-top: 1px solid #d4d4d0;
+  border-bottom: 1px solid #d4d4d0;
+}
+
+.game-over-overlay__actions p {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px;
+  padding: 9px 2px 8px;
+  font-size: 0.64rem;
+  letter-spacing: 0.075em;
+}
+
+.game-over-overlay__actions p + p {
+  border-top: 1px solid #e7e7e3;
+}
+
+.game-over-overlay__actions strong {
+  justify-self: end;
+  font-weight: 760;
+}
+
+.game-over-overlay__actions span {
+  justify-self: start;
+  color: #686868;
+  font-weight: 580;
+}
+
+@media (max-width: 640px) {
+  .game-over-overlay h2 {
+    font-size: clamp(2.9rem, 15vw, 4.4rem);
+  }
+
+  .game-over-overlay__copy {
+    min-width: calc(100vw - 48px);
+  }
+}

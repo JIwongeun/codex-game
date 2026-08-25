@@ -368,6 +368,20 @@ describe("SoundService", () => {
     expect(context?.gains[2]?.disconnect).toHaveBeenCalledOnce();
   });
 
+  it("separates the hit impact from the delayed new-session-best chime", () => {
+    const sound = new SoundService();
+
+    sound.consume([{ type: "player-hit", source: "tool-call" }]);
+    const context = FakeAudioContext.instances[0];
+    const impactToneCount = context?.oscillators.length ?? 0;
+    expect(impactToneCount).toBe(2);
+
+    sound.playNewBest();
+    expect(context?.oscillators).toHaveLength(impactToneCount + 2);
+    expect(context?.oscillators.at(-2)?.start).toHaveBeenCalledWith(4.32);
+    expect(context?.oscillators.at(-1)?.start).toHaveBeenCalledWith(4.44);
+  });
+
   it("resumes a suspended context and closes it on destroy", () => {
     FakeAudioContext.nextState = "suspended";
     const sound = new SoundService();

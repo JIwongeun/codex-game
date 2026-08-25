@@ -233,6 +233,25 @@ export class SoundService {
     this.updateMusicGain();
   }
 
+  playNewBest(delaySeconds = 0.32): void {
+    this.play({
+      frequency: 880,
+      endFrequency: 880,
+      durationSeconds: 0.11,
+      gain: 0.026,
+      wave: "sine",
+      delaySeconds,
+    });
+    this.play({
+      frequency: 1_320,
+      endFrequency: 1_320,
+      durationSeconds: 0.2,
+      gain: 0.03,
+      wave: "sine",
+      delaySeconds: delaySeconds + 0.12,
+    });
+  }
+
   consume(events: readonly GameEvent[]): void {
     for (const event of events) {
       if (event.type === "run-started") {
@@ -308,6 +327,13 @@ export class SoundService {
           durationSeconds: 0.22,
           gain: 0.06,
           wave: "square",
+        });
+        this.play({
+          frequency: 1_100,
+          endFrequency: 180,
+          durationSeconds: 0.09,
+          gain: 0.022,
+          wave: "triangle",
         });
       } else if (event.type === "blackout-started") {
         this.play({
