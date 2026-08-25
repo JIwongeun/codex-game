@@ -2,6 +2,20 @@
 
 가장 최근 항목이 위로 오도록 기록한다. 각 항목은 사실로 확인한 내용만 포함한다.
 
+## 2026-08-25 — Game Over 순백 배경과 24% 무채색 흔적
+
+### 구현
+
+- white backdrop을 gray로 낮추던 Game Over `contrast(0.82)` 필터를 제거하고 `grayscale(1)`만 유지
+- 68% Canvas pure-white wash는 유지하고 DOM pure-white wash를 50%에서 25%로 낮춰 frozen Game 가시성을 약 24%로 높임
+- 공격이 없는 배경 면은 pure white를 유지하고 blur 아래 공격은 hue 없는 gray 흔적으로만 표시
+- black player node와 semantic hit focus foreground, danger red 중앙 copy와 결과 입력은 변경하지 않음
+- 제품·디자인·기술 문서와 D-067 결정에 순백 배경·25% DOM wash·24% 무채색 흔적 기준을 동기화
+
+### 검증
+
+- 최종 `pnpm check` 통과: typecheck, 21개 test file의 153개 test, production build와 verifier 완료
+
 ## 2026-08-25 — Game Over 배경 가시성을 Start ambient와 일치
 
 ### 구현
